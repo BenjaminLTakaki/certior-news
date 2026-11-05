@@ -4,7 +4,10 @@
 
 const params = new URLSearchParams(location.search);
 const FEED_URL = params.get('feed') || 'feed.json';
-const TOPICS = { all: 'All', politics: 'Politics', sports: 'Sports' };
+const TOPICS = { all: 'All', politics: 'Politics', business: 'Business', tech: 'Tech', health: 'Health', climate: 'Climate', crime: 'Crime', disasters: 'Disasters', culture: 'Culture', sports: 'Sports' };
+const SIDE_LABEL = { left: 'Left-leaning', center: 'Center', right: 'Right-leaning', unrated: 'Not rated' };
+const MIX_DAYS = 7;
+const BLIND_KEEP = 40, BLIND_FIRST_READING = 10, BLIND_SETTLED = 20;     // 5 pairs a day: the first reading takes two visits, and old picks fade out so it can shift
 const COLUMNS = { left: 'Left', center: 'Center', right: 'Right', unrated: 'Not rated' };
 const LANDSCAPE = matchMedia('(orientation: landscape) and (max-height: 500px) and (pointer: coarse)');   // a sideways phone: see #rotate
 const SMOOTH = matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
@@ -50,6 +53,52 @@ function markWatched(id) {
   if (watched.has(id)) return;
   watched.add(id);
   store.set('watched', [...watched].slice(-3000));
+  const clip = stories[activeS]?.clips.find((c) => c.id === id);
+  if (clip && clip.column !== 'unrated') recordMix(clip.column);
+}
+
+// ---------------------------------------------------------------- your mix: on this device only, never a reward
+const dayKey = (t = Date.now()) => new Date(t).toISOString().slice(0, 10);
+function recordMix(column) {
+  const cutoff = dayKey(Date.now() - MIX_DAYS * 864e5);
+  const mix = Object.fromEntries(Object.entries(store.get('mix', {})).filter(([day]) => day > cutoff));
+  const today = (mix[dayKey()] = mix[dayKey()] || {});
+  today[column] = (today[column] || 0) + 1;
+  store.set('mix', mix);
+}
+function renderMix(box) {
+  box.textContent = '';
+  const cutoff = dayKey(Date.now() - MIX_DAYS * 864e5);
+  const totals = { left: 0, center: 0, right: 0 };
+  for (const [day, counts] of Object.entries(store.get('mix', {}))) {
+    if (day > cutoff) for (const k of Object.keys(totals)) totals[k] += counts[k] || 0;
+  }
+  const sum = totals.left + totals.center + totals.right;
+  if (!sum) {
+    box.append(el('p', 'small', 'Watch a few clips and you\u2019ll see how much of each side you\u2019ve watched this week. Only this device knows.'));
+    return;
+  }
+  for (const [k, n] of Object.entries(totals)) {
+    const row = el('div', 'mix-row');
+    const bar = el('span', 'mix-bar');
+    const fill = el('i');
+    fill.style.width = `${Math.round((n / sum) * 100)}%`;
+    bar.append(fill);
+    row.append(el('span', '', COLUMNS[k]), bar, el('span', 'mix-n', String(n)));
+    box.append(row);
+  }
+  box.append(el('p', 'small', 'Clips you\u2019ve watched in the last 7 days. Only this device knows.'));
+  const least = Object.keys(totals).reduce((a, b) => (totals[b] < totals[a] ? b : a));
+  if (sum >= 5 && settings.side !== least) {
+    const b = el('button', 'mix-try', `Open stories on ${COLUMNS[least]} for a while`);
+    b.onclick = () => {
+      settings.side = least;
+      side = least;
+      store.set('settings', settings);
+      b.replaceWith(el('p', 'small', `Stories will open on ${COLUMNS[least]} when they have it. Change this in Settings.`));
+    };
+    box.append(b);
+  }
 }
 
 // ---------------------------------------------------------------- state
@@ -91,6 +140,11 @@ async function loadFeed() {
 
 function renderTopics() {
   topicsEl.textContent = '';
+  const strip = el('div', 'strip');
+  const daily = el('button', 'daily-tab' + (dailyDone() ? '' : ' fresh'), 'Blind Pick');
+  if (!dailyDone()) daily.setAttribute('aria-label', 'Blind Pick, new pairs today');
+  daily.onclick = openDaily;
+  strip.append(daily);
   for (const [key, label] of Object.entries(TOPICS)) {
     const b = el('button', key === topic ? 'on' : '', label);
     b.setAttribute('aria-pressed', key === topic);
@@ -101,7 +155,7 @@ function renderTopics() {
       renderTopics();
       if (feed) { onScrollStart(); start(); }
     };
-    topicsEl.append(b);
+    strip.append(b);
   }
   const find = el('button', 'find');
   find.innerHTML = FIND_ICON;
@@ -115,7 +169,8 @@ function renderTopics() {
   refresh.innerHTML = REFRESH_ICON;
   refresh.setAttribute('aria-label', 'Check for new stories');
   refresh.onclick = refreshFeed;
-  topicsEl.append(refresh, find, gear);
+  topicsEl.append(strip, refresh, find, gear);
+  strip.querySelector('.on')?.scrollIntoView({ inline: 'center', block: 'nearest' });
 }
 
 function renderSearch() {
@@ -227,9 +282,11 @@ function renderStory(s, si) {
       src.append(el('b', '', c.channel), ` · ${c.country ? `${c.country} · ` : ''}${ago(c.published)}`);
       const snd = el('button', 'snd');
       snd.innerHTML = SOUND_ON; snd.setAttribute('aria-label', 'Sound on or off'); snd.onclick = toggleMute;
+      const compare = el('button', 'compare-btn', 'Compare');
+      compare.onclick = () => openCompare(si, c.id);
       const yt = el('a', '', 'YouTube');
       yt.href = `https://www.youtube.com/watch?v=${c.id}`; yt.target = '_blank'; yt.rel = 'noopener';
-      row.append(src, ...(videosOn() ? [snd] : []), yt);
+      row.append(src, ...(videosOn() ? [snd] : []), s.clips.length > 1 ? compare : yt);
       meta.append(el('h2', 'ctitle', c.title));
       if (c.note && settings.notes) meta.append(el('p', 'note', c.note));    // YouTube's box in the player cuts this off, and we can't change it
       meta.append(row);
@@ -255,7 +312,7 @@ function showEnd() {
   feedEl.append(sec);
 }
 
-const inTopic = (s) => (topic === 'all' ? settings.sportsInAll || s.topic !== 'sports' : s.topic === topic);
+const inTopic = (s) => (topic === 'all' ? settings.sportsInAll || s.topic !== 'sports' : (s.tags || []).includes(topic));
 
 async function loadMore() {
   if (query || ended || loadingMore || !stories.length) return;
@@ -563,6 +620,8 @@ function openSettings() {
   $('#set-side').value = settings.side;
   for (const t of toggles) $(`#set-${t}`).checked = settings[t];
   $('#set-clear').textContent = 'Clear watched history';
+  $('#set-blind').textContent = 'Clear my Blind Pick results';
+  renderMix($('#settings-mix'));
   settingsEl.showModal();
 }
 for (const t of toggles) {
@@ -580,6 +639,10 @@ $('#set-clear').onclick = (e) => {
   settingsChanged = true;
   e.target.textContent = 'Cleared';
 };
+$('#set-blind').onclick = (e) => {
+  store.set('blind', { said: '', picks: [] });
+  e.target.textContent = 'Cleared';
+};
 $('#set-reset').onclick = () => {
   try { localStorage.clear(); } catch { /* private mode etc. */ }
   location.reload();
@@ -589,6 +652,170 @@ settingsEl.addEventListener('close', () => {
   if (!feed) return;
   if (settingsChanged) { settingsChanged = false; onScrollStart(); start(); } else settle();
 });
+
+// ---------------------------------------------------------------- compare
+const openSheet = (d) => { if (playerReady) player.pauseVideo(); d.showModal(); };
+for (const d of [$('#daily'), $('#compare')]) {
+  d.querySelector('.done').onclick = () => d.close();
+  d.addEventListener('close', () => { if (feed) settle(); });
+}
+
+function openCompare(si, currentClip) {
+  const s = stories[si], box = $('#compare-body');
+  box.textContent = '';
+  if (s.blindspot) box.append(el('p', 'small', `No ${s.blindspot} coverage among the outlets in this app.`));
+  for (const [col, label] of Object.entries(COLUMNS)) {
+    const clips = s.clips.filter((c) => c.column === col);
+    if (!clips.length) continue;
+    if (s.topic !== 'sports') box.append(el('h3', 'set-heading', label));     // left and right mean nothing for sport
+    for (const c of clips) {
+      const b = el('button', 'headline' + (c.id === currentClip ? ' now' : ''));
+      b.append(el('span', 'headline-title', c.title), el('span', 'small', `${c.channel} \u00b7 ${c.country ? `${c.country} \u00b7 ` : ''}${ago(c.published)}`));
+      b.onclick = () => {
+        const ci = s.clips.indexOf(c), sc = clipsEl(si);
+        $('#compare').close();
+        sc.scrollTo({ left: ci * sc.clientWidth, behavior: SMOOTH });
+      };
+      box.append(b);
+    }
+  }
+  const yt = el('a', 'set-link', 'Watch this clip on YouTube');
+  yt.href = `https://www.youtube.com/watch?v=${currentClip}`; yt.target = '_blank'; yt.rel = 'noopener';
+  box.append(yt, el('p', 'small', 'Headlines from YouTube videos. Sides are outlet ratings from Media Bias/Fact Check, not judgements of these headlines.'));
+  openSheet($('#compare'));
+}
+
+// ---------------------------------------------------------------- blind pick
+// Two headlines on one event, outlets hidden: which would you trust more? No right answer, no score, nothing about watching.
+// Together the picks hint at someone's politics, so they stay on this device and are never sent anywhere.
+let dailyData = null;
+const dailyState = () => store.get('dailyGame', {});
+const blindState = () => store.get('blind', { said: '', picks: [] });
+function dailyDone() {
+  const g = dailyState();
+  return g.date === dayKey() && g.finished;
+}
+async function openDaily() {
+  const box = $('#daily-body');
+  box.textContent = '';
+  box.append(el('p', 'small', 'Loading\u2026'));
+  openSheet($('#daily'));
+  try {
+    const r = await fetch(`${FEED_URL.replace('feed.json', 'daily.json')}?t=${Date.now()}`, { cache: 'no-store' });
+    if (!r.ok) throw new Error(`daily ${r.status}`);
+    dailyData = await r.json();
+  } catch {
+    box.textContent = '';
+    box.append(el('p', '', 'Couldn\u2019t load today\u2019s pairs. Check your connection.'));
+    return;
+  }
+  if (!dailyData.rounds || dailyData.rounds.length < 3) {
+    box.textContent = '';
+    box.append(el('p', '', 'Today\u2019s pairs aren\u2019t ready yet. Try again later.'));
+    return;
+  }
+  if (dailyState().date !== dailyData.date) store.set('dailyGame', { date: dailyData.date, picks: [] });
+  renderDaily();
+}
+
+function askLean(box) {
+  box.append(el('p', 'daily-q', 'Before you start: where do you think you lean?'));
+  box.append(el('p', 'small', 'Your picks get compared with this later. It stays on this device.'));
+  for (const [value, label] of [['left', 'Left'], ['center', 'Center'], ['right', 'Right'], ['unsure', 'Not sure, or I\u2019d rather not say']]) {
+    const b = el('button', 'pick short', label);
+    b.onclick = () => {
+      store.set('blind', { ...blindState(), said: value });
+      renderDaily();
+    };
+    box.append(b);
+  }
+}
+
+function renderDaily() {
+  const box = $('#daily-body'), g = dailyState(), rounds = dailyData.rounds, i = g.picks.length;
+  box.textContent = '';
+  if (!blindState().said) return askLean(box);
+  if (i >= rounds.length) return renderDailyResult();
+  const r = rounds[i];
+  box.append(el('p', 'small', `Pair ${i + 1} of ${rounds.length}`));
+  box.append(el('p', 'daily-q', 'Same event, outlets hidden. Which headline would you trust more?'));
+  r.clips.forEach((c, pick) => {
+    const b = el('button', 'pick', c.title);
+    b.onclick = () => {
+      const state = dailyState();
+      state.picks.push(pick);
+      store.set('dailyGame', state);
+      const blind = blindState();
+      blind.picks = [...blind.picks, c.column].slice(-BLIND_KEEP);
+      store.set('blind', blind);
+      revealDaily(i);
+    };
+    box.append(b);
+  });
+}
+
+function revealDaily(i) {
+  const box = $('#daily-body'), g = dailyState(), r = dailyData.rounds[i];
+  box.textContent = '';
+  box.append(el('p', 'small', `Pair ${i + 1} of ${dailyData.rounds.length}`));
+  box.append(el('p', 'daily-q', 'Here\u2019s who wrote what.'));
+  r.clips.forEach((c, n) => {
+    const card = el('div', 'pick shown' + (n === g.picks[i] ? ' chosen' : ''));
+    card.append(el('span', 'headline-title', c.title), el('span', 'small', `${c.channel} \u00b7 ${c.country} \u00b7 ${SIDE_LABEL[c.column]}${n === g.picks[i] ? ' \u00b7 your pick' : ''}`));
+    box.append(card);
+  });
+  const last = i + 1 >= dailyData.rounds.length;
+  const next = el('button', 'daily-next', last ? 'See your reading' : 'Next');
+  next.onclick = renderDaily;
+  box.append(next);
+}
+
+function renderReading(box) {
+  const { said, picks } = blindState();
+  const right = picks.filter((c) => c === 'right').length, n = picks.length;
+  if (n < BLIND_FIRST_READING) {
+    box.append(el('p', 'daily-q', `${BLIND_FIRST_READING - n} more pick${BLIND_FIRST_READING - n === 1 ? '' : 's'} until your first reading.`));
+    return;
+  }
+  const meter = el('div', 'meter');
+  const marker = el('i');
+  marker.style.left = `${Math.round((right / n) * 100)}%`;
+  meter.append(marker);
+  const ends = el('div', 'meter-ends');
+  ends.append(el('span', '', 'Trusted left-leaning'), el('span', '', 'Trusted right-leaning'));
+  const line = `Blind, you trusted the right-leaning headline ${right} of ${n} times.`;
+  const youSaid = COLUMNS[said] ? ` You said you lean ${COLUMNS[said]}.` : '';
+  box.append(el('p', 'daily-q', line + youSaid), meter, ends);
+  box.append(el('p', 'small', `${n < BLIND_SETTLED ? 'An early reading from just a few headlines. ' : ''}This is about how headlines read to you, not what you believe, and tone can sway it as much as politics. Sides are outlet ratings from Media Bias/Fact Check.`));
+}
+
+function renderDailyResult() {
+  const box = $('#daily-body'), g = dailyState();
+  if (!g.finished) {
+    g.finished = true;
+    store.set('dailyGame', g);
+    renderTopics();
+  }
+  const { picks } = blindState(), right = picks.filter((c) => c === 'right').length;
+  renderReading(box);
+  box.append(el('p', 'small', 'New pairs tomorrow, and your reading will shift as they come in.'));
+  const share = el('button', 'daily-next', 'Challenge a friend');
+  share.onclick = async () => {
+    const text = picks.length >= BLIND_FIRST_READING
+      ? `With the outlets hidden, I trusted the right-leaning headline ${right} of ${picks.length} times. What would you pick?`
+      : 'Two headlines, outlets hidden. Which would you trust? You might be surprised who wrote it.';
+    const url = location.origin + location.pathname;
+    try {
+      if (navigator.share) { await navigator.share({ text, url }); return; }
+      await navigator.clipboard.writeText(`${text}\n${url}`);
+      share.textContent = 'Copied';
+    } catch { /* they closed the share sheet */ }
+  };
+  box.append(share, el('h3', 'set-heading', 'What you actually watch'));
+  const mix = el('div');
+  renderMix(mix);
+  box.append(mix, el('p', 'small', 'Headlines from YouTube videos.'));
+}
 
 function start() {
   startRun++;
@@ -600,7 +827,7 @@ function start() {
     // Watched stories wait until the end, so they never sit in front of ones you haven't seen.
     const pool = (feed.stories || []).filter(inTopic);
     let fresh = orderStories(pool).filter((s) => !s._seen);
-    if (!fresh.length && pool.length) {
+    if (!fresh.length) {       // nothing left in the top stories for this tab: look through all of them
       if (!everything) {
         const run = startRun;
         setStatus('Loading\u2026');

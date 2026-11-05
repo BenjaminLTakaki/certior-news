@@ -37,7 +37,9 @@ Open the app in **Safari → Share → Add to Home Screen**. Open it from the Ho
 | Swipe up / down on the video | Next / previous story |
 | Swipe left / right on the video | Same story, next outlet (Left → Center → Right) |
 | Tap the video | Pause / play |
-| Tap **All / Politics / Sports** at the top | Show only that topic |
+| Tap a tab at the top | Show only that topic; scroll the tabs sideways for more |
+| Tap **Blind Pick** | Two headlines, outlets hidden: which would you trust? Builds a private reading over time |
+| Tap **Compare** | Every outlet's headline for the story, by side |
 | Tap the magnifier | Search every story from the last two days by topic |
 | Tap **Left / Center / Right** | Jump to that side (not shown for sport) |
 | 🔈 | Sound on/off |

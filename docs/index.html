@@ -40,7 +40,23 @@
     </div>
   </dialog>
 
-  <dialog id="settings" aria-labelledby="settings-title">
+  <dialog id="daily" class="sheet" aria-labelledby="daily-title">
+    <header>
+      <h2 id="daily-title">Blind Pick</h2>
+      <button type="button" class="done">Done</button>
+    </header>
+    <div id="daily-body"></div>
+  </dialog>
+
+  <dialog id="compare" class="sheet" aria-labelledby="compare-title">
+    <header>
+      <h2 id="compare-title">Compare headlines</h2>
+      <button type="button" class="done">Done</button>
+    </header>
+    <div id="compare-body"></div>
+  </dialog>
+
+  <dialog id="settings" class="sheet" aria-labelledby="settings-title">
     <header>
       <h2 id="settings-title">Settings</h2>
       <button type="button" id="settings-done">Done</button>
@@ -59,8 +75,11 @@
     <label class="set"><span>Hide stories I've watched</span><input type="checkbox" id="set-hideWatched"></label>
     <label class="set"><span>Show sports under All</span><input type="checkbox" id="set-sportsInAll"></label>
     <label class="set"><span>Show funding notices</span><input type="checkbox" id="set-notes"></label>
+    <h3 class="set-heading">Your mix</h3>
+    <div id="settings-mix"></div>
     <div class="set-actions">
       <button type="button" id="set-clear">Clear watched history</button>
+      <button type="button" id="set-blind">Clear my Blind Pick results</button>
       <button type="button" id="set-reset">Reset everything on this device</button>
     </div>
     <nav class="set-links" aria-label="About Swipe News">

@@ -227,7 +227,7 @@ def test_daily_game_pairs_left_and_right_headlines():
     assert "l2" not in picked                        # a headline naming its outlet gives the answer away
     assert "l3" not in picked and "l4" not in picked
     assert sum(c in picked for c in ("l5", "l6", "l7")) == 2     # US politics can't fill the game
-    assert all({c["column"] for c in r["clips"]} == {"left", "right"} and r["ask"] in ("left", "right") for r in daily["rounds"])
+    assert all({c["column"] for c in r["clips"]} == {"left", "right"} for r in daily["rounds"])
     assert grouping.build_daily(stories, "2026-11-05") == daily  # same day, same game
     same_event = [story(0, "Protesters flood the capital demanding reform", "Rioters overrun capital as police stand down"),
                   story(1, "Protesters flood the capital again tonight", "Rioters overrun capital for a second night")]

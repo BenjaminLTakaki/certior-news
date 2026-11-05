@@ -253,7 +253,7 @@ def _words(title: str) -> set[str]:
 
 
 def build_daily(stories: list[dict], date: str) -> dict:
-    """The day's game: pairs of real headlines from the left and the right on the same event, the most differently worded first.
+    """The day's Blind Pick: pairs of real headlines from the left and the right on the same event, the most differently worded first.
     Politics only: a tornado has no framing to spot, however each side words it."""
     candidates = []
     for s in stories:
@@ -275,7 +275,7 @@ def build_daily(stories: list[dict], date: str) -> dict:
             candidates.append((best[0], s["us_domestic"], best[1], best[2]))
     candidates.sort(key=lambda c: c[0])
     rounds, us, used = [], 0, []
-    pick = random.Random(date)      # same game for everyone, and the answer isn't always in the same place
+    pick = random.Random(date)      # same pairs for everyone, and the left isn't always on top
     for _, is_us, a, b in candidates:
         if is_us and us >= config.DAILY_MAX_US:
             continue
@@ -286,8 +286,7 @@ def build_daily(stories: list[dict], date: str) -> dict:
         us += is_us
         pair = [a, b]
         pick.shuffle(pair)
-        rounds.append({"ask": pick.choice(["left", "right"]),
-                       "clips": [{k: c[k] for k in ("id", "title", "channel", "country", "column", "note")} for c in pair]})
+        rounds.append({"clips": [{k: c[k] for k in ("id", "title", "channel", "country", "column", "note")} for c in pair]})
         if len(rounds) == config.DAILY_ROUNDS:
             break
     return {"date": date, "rounds": rounds}
