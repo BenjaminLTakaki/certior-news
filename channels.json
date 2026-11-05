@@ -53,7 +53,7 @@
     { "name": "Vogue", "handle": "@Vogue", "region": "americas", "country": "US", "lean": "unrated", "tags": ["culture"] },
     { "name": "WIRED", "handle": "@WIRED", "region": "americas", "country": "US", "lean": "unrated", "tags": ["tech"] },
     { "name": "The Verge", "handle": "@TheVerge", "region": "americas", "country": "US", "lean": "lean-left", "tags": ["tech"] },
-    { "name": "Nature", "handle": "@NatureVideoChannel", "region": "europe", "country": "UK", "lean": "unrated", "tags": ["tech"] },
+    { "name": "Nature", "handle": "@NatureVideoChannel", "region": "europe", "country": "UK", "lean": "unrated", "tags": ["science"] },
     { "name": "CNBC International", "handle": "@CNBCi", "region": "europe", "country": "UK", "lean": "center", "tags": ["business"] },
     { "name": "Bloomberg Television", "handle": "@markets", "region": "americas", "country": "US", "lean": "lean-left", "tags": ["business"] },
     { "name": "Financial Times", "handle": "@FinancialTimes", "region": "europe", "country": "UK", "lean": "center" },

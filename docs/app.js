@@ -4,7 +4,7 @@
 
 const params = new URLSearchParams(location.search);
 const FEED_URL = params.get('feed') || 'feed.json';
-const TOPICS = { all: 'All News', politics: 'Politics', business: 'Business', tech: 'Tech', health: 'Health', climate: 'Climate', crime: 'Crime', disasters: 'Disasters', culture: 'Culture', sports: 'Sports' };
+const TOPICS = { all: 'All News', politics: 'Politics', business: 'Business', tech: 'Tech', science: 'Science & Health', crime: 'Crime', disasters: 'Disasters', culture: 'Culture', sports: 'Sports' };
 const REGION_LABEL = { americas: 'Americas', asia: 'Asia and Pacific', europe: 'Europe', mideast_africa: 'Africa and Middle East' };
 const COUNTRY = {
   US: ['United States', '\u{1F1FA}\u{1F1F8}'], UK: ['United Kingdom', '\u{1F1EC}\u{1F1E7}'], India: ['India', '\u{1F1EE}\u{1F1F3}'], Qatar: ['Qatar', '\u{1F1F6}\u{1F1E6}'],
@@ -46,34 +46,6 @@ if (params.has('debug')) {   // on-screen console for testing on the iPhone with
   const s = document.createElement('script');
   s.src = 'https://cdn.jsdelivr.net/npm/eruda'; s.onload = () => window.eruda.init();
   document.head.appendChild(s);
-}
-
-// ponytail: temporary, to find the blank strip under the tab bar on an iPhone Home Screen app. Remove once fixed.
-// Red line: where the page thinks the screen ends. Green line: where the physical screen ends.
-if (params.has('size')) {
-  const probe = (css) => { const d = document.createElement('div'); d.style.cssText = `position:fixed;left:0;top:0;width:1px;visibility:hidden;${css}`; document.body.append(d); const v = d.getBoundingClientRect(); d.remove(); return v; };
-  const box = document.createElement('pre');
-  box.style.cssText = 'position:fixed;z-index:99;left:8px;right:8px;top:30%;margin:0;padding:10px;font:12px/1.4 monospace;background:#222;color:#fff;border-radius:8px;pointer-events:none;white-space:pre-wrap';
-  const line = (color, css) => { const l = document.createElement('div'); l.style.cssText = `position:fixed;z-index:99;left:0;right:0;height:4px;background:${color};pointer-events:none;${css}`; document.body.append(l); };
-  line('red', 'bottom:0');
-  line('lime', `top:${screen.height - 4}px`);
-  const report = () => {
-    const inset = probe('padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)');
-    const tb = document.querySelector('#tabbar').getBoundingClientRect();
-    box.textContent = [
-      `standalone ${navigator.standalone} | display-mode standalone ${matchMedia('(display-mode: standalone)').matches}`,
-      `status bar meta ${document.querySelector('meta[name=apple-mobile-web-app-status-bar-style]')?.content}`,
-      `innerHeight ${innerHeight} | clientHeight ${document.documentElement.clientHeight} | visualViewport ${visualViewport?.height} (top ${visualViewport?.offsetTop})`,
-      `screen ${screen.width}x${screen.height} | availHeight ${screen.availHeight} | dpr ${devicePixelRatio}`,
-      `100vh ${probe('height:100vh').height} | 100dvh ${probe('height:100dvh').height} | 100lvh ${probe('height:100lvh').height} | 100svh ${probe('height:100svh').height}`,
-      `safe area padding total ${inset.height} (top+bottom)`,
-      `tab bar ${Math.round(tb.top)} to ${Math.round(tb.bottom)}`,
-    ].join(String.fromCharCode(10));
-  };
-  document.body.append(box);
-  addEventListener('load', report);
-  setTimeout(report, 1500);
-  addEventListener('resize', report);
 }
 
 // ---------------------------------------------------------------- storage (never throws)

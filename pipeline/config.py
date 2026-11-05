@@ -80,11 +80,8 @@ TAG_WORDS = {
                  r"billion|oil prices?|companies|company|ceo|startup|layoffs?|jobs? row|wages?|prices?|cost of living|retail)\b"),
     "tech": (r"\b(ai|a\.i\.|artificial intelligence|chatgpt|openai|anthropic|chips?|semiconductors?|nvidia|apple|google|microsoft|meta|amazon|tesla|"
              r"robots?|robotics|software|hackers?|cyberattacks?|cyber attack|malware|crypto|bitcoin|data cent(er|re)s?|social media|smartphone|"
-             r"nasa|spacex?|space x|satellite|meteorite|astronauts?|scientists?|researchers?|technology|tech)\b"),
-    "health": (r"\b(health|doctors?|nurses?|patients?|cancer|vaccines?|disease|virus|outbreak|pandemic|surgery|colonoscop\w+|medical|medicine|"
-               r"mental health|healthcare|heart (disease|attack|health)|nhs|lung|obesity|dementia|malaria|cholera)\b"),
-    "climate": (r"\b(climate|cop\d\d|emissions?|carbon|pollution|smog|air quality|renewable|solar|wind (farm|power|turbines?)|energy transition|"
-                r"global warming|heatwave|drought|wildfires?|coral|deforestation|environment\w*)\b"),
+             r"technology|tech)\b"),
+    "science": (r"\b(nasa|spacex?|space x|satellite|meteorite|astronauts?|scientists?|researchers?|science|scientific|study finds|species|wildlife|fossil|dinosaur|telescope|planet|moon|asteroid|health|doctors?|nurses?|patients?|cancer|vaccines?|disease|virus|outbreak|pandemic|surgery|colonoscop\w+|medical|medicine|mental health|healthcare|heart (disease|attack|health)|nhs|lung|obesity|dementia|malaria|cholera|climate|cop\d\d|emissions?|carbon|pollution|smog|air quality|renewable|solar|wind (farm|power|turbines?)|energy transition|global warming|heatwave|drought|wildfires?|coral|deforestation|environment\w*)\b"),
     "crime": (r"\b(murder\w*|killers?|killing|convicted|guilty|jurors?|trial|sentenced|jailed|jail|prison|arrested|arrests?|rape|assault|"
               r"robbery|theft|stolen|fraud|shooting|bomb threats?|gunman|stabb\w+|smuggl\w+|seized|bodycam|prosecut\w+|investigat\w+|detained)\b"),
     "disasters": (r"\b(earthquake|tsunami|floods?|flooding|flooded|drenched|tornado|hurricane|cyclone|typhoon|storm|landslide|sinkhole|volcano|"

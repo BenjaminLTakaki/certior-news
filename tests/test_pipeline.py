@@ -199,10 +199,13 @@ def test_tags_can_overlap_and_avoid_known_traps():
     assert "business" not in tags("Cyberattack hits French blood bank fridges")
     assert "business" not in tags("Korean kidswear goes viral at Seoul's Namdaemun Market")
     assert "business" not in tags("IDF arrests West Bank terror cells")
-    assert "health" not in tags("Netflix show returns with humor and heart")
+    assert "science" not in tags("Netflix show returns with humor and heart")
+    assert "science" in tags("WHO approves clinical trials on two new Ebola vaccines")
+    assert "science" in tags("Meteorite spotted over Singapore was space debris, NASA says")
+    assert "tech" not in tags("Meteorite spotted over Singapore was space debris, NASA says")
     assert "crime" not in tags("Police clash with students at the march")
     assert "tech" not in tags("Minister said the plan is fine")     # "ai" is in "said"
-    assert "climate" in tags("COP31 in Antalya aims to turn climate ambition into action")
+    assert "science" in tags("COP31 in Antalya aims to turn climate ambition into action")
     assert "crime" in tags("Russell Brand found guilty of rape")
     assert "disasters" in tags("Tornado strikes Brazil airport")
     assert tags("Liverpool stun Real Madrid in the Champions League") == ["sports"]
