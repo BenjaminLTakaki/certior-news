@@ -158,7 +158,7 @@ def topic_of(clips: list[dict]) -> str:
     titles = [c["title"] for c in clips]
     if any(c.get("topic") == "sports" for c in clips) or _share_matches(_SPORTS, titles):
         return "sports"
-    if _share_matches(_POLITICS, titles) or is_us_domestic(titles):
+    if _share_matches(_POLITICS, titles):       # not is_us_domestic: an alligator in Florida is US news, not politics
         return "politics"
     return "other"
 

@@ -188,6 +188,8 @@ def test_topic_keywords_avoid_their_known_traps():
     assert grouping.topic_of([{"title": "Wall Street stocks rally after the jobs report"}]) == "other"
     assert grouping.topic_of([{"title": "Your hydro bill is going up"}]) == "other"
     assert grouping.topic_of([{"title": "Senate race too close to call"}]) == "politics"
+    assert grouping.topic_of([{"title": "Alligator strolls into Florida bagel shop"}]) == "other"
+    assert grouping.topic_of([{"title": "Mississippi too close to call"}]) == "politics"
 
 
 def test_sports_outlet_makes_a_sports_story_without_left_right_labels():
