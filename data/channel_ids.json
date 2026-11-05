@@ -243,5 +243,25 @@
   "channel_id": "UCSrZ3UV4jOidv8ppoVuvW9Q",
   "uploads": "UUSrZ3UV4jOidv8ppoVuvW9Q",
   "title": "euronews"
+ },
+ "@BBCSport": {
+  "channel_id": "UCW6-BQWFA70Dyyc7ZpZ9Xlg",
+  "uploads": "UUW6-BQWFA70Dyyc7ZpZ9Xlg",
+  "title": "BBC Sport"
+ },
+ "@SkySportsNews": {
+  "channel_id": "UCcw05gGzjLIs5dnxGkQHMvw",
+  "uploads": "UUcw05gGzjLIs5dnxGkQHMvw",
+  "title": "Sky Sports News"
+ },
+ "@espn": {
+  "channel_id": "UCiWLfSweyRNmLpgEHekhoAg",
+  "uploads": "UUiWLfSweyRNmLpgEHekhoAg",
+  "title": "ESPN"
+ },
+ "@beINSPORTS": {
+  "channel_id": "UCJUCcJUeh0Cz2xyKwkw5Q1w",
+  "uploads": "UUJUCcJUeh0Cz2xyKwkw5Q1w",
+  "title": "beIN SPORTS"
  }
 }
