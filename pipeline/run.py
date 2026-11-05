@@ -14,7 +14,7 @@ from pathlib import Path
 
 from . import config, youtube
 from .filters import parse_time, to_clip
-from .grouping import build_stories, group
+from .grouping import build_stories, cap_feed, group
 
 
 def load_json(path: Path, default):
@@ -122,7 +122,8 @@ def main(argv=None) -> int:
     window = sorted((c for c in store.values() if parse_time(c["published"]) >= max_age),
                     key=lambda c: c["published"])
     embedder, groups, X = group(window)
-    stories = build_stories(window, groups, X, now)
+    everything = build_stories(window, groups, X, now, capped=False)
+    stories = cap_feed(everything)
 
     feed = {
         "generated": iso(now),
@@ -131,6 +132,8 @@ def main(argv=None) -> int:
         "stories": stories,
     }
     save_json(args.out, feed, compact=True)
+    if not args.mock:
+        save_json(config.SEARCH_FILE, {"generated": feed["generated"], "stories": everything}, compact=True)
 
     multi = sum(1 for s in stories if not s["single"])
     regions = sum(1 for s in stories if sum(1 for n in s["coverage"].values() if n) > 1)

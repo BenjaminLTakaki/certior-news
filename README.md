@@ -38,6 +38,7 @@ Open the app in **Safari → Share → Add to Home Screen**. Open it from the Ho
 | Swipe left / right on the video | Same story, next outlet (Left → Center → Right) |
 | Tap the video | Pause / play |
 | Tap **All / Politics / Sports** at the top | Show only that topic |
+| Tap the magnifier | Search every story from the last two days by topic |
 | Tap **Left / Center / Right** | Jump to that side (not shown for sport) |
 | 🔈 | Sound on/off |
 | **YouTube ↗** | Open the clip in the YouTube app |

@@ -13,6 +13,9 @@ const SOUND_ON = icon('<path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11"/>')
 const SOUND_OFF = icon('<path d="m16 9.5 5 5m0-5-5 5"/>');
 const PLAY_CHECK_MS = 1800;   // if a clip isn't playing after this, ask for a tap
 const WATCHED_AFTER_MS = 3000;
+const SIDEWAYS_HINT = 'Swipe sideways for other outlets';
+const SIDEWAYS_HINT_MS = 5000, SIDEWAYS_HINTS = 3;
+const FIND_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>';
 const CHECK_FEED_MS = 2 * 60000;
 
 const $ = (s, el = document) => el.querySelector(s);
@@ -42,6 +45,8 @@ let feed = null, stories = [];
 let activeS = -1, activeC = -1, currentId = null;
 let player = null, playerReady = false, unlocked = false, playing = false, playerStarted = false;
 let topic = TOPICS[store.get('topic', 'all')] ? store.get('topic', 'all') : 'all';
+let query = '', everything = null;
+let side = null, autoAdvance = false, hintTimer = 0;     // side: the one you last chose, kept from story to story
 let playCheck = 0, watchTimer = 0;
 
 // ---------------------------------------------------------------- helpers
@@ -85,6 +90,65 @@ function renderTopics() {
     };
     topicsEl.append(b);
   }
+  const find = el('button', 'find');
+  find.innerHTML = FIND_ICON;
+  find.setAttribute('aria-label', 'Search stories');
+  find.onclick = renderSearch;
+  topicsEl.append(find);
+}
+
+function renderSearch() {
+  topicsEl.textContent = '';
+  const form = el('form', 'search');
+  form.setAttribute('role', 'search');
+  const input = el('input');
+  input.type = 'search';
+  input.placeholder = 'Search a topic';
+  input.enterKeyHint = 'search';
+  input.setAttribute('aria-label', 'Search a topic');
+  input.autocomplete = 'off';
+  const cancel = el('button', '', 'Cancel');
+  cancel.type = 'button';
+  cancel.onclick = () => {
+    const had = query;
+    query = '';
+    renderTopics();
+    if (had && feed) { onScrollStart(); start(); }
+  };
+  form.onsubmit = async (e) => {
+    e.preventDefault();
+    input.blur();
+    query = input.value.trim();
+    if (!query || !feed) return;
+    onScrollStart();
+    setStatus('Searching…');
+    feedEl.textContent = '';
+    everything = everything || await loadEverything();
+    start();
+  };
+  form.append(input, cancel);
+  topicsEl.append(form);
+  input.focus();
+}
+
+async function loadEverything() {
+  try {
+    const r = await fetch(`${FEED_URL.replace('feed.json', 'search.json')}?t=${Date.now()}`, { cache: 'no-store' });
+    if (!r.ok) throw new Error(`search ${r.status}`);
+    return (await r.json()).stories;
+  } catch {
+    return feed.stories;      // better a smaller search than none
+  }
+}
+
+// Whole words, so "AI" doesn't find "said". Longer words also match their endings ("election" finds "elections").
+// Stories with every word first; if there are none, stories with any of them.
+function matches(list, q) {
+  const words = q.toLowerCase().match(/[\p{L}\p{N}]+/gu) || [];
+  const rx = words.map((w) => new RegExp(`(^|[^\\p{L}\\p{N}])${w}${w.length >= 4 ? '' : '(?![\\p{L}\\p{N}])'}`, 'iu'));
+  const text = (s) => [s.headline, ...s.clips.map((c) => c.title)].join(' ');
+  const all = list.filter((s) => rx.length && rx.every((r) => r.test(text(s))));
+  return all.length ? all : list.filter((s) => rx.some((r) => r.test(text(s))));
 }
 
 function orderStories(list) {
@@ -200,7 +264,30 @@ function settle() {
   scrolling = false;
   if (!stories.length || LANDSCAPE.matches) return;   // rotating moves the scroll position: keep the clip we were on
   const [s, c] = current();
+  if (s !== activeS) {          // a new story opens on the side you were watching, if it has that side
+    const ci = stories[s].clips.findIndex((k) => k.column === side);
+    if (ci > 0 && ci !== c) {
+      clipsEl(s).scrollLeft = ci * clipsEl(s).clientWidth;
+      clearTimeout(feedTimer);
+      feedTimer = setTimeout(settle, 140);
+      return;
+    }
+  } else if (c !== activeC && !autoAdvance) {   // you moved sideways yourself; a clip ending doesn't change your side
+    if (stories[s].topic !== 'sports') side = stories[s].clips[c].column;
+    store.set('knowsSideways', true);
+    if (hintEl.textContent === SIDEWAYS_HINT) showHint('');
+  }
+  autoAdvance = false;
   activate(s, c);
+}
+
+function hintSideways() {
+  const shown = store.get('sidewaysHints', 0);
+  if (store.get('knowsSideways', false) || shown >= SIDEWAYS_HINTS || stories[activeS]?.clips.length < 2) return;
+  store.set('sidewaysHints', shown + 1);
+  showHint(SIDEWAYS_HINT);
+  clearTimeout(hintTimer);
+  hintTimer = setTimeout(() => { if (hintEl.textContent === SIDEWAYS_HINT) showHint(''); }, SIDEWAYS_HINT_MS);
 }
 
 function activate(s, c) {
@@ -243,12 +330,13 @@ function onState(e) {
     if (!unlocked) { unlocked = true; }
     gesture.hidden = false;
     showHint('');
+    hintSideways();
     clearTimeout(watchTimer);
     const id = currentId;
     watchTimer = setTimeout(() => markWatched(id), WATCHED_AFTER_MS);
     updateMuteIcons();
   }
-  if (e.data === S.ENDED) { markWatched(currentId); goClip(1); }
+  if (e.data === S.ENDED) { markWatched(currentId); autoAdvance = true; goClip(1); }
 }
 
 function onError() {
@@ -263,7 +351,7 @@ function onError() {
   }
   wrap.classList.add('off');
   gesture.hidden = false;
-  setTimeout(() => { if (currentId === id) goClip(1); }, 2500);
+  setTimeout(() => { if (currentId === id) { autoAdvance = true; goClip(1); } }, 2500);
 }
 
 function toggleMute() {
@@ -302,6 +390,7 @@ async function createPlayer(firstId) {
 // ---------------------------------------------------------------- gestures on top of the video
 let g0 = null;
 gesture.addEventListener('pointerdown', (e) => {
+  document.activeElement?.blur();      // the touchstart handler below would otherwise leave the keyboard up
   g0 = { x: e.clientX, y: e.clientY, t: Date.now() };
   try { gesture.setPointerCapture(e.pointerId); } catch { /* not supported */ }
 });
@@ -348,13 +437,16 @@ document.addEventListener('visibilitychange', checkForNewStories);
 setInterval(checkForNewStories, CHECK_FEED_MS);
 
 function start() {
-  stories = orderStories((feed.stories || []).filter((s) => topic === 'all' || s.topic === topic));
+  stories = query
+    ? orderStories(matches(everything || feed.stories || [], query))
+    : orderStories((feed.stories || []).filter((s) => topic === 'all' || s.topic === topic));
   currentId = null;
+  activeS = -1;
   if (!stories.length) {
     feedEl.textContent = '';
     wrap.hidden = gesture.hidden = true;
-    activeS = -1;
     scrolling = false;
+    if (query) { setStatus(`Nothing about "${query}" in the last two days.`); return; }
     setStatus(topic === 'all' ? 'No stories right now. Check back soon.' : `No ${TOPICS[topic].toLowerCase()} stories right now.`);
     return;
   }

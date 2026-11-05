@@ -8,6 +8,7 @@ CLIPS_FILE = DATA_DIR / "clips.json"            # rolling window of accepted cli
 REJECTED_FILE = DATA_DIR / "rejected.json"      # IDs we looked at and dropped (so we don't pay to look again)
 CHANNEL_CACHE_FILE = DATA_DIR / "channel_ids.json"  # handle -> channel ID + uploads playlist
 FEED_FILE = ROOT / "docs" / "feed.json"         # what the app reads
+SEARCH_FILE = ROOT / "docs" / "search.json"     # every story in the window, fetched the first time someone searches
 
 # --- Fetching -------------------------------------------------------------
 UPLOADS_PER_CHANNEL = 25        # newest uploads checked per channel per run (1 quota unit each call)

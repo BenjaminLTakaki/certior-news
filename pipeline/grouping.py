@@ -163,7 +163,7 @@ def topic_of(clips: list[dict]) -> str:
     return "other"
 
 
-def build_stories(clips: list[dict], groups: list[list[int]], X: np.ndarray, now: datetime) -> list[dict]:
+def build_stories(clips: list[dict], groups: list[list[int]], X: np.ndarray, now: datetime, capped: bool = True) -> list[dict]:
     out = []
     for members in groups:
         ms = [clips[i] for i in members]
@@ -232,10 +232,14 @@ def build_stories(clips: list[dict], groups: list[list[int]], X: np.ndarray, now
         })
     out.sort(key=lambda s: s["score"], reverse=True)
     out = space_out_us(out)
-    sports = [s for s in out if s["topic"] == "sports"][:config.MAX_SPORTS_STORIES]
-    news = [s for s in out if s["topic"] != "sports"][:config.MAX_STORIES_IN_FEED]
+    return cap_feed(out) if capped else out
+
+
+def cap_feed(stories: list[dict]) -> list[dict]:
+    sports = [s for s in stories if s["topic"] == "sports"][:config.MAX_SPORTS_STORIES]
+    news = [s for s in stories if s["topic"] != "sports"][:config.MAX_STORIES_IN_FEED]
     keep = {id(s) for s in sports + news}
-    return [s for s in out if id(s) in keep]
+    return [s for s in stories if id(s) in keep]
 
 
 def space_out_us(stories: list[dict]) -> list[dict]:

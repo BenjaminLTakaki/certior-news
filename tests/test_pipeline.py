@@ -203,6 +203,7 @@ def test_sports_stories_survive_a_full_news_feed(monkeypatch):
     clips = [clip(i, f"N{i}", "europe", f"Parliament votes on law {i}") for i in range(5)] + [{**clip(5, "S", "europe", "Cup final"), "topic": "sports"}]
     stories = grouping.build_stories(clips, [[i] for i in range(6)], np.eye(6), NOW)
     assert [s["topic"] for s in stories].count("politics") == 2 and [s["topic"] for s in stories].count("sports") == 1
+    assert len(grouping.build_stories(clips, [[i] for i in range(6)], np.eye(6), NOW, capped=False)) == 6     # search keeps everything
 
 
 def test_blindspot_when_one_side_skips_a_story():
