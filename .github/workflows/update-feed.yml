@@ -35,6 +35,9 @@ jobs:
 
       - run: pip install -r pipeline/requirements.txt
 
+      - name: Load state from the last published feed
+        run: git fetch -q --depth=1 origin feed && git checkout FETCH_HEAD -- data || echo "No feed branch yet"
+
       - name: Fetch, filter, group
         env:
           YT_API_KEY: ${{ secrets.YT_API_KEY }}
@@ -49,3 +52,20 @@ jobs:
           if git diff --cached --quiet; then echo "No changes"; exit 0; fi
           git commit -m "Update feed" -q
           git pull --rebase -q && git push -q
+
+      # One commit, force-pushed: GitHub Pages serves this branch, and main doesn't grow with every build.
+      - name: Publish the feed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/out/data"
+          cp docs/feed.json docs/search.json "$RUNNER_TEMP/out/"
+          cp data/*.json "$RUNNER_TEMP/out/data/"
+          touch "$RUNNER_TEMP/out/.nojekyll"
+          cd "$RUNNER_TEMP/out"
+          git init -q -b feed
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Update feed"
+          git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" feed
