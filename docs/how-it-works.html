@@ -6,11 +6,11 @@
 <meta name="theme-color" content="#000000">
 <title>How this works | Swipe News</title>
 <style>
-  :root { --bg: oklch(14% .006 265); --ink: oklch(96% .004 265); --muted: oklch(72% .01 265); }
-  body { margin: 0 auto; max-width: 68ch; padding: 20px 16px 48px; background: var(--bg); color: var(--ink); font: 16px/1.55 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif; }
-  a { color: inherit; text-underline-offset: 3px; }
-  h1 { font-size: 26px; line-height: 1.2; margin: 24px 0 4px; }
-  h2 { font-size: 17px; margin: 28px 0 6px; }
+  :root { color-scheme: dark; --bg: oklch(11% .002 265); --ink: oklch(98% .002 265); --muted: oklch(78% .008 265); --tint: oklch(66% .19 255); }
+  body { margin: 0 auto; max-width: 68ch; padding: calc(4px + env(safe-area-inset-top)) 16px calc(48px + env(safe-area-inset-bottom)); background: var(--bg); color: var(--ink); font: 17px/1.45 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: var(--tint); text-decoration: none; }
+  h1 { font-size: 34px; line-height: 41px; font-weight: 700; margin: 8px 0 10px; }
+  h2 { font-size: 20px; line-height: 25px; font-weight: 600; margin: 28px 0 6px; }
   p, ul { margin: 0 0 10px; }
   ul { padding-left: 20px; }
   .muted { color: var(--muted); font-size: 14px; }
@@ -18,7 +18,7 @@
 </style>
 </head>
 <body>
-<a class="back" href="./">Back to Swipe News</a>
+<a class="back" href="./">‹ Swipe News</a>
 <h1>How this works</h1>
 <p>Swipe News shows how outlets across the political spectrum and around the world cover the same event. It is the same feed for everyone, with no accounts and no personalisation, so it can't learn to show you only what you already agree with.</p>
 <p>It is not neutral, though. Every choice below shapes what you see, so here they are.</p>
@@ -45,15 +45,14 @@
 <h2>Tabs</h2>
 <p>Stories are sorted into tabs by words in their titles, and one story can sit under several. Going by a sample we read, roughly 8 in 10 are in the right place, and some real stories in each topic are missed. Anything that matches nothing appears only under All.</p>
 
-<h2>Blind Pick</h2>
-<p>Each day everyone gets the same pairs of real headlines from a left-leaning and a right-leaning outlet on one political story, chosen because they are worded differently. With the outlets hidden, you pick the one you'd trust more. There is no right answer. After 10 picks you get a reading of how often you trusted each side, based on your last 40 picks.</p>
-<p>Treat it as a mirror, not a measurement. It is a small sample, the side comes from a rating of the whole outlet, and a calm tone or a shouty one can sway a pick as much as politics. It says how headlines read to you, not what you believe. It stays on your device, and nothing depends on watching videos.</p>
+<h2>World</h2>
+<p>World groups stories by where each outlet is based, and starts with the ones no other outlet in this app has. Those stories aren't always about that country, and countries with few outlets here will have less to show. Take Me Somewhere picks a country at random.</p>
 
 <h2>Your mix</h2>
 <p>This shows how many clips you've watched from each side in the last 7 days. It is calculated on your device and never leaves it, and it doesn't change what stories you get.</p>
 
-<h2>"No right coverage"</h2>
-<p>This means several outlets covered a story but none from that side did, among the outlets in this app. Other outlets may well have covered it.</p>
+<h2>A side that's grayed out</h2>
+<p>If Left, Center or Right is grayed out, no outlet from that side in this app covered the story. Outlets not in this app may well have.</p>
 
 <h2>Search</h2>
 <p>Search matches the words in titles from the last two days. It doesn't understand meaning, so related stories that don't use your words won't appear.</p>

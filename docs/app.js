@@ -1,13 +1,21 @@
 // Swipe News — one story per screen. Swipe up/down = next/previous story,
-// swipe left/right = the same story from Left, Center and Right outlets around the world.
+// swipe left/right = the same story from another outlet.
 // One YouTube player is reused for every clip and laid over the active clip's video area.
 
 const params = new URLSearchParams(location.search);
 const FEED_URL = params.get('feed') || 'feed.json';
-const TOPICS = { all: 'All', politics: 'Politics', business: 'Business', tech: 'Tech', health: 'Health', climate: 'Climate', crime: 'Crime', disasters: 'Disasters', culture: 'Culture', sports: 'Sports' };
-const SIDE_LABEL = { left: 'Left-leaning', center: 'Center', right: 'Right-leaning', unrated: 'Not rated' };
+const TOPICS = { all: 'All News', politics: 'Politics', business: 'Business', tech: 'Tech', health: 'Health', climate: 'Climate', crime: 'Crime', disasters: 'Disasters', culture: 'Culture', sports: 'Sports' };
+const REGION_LABEL = { americas: 'Americas', asia: 'Asia and Pacific', europe: 'Europe', mideast_africa: 'Africa and Middle East' };
+const COUNTRY = {
+  US: ['United States', '\u{1F1FA}\u{1F1F8}'], UK: ['United Kingdom', '\u{1F1EC}\u{1F1E7}'], India: ['India', '\u{1F1EE}\u{1F1F3}'], Qatar: ['Qatar', '\u{1F1F6}\u{1F1E6}'],
+  'Saudi Arabia': ['Saudi Arabia', '\u{1F1F8}\u{1F1E6}'], Australia: ['Australia', '\u{1F1E6}\u{1F1FA}'], Turkey: ['Turkey', '\u{1F1F9}\u{1F1F7}'], France: ['France', '\u{1F1EB}\u{1F1F7}'],
+  'South Africa': ['South Africa', '\u{1F1FF}\u{1F1E6}'], Singapore: ['Singapore', '\u{1F1F8}\u{1F1EC}'], 'South Korea': ['South Korea', '\u{1F1F0}\u{1F1F7}'], Venezuela: ['Venezuela', '\u{1F1FB}\u{1F1EA}'],
+  'Pan-African': ['Pan-African', '\u{1F30D}'], Kenya: ['Kenya', '\u{1F1F0}\u{1F1EA}'], Nigeria: ['Nigeria', '\u{1F1F3}\u{1F1EC}'], Germany: ['Germany', '\u{1F1E9}\u{1F1EA}'],
+  Canada: ['Canada', '\u{1F1E8}\u{1F1E6}'], 'Hong Kong': ['Hong Kong', '\u{1F1ED}\u{1F1F0}'], Israel: ['Israel', '\u{1F1EE}\u{1F1F1}'], Japan: ['Japan', '\u{1F1EF}\u{1F1F5}'],
+};
+const SOMEWHERE_MIN = 5;      // "Take Me Somewhere" skips countries with too little to show
+const RECENT_MAX = 6;
 const MIX_DAYS = 7;
-const BLIND_KEEP = 40, BLIND_FIRST_READING = 10, BLIND_SETTLED = 20;     // 5 pairs a day: the first reading takes two visits, and old picks fade out so it can shift
 const COLUMNS = { left: 'Left', center: 'Center', right: 'Right', unrated: 'Not rated' };
 const LANDSCAPE = matchMedia('(orientation: landscape) and (max-height: 500px) and (pointer: coarse)');   // a sideways phone: see #rotate
 const SMOOTH = matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
@@ -18,7 +26,6 @@ const PLAY_CHECK_MS = 1800;   // if a clip isn't playing after this, ask for a t
 const WATCHED_AFTER_MS = 3000;
 const SIDEWAYS_HINT = 'Swipe sideways for other outlets';
 const SIDEWAYS_HINT_MS = 5000, SIDEWAYS_HINTS = 3;
-const SETTINGS_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9m4 0h3M4 17h3m4 0h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>';
 const SETTINGS_DEFAULTS = { side: '', auto: true, hideWatched: false, sportsInAll: true, notes: true };
 // YouTube forbids disabling the links inside its player, and they sit along its top and bottom edges.
 // So swipes are only caught in the middle band; everything above and below reaches YouTube.
@@ -26,13 +33,14 @@ const GESTURE_TOP = 0.25, GESTURE_HEIGHT = 0.5;
 const REFRESH_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3L19.5 9"/><path d="M19.5 4.5V9H15"/></svg>';
 const MORE_AT = 8, MORE_STORIES = 40;      // the feed is the top stories only: fetch the rest when you get this close to its end
 const FLASH_MS = 3000;
-const FIND_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>';
+const SHUFFLE_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.500 7.500h3.300c1.500 0 2.800.7 3.700 1.900l3 4.200c.9 1.200 2.200 1.900 3.700 1.900h3.300M3.500 16.500h3.300c1.500 0 2.800-.7 3.700-1.900M14.500 10.400c.9-1.200 1.200-2.900 3.700-2.900h2.300M18 5l2.500 2.500L18 10M18 14l2.500 2.500L18 19"/></svg>';
 const CHECK_FEED_MS = 2 * 60000;
 
 const $ = (s, el = document) => el.querySelector(s);
-const feedEl = $('#feed'), wrap = $('#player-wrap'), gesture = $('#gesture'), topicsEl = $('#topics');
+const feedEl = $('#feed'), wrap = $('#player-wrap'), gesture = $('#gesture');
 const hintEl = $('#hint'), statusEl = $('#status'), newPill = $('#new-pill');
-const consentEl = $('#consent'), settingsEl = $('#settings');
+const welcomeEl = $('#welcome'), compareEl = $('#compare');
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 if (params.has('debug')) {   // on-screen console for testing on the iPhone without a Mac
   const s = document.createElement('script');
@@ -45,6 +53,7 @@ const store = {
   get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* private mode etc. */ } },
 };
+for (const old of ['blind', 'dailyGame']) { try { localStorage.removeItem(old); } catch { /* private mode etc. */ } }     // from a game that no longer exists
 const settings = { ...SETTINGS_DEFAULTS, ...store.get('settings', {}) };
 let consent = store.get('consent', null);    // 'videos' or 'text'. Nothing from YouTube loads until it is 'videos'.
 const videosOn = () => consent === 'videos';
@@ -75,7 +84,7 @@ function renderMix(box) {
   }
   const sum = totals.left + totals.center + totals.right;
   if (!sum) {
-    box.append(el('p', 'small', 'Watch a few clips and you\u2019ll see how much of each side you\u2019ve watched this week. Only this device knows.'));
+    box.append(el('p', '', 'Nothing yet. Watch a few clips to see your week.'));
     return;
   }
   for (const [k, n] of Object.entries(totals)) {
@@ -87,15 +96,15 @@ function renderMix(box) {
     row.append(el('span', '', COLUMNS[k]), bar, el('span', 'mix-n', String(n)));
     box.append(row);
   }
-  box.append(el('p', 'small', 'Clips you\u2019ve watched in the last 7 days. Only this device knows.'));
   const least = Object.keys(totals).reduce((a, b) => (totals[b] < totals[a] ? b : a));
   if (sum >= 5 && settings.side !== least) {
-    const b = el('button', 'mix-try', `Open stories on ${COLUMNS[least]} for a while`);
+    const b = el('button', 'mix-try', `Open Stories on ${COLUMNS[least]} for a While`);
     b.onclick = () => {
       settings.side = least;
       side = least;
       store.set('settings', settings);
-      b.replaceWith(el('p', 'small', `Stories will open on ${COLUMNS[least]} when they have it. Change this in Settings.`));
+      $('#set-side').value = least;
+      b.replaceWith(el('p', '', `Stories will open on ${COLUMNS[least]} when they have it.`));
     };
     box.append(b);
   }
@@ -106,7 +115,8 @@ let feed = null, stories = [];
 let activeS = -1, activeC = -1, currentId = null;
 let player = null, playerReady = false, unlocked = false, playing = false, playerStarted = false;
 let topic = TOPICS[store.get('topic', 'all')] ? store.get('topic', 'all') : 'all';
-let query = '', everything = null;
+let query = '', place = '', everything = null;
+let tab = 'news', pageOpen = false, lastPlace = '';   // pageOpen: a full page covers the feed, so the player stays out of the way
 let reserve = null, loadingMore = false, ended = false, startRun = 0, flashTimer = 0, refreshing = false;
 let side = settings.side || null, autoAdvance = false, hintTimer = 0;     // side: the one you last chose, kept from story to story
 let playCheck = 0, watchTimer = 0;
@@ -138,74 +148,200 @@ async function loadFeed() {
   return r.json();
 }
 
-function renderTopics() {
-  topicsEl.textContent = '';
-  const strip = el('div', 'strip');
-  const daily = el('button', 'daily-tab' + (dailyDone() ? '' : ' fresh'), 'Blind Pick');
-  if (!dailyDone()) daily.setAttribute('aria-label', 'Blind Pick, new pairs today');
-  daily.onclick = openDaily;
-  strip.append(daily);
-  for (const [key, label] of Object.entries(TOPICS)) {
-    const b = el('button', key === topic ? 'on' : '', label);
-    b.setAttribute('aria-pressed', key === topic);
-    b.onclick = () => {
-      if (key === topic) return;
-      topic = key;
-      store.set('topic', key);
-      renderTopics();
-      if (feed) { onScrollStart(); start(); }
-    };
-    strip.append(b);
-  }
-  const find = el('button', 'find');
-  find.innerHTML = FIND_ICON;
-  find.setAttribute('aria-label', 'Search stories');
-  find.onclick = renderSearch;
-  const gear = el('button', 'gear');
-  gear.innerHTML = SETTINGS_ICON;
-  gear.setAttribute('aria-label', 'Settings');
-  gear.onclick = openSettings;
-  const refresh = el('button', 'refresh');
-  refresh.innerHTML = REFRESH_ICON;
-  refresh.setAttribute('aria-label', 'Check for new stories');
-  refresh.onclick = refreshFeed;
-  topicsEl.append(strip, refresh, find, gear);
-  strip.querySelector('.on')?.scrollIntoView({ inline: 'center', block: 'nearest' });
+const inFeedView = () => !pageOpen;
+
+function renderBar() {
+  const back = $('#back'), action = $('#bar-action'), select = $('#topic'), pushed = place || query;
+  back.hidden = !pushed;
+  back.textContent = place ? 'World' : 'Search';
+  select.hidden = !!pushed;
+  $('#bar-chevron').toggleAttribute('hidden', !!pushed);      // an svg has no .hidden property
+  $('#bar-title').textContent = place ? `${COUNTRY[place]?.[1] ?? ''} ${COUNTRY[place]?.[0] ?? place}`.trim() : query ? `\u201C${query}\u201D` : TOPICS[topic];
+  select.value = topic;
+  action.innerHTML = place ? SHUFFLE_ICON : REFRESH_ICON;
+  action.setAttribute('aria-label', place ? 'Take me somewhere else' : 'Check for new stories');
+  action.onclick = place ? takeMeSomewhere : refreshFeed;
 }
 
-function renderSearch() {
-  topicsEl.textContent = '';
-  const form = el('form', 'search');
-  form.setAttribute('role', 'search');
-  const input = el('input');
-  input.type = 'search';
-  input.placeholder = 'Search a topic';
-  input.enterKeyHint = 'search';
-  input.setAttribute('aria-label', 'Search a topic');
-  input.autocomplete = 'off';
-  const cancel = el('button', '', 'Cancel');
-  cancel.type = 'button';
-  cancel.onclick = () => {
-    const had = query;
-    query = '';
-    renderTopics();
-    if (had && feed) { onScrollStart(); start(); }
-  };
-  form.onsubmit = async (e) => {
-    e.preventDefault();
-    input.blur();
-    query = input.value.trim();
-    if (!query || !feed) return;
+$('#topic').append(...Object.entries(TOPICS).map(([key, label]) => { const o = el('option', '', label); o.value = key; return o; }));
+$('#topic').onchange = (e) => {
+  topic = e.target.value;
+  store.set('topic', topic);
+  renderBar();
+  if (feed) { onScrollStart(); start(); }
+};
+$('#back').onclick = () => {
+  const from = place ? 'world' : 'search';
+  place = ''; query = '';
+  renderBar();
+  onScrollStart();
+  pageOpen = true;      // the page comes back first, so nothing plays behind it while the feed rebuilds
+  if (feed) start();
+  show(from);
+};
+
+// ---------------------------------------------------------------- tabs
+function show(next, opts = {}) {
+  tab = next;
+  pageOpen = next !== 'news' && !opts.pushed;
+  for (const b of document.querySelectorAll('#tabbar button')) {
+    const on = b.dataset.tab === next;
+    b.classList.toggle('on', on);
+    if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+  }
+  for (const name of ['world', 'search', 'settings']) $(`#page-${name}`).hidden = !(pageOpen && name === next);
+  if (pageOpen) {
     onScrollStart();
-    setStatus('Searching…');
-    feedEl.textContent = '';
-    everything = everything || await loadEverything();
+    showHint('');
+    if (next === 'world') renderWorld();
+    if (next === 'search') renderRecent();
+    if (next === 'settings') syncSettings();
+    return;
+  }
+  if (settingsChanged && feed) {
+    settingsChanged = false;
+    onScrollStart();
     start();
-  };
-  form.append(input, cancel);
-  topicsEl.append(form);
-  input.focus();
+  } else {
+    settle();
+  }
 }
+for (const b of document.querySelectorAll('#tabbar button')) {
+  b.onclick = () => {
+    const next = b.dataset.tab;
+    if (next === 'news') {
+      if (place || query) {        // tapping a tab returns to its root, as everywhere on iOS
+        place = ''; query = '';
+        renderBar();
+        pageOpen = false;
+        onScrollStart();
+        if (feed) start();
+      } else if (tab === 'news') {
+        feedEl.scrollTo({ top: 0, behavior: SMOOTH });
+      }
+      return show('news');
+    }
+    if (place || query) {
+      place = ''; query = '';
+      renderBar();
+      pageOpen = true;
+      if (feed) start();
+    }
+    show(next);
+  };
+}
+
+// ---------------------------------------------------------------- world
+function countriesIn(list) {
+  const found = new Map();
+  for (const s of list) {
+    if (s.topic === 'sports') continue;
+    for (const c of new Set(s.clips.map((k) => k.country).filter(Boolean))) {
+      const entry = found.get(c) || { country: c, region: s.clips.find((k) => k.country === c).region, stories: 0 };
+      entry.stories++;
+      found.set(c, entry);
+    }
+  }
+  return [...found.values()];
+}
+// Stories only this country's outlets have come first: that's the point of going there.
+function placeList(list, country) {
+  const here = list.filter((s) => s.topic !== 'sports' && s.clips.some((c) => c.country === country));
+  const only = (s) => s.clips.every((c) => c.country === country);
+  return [...here.filter(only), ...here.filter((s) => !only(s))];
+}
+
+async function renderWorld() {
+  const box = $('#world-list');
+  if (!everything) {
+    box.textContent = '';
+    box.append(el('p', 'group-note', 'Loading\u2026'));
+    everything = await loadEverything();
+  }
+  box.textContent = '';
+  const countries = countriesIn(everything);
+  for (const [region, label] of Object.entries(REGION_LABEL)) {
+    const rows = countries.filter((c) => c.region === region).sort((a, b) => a.country.localeCompare(b.country));
+    if (!rows.length) continue;
+    box.append(el('h2', 'group-title', label));
+    const group = el('div', 'group');
+    for (const c of rows) {
+      const row = el('button', 'cell nav');
+      row.type = 'button';
+      const name = el('span', 'place');
+      name.append(el('i', '', COUNTRY[c.country]?.[1] ?? '\u{1F30D}'), COUNTRY[c.country]?.[0] ?? c.country);
+      const tail = el('span', 'count', String(c.stories));
+      tail.setAttribute('aria-label', `${c.stories} stories`);
+      const end = el('span', 'tail');
+      end.append(tail);
+      row.append(name, end);
+      row.onclick = () => goTo(c.country);
+      group.append(row);
+    }
+    box.append(group);
+  }
+  box.append(el('p', 'group-note', 'Grouped by where each outlet is based, over the last two days. An outlet\u2019s stories aren\u2019t always about its own country.'));
+}
+
+async function goTo(country) {
+  everything = everything || await loadEverything();
+  place = country;
+  lastPlace = country;
+  query = '';
+  renderBar();
+  onScrollStart();
+  pageOpen = false;
+  start();
+  show('world', { pushed: true });
+  flash(`What outlets in ${COUNTRY[country]?.[0] ?? country} are covering`);
+}
+
+async function takeMeSomewhere() {
+  everything = everything || await loadEverything();
+  const options = countriesIn(everything).filter((c) => c.stories >= SOMEWHERE_MIN && c.country !== lastPlace);
+  if (options.length) goTo(options[Math.floor(Math.random() * options.length)].country);
+}
+$('#somewhere').onclick = takeMeSomewhere;
+
+// ---------------------------------------------------------------- search
+function renderRecent() {
+  const box = $('#search-recent'), recent = store.get('recentSearches', []);
+  box.textContent = '';
+  if (!recent.length) {
+    box.append(el('p', 'group-note', 'Searches every story from the last two days by the words in its headline.'));
+    return;
+  }
+  box.append(el('h2', 'group-title', 'Recent'));
+  const group = el('div', 'group');
+  for (const q of recent) {
+    const row = el('button', 'cell nav');
+    row.type = 'button';
+    row.append(el('span', '', q));
+    row.onclick = () => runSearch(q);
+    group.append(row);
+  }
+  box.append(group);
+}
+
+async function runSearch(q) {
+  query = q;
+  place = '';
+  store.set('recentSearches', [q, ...store.get('recentSearches', []).filter((r) => r !== q)].slice(0, RECENT_MAX));
+  $('#search-input').blur();
+  renderBar();
+  onScrollStart();
+  feedEl.textContent = '';
+  setStatus('Searching\u2026');
+  stories = [];
+  show('search', { pushed: true });
+  everything = everything || await loadEverything();
+  start();
+}
+$('#search-form').onsubmit = (e) => {
+  e.preventDefault();
+  const q = $('#search-input').value.trim();
+  if (q && feed) runSearch(q);
+};
 
 async function loadEverything() {
   try {
@@ -244,16 +380,21 @@ function renderStory(s, si) {
     sec.dataset.i = si;
     sec.setAttribute('aria-label', s.headline);
 
-    const tabs = el('nav', 'tabs');
-    tabs.setAttribute('aria-label', 'Political lean of the outlets covering this story');
+    const segRow = el('div', 'seg-row');
+    const seg = el('div', 'seg');
+    seg.setAttribute('role', 'group');
+    seg.setAttribute('aria-label', 'Rating of the outlets covering this story');
     for (const [col, label] of Object.entries(COLUMNS)) {
-      if (!s.sides[col] || s.topic === 'sports') continue;     // left and right mean nothing for sport
-      const b = el('button', '', label);
+      if (col === 'unrated' && !s.sides.unrated) continue;
+      const b = el('button', '', label);      // a side with no outlets stays visible but off: that gap is information
+      b.type = 'button';
       b.dataset.column = col;
+      b.disabled = !s.sides[col];
+      if (!s.sides[col]) b.setAttribute('aria-label', `${label}: no coverage among the outlets here`);
       b.onclick = () => jumpToColumn(si, col);
-      tabs.append(b);
+      seg.append(b);
     }
-    if (s.blindspot) tabs.append(el('span', 'blind', `No ${s.blindspot} coverage`));
+    segRow.append(seg);
 
     const clips = el('div', 'clips');
     const ticks = el('div', 'ticks');
@@ -268,11 +409,12 @@ function renderStory(s, si) {
         slot.append(img, el('div', 'msg'));
       } else {
         const off = el('div', 'off');
+        const on = el('button', 'filled', 'Turn On Videos');
+        on.type = 'button';
+        on.onclick = () => { chooseVideos(true); onScrollStart(); start(); };
         const open = el('a', '', 'Watch on YouTube');
         open.href = `https://www.youtube.com/watch?v=${c.id}`; open.target = '_blank'; open.rel = 'noopener';
-        const on = el('button', '', 'Turn on videos');
-        on.onclick = openSettings;
-        off.append(el('span', '', 'Videos are off'), open, on);
+        off.append(el('b', '', 'Videos Are Off'), el('span', '', 'YouTube can set cookies on this device when they\u2019re on.'), on, open);
         slot.append(off);
       }
 
@@ -296,7 +438,7 @@ function renderStory(s, si) {
     });
     let t = 0;
     clips.addEventListener('scroll', () => { onScrollStart(); clearTimeout(t); t = setTimeout(settle, 140); }, { passive: true });
-    if (s.topic !== 'sports') sec.append(tabs);
+    if (s.topic !== 'sports') sec.append(segRow);
     sec.append(ticks, clips);
     feedEl.append(sec);
     markPosition(si, 0);
@@ -305,17 +447,19 @@ function renderStory(s, si) {
 function showEnd() {
   ended = true;
   const sec = el('section', 'story end');
-  sec.append(el('p', '', query ? 'That\u2019s every match from the last two days.' : 'That\u2019s everything from the last two days.'));
-  const b = el('button', '', 'Check for new stories');
-  b.onclick = refreshFeed;
+  sec.append(el('p', '', query ? 'That\u2019s every match from the last two days.' : place ? `That\u2019s everything from ${COUNTRY[place]?.[0] ?? place} in the last two days.` : 'That\u2019s everything from the last two days.'));
+  const b = el('button', 'filled', place ? 'Take Me Somewhere Else' : 'Check for New Stories');
+  b.type = 'button';
+  b.onclick = place ? takeMeSomewhere : refreshFeed;
   sec.append(b);
   feedEl.append(sec);
 }
 
+const sourceList = () => (place ? placeList(everything, place) : everything.filter(inTopic));
 const inTopic = (s) => (topic === 'all' ? settings.sportsInAll || s.topic !== 'sports' : (s.tags || []).includes(topic));
 
 async function loadMore() {
-  if (query || ended || loadingMore || !stories.length) return;
+  if (query || ended || loadingMore || !stories.length) return;   // a search already shows every match
   loadingMore = true;
   const run = startRun;
   everything = everything || await loadEverything();
@@ -323,7 +467,7 @@ async function loadMore() {
   if (run !== startRun) return;
   if (!reserve) {
     const shown = new Set(stories.flatMap((s) => s.clips.map((c) => c.id)));
-    reserve = orderStories(everything.filter(inTopic)).filter((s) => !s.clips.some((c) => shown.has(c.id)));
+    reserve = orderStories(sourceList()).filter((s) => !s.clips.some((c) => shown.has(c.id)));
   }
   for (const s of reserve.splice(0, MORE_STORIES)) {
     stories.push(s);
@@ -365,7 +509,7 @@ async function refreshFeed() {
 
 function markPosition(s, c) {
   const sec = storyEl(s), column = stories[s].clips[c].column;
-  sec.querySelectorAll('.tabs button').forEach((b) => {
+  sec.querySelectorAll('.seg button').forEach((b) => {
     const on = b.dataset.column === column;
     b.classList.toggle('on', on);
     if (on) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current');
@@ -414,7 +558,7 @@ function onScrollStart() {
 
 function settle() {
   scrolling = false;
-  if (!stories.length || LANDSCAPE.matches) return;   // rotating moves the scroll position: keep the clip we were on
+  if (!stories.length || LANDSCAPE.matches || !inFeedView()) return;   // rotating moves the scroll position: keep the clip we were on
   if (ended && Math.round(feedEl.scrollTop / (feedEl.clientHeight || 1)) >= stories.length) {    // on the end screen
     if (playerReady) player.pauseVideo();
     wrap.hidden = gesture.hidden = true;
@@ -422,7 +566,7 @@ function settle() {
   }
   const [s, c] = current();
   if (s !== activeS) {          // a new story opens on the side you were watching, if it has that side
-    const ci = stories[s].clips.findIndex((k) => k.column === side);
+    const ci = stories[s].clips.findIndex((k) => (place ? k.country === place : k.column === side));
     if (ci > 0 && ci !== c) {
       clipsEl(s).scrollLeft = ci * clipsEl(s).clientWidth;
       clearTimeout(feedTimer);
@@ -583,7 +727,7 @@ LANDSCAPE.addEventListener('change', (e) => {
   }
   settle();
 });
-window.addEventListener('resize', () => { if (activeS >= 0) placePlayer(activeS, activeC); });
+window.addEventListener('resize', () => { if (activeS >= 0 && inFeedView() && stories[activeS]) placePlayer(activeS, activeC); });
 
 async function checkForNewStories() {
   if (document.visibilityState !== 'visible' || !feed) return;
@@ -599,30 +743,38 @@ async function checkForNewStories() {
 document.addEventListener('visibilitychange', checkForNewStories);
 setInterval(checkForNewStories, CHECK_FEED_MS);
 
-// ---------------------------------------------------------------- consent + settings
+// ---------------------------------------------------------------- welcome + consent
 function chooseVideos(on) {
   consent = on ? 'videos' : 'text';
   store.set('consent', consent);
 }
-$('#consent-videos').onclick = () => { chooseVideos(true); consentEl.close(); if (feed) start(); };
-$('#consent-text').onclick = () => { chooseVideos(false); consentEl.close(); if (feed) start(); };
-consentEl.addEventListener('cancel', (e) => e.preventDefault());      // a real choice, either way
+$('#welcome-next').onclick = () => {
+  $('#welcome-1').hidden = true;
+  $('#welcome-2').hidden = false;
+  $('#welcome-2 h1').focus?.();
+};
+function finishWelcome(on) {
+  chooseVideos(on);
+  welcomeEl.close();
+  if (feed) start();
+}
+$('#consent-videos').onclick = () => finishWelcome(true);
+$('#consent-text').onclick = () => finishWelcome(false);
+welcomeEl.addEventListener('cancel', (e) => e.preventDefault());      // a real choice, either way
 
+// ---------------------------------------------------------------- settings
 let settingsChanged = false;
 const toggles = ['auto', 'hideWatched', 'sportsInAll', 'notes'];
 function saveSettings() {
   store.set('settings', settings);
   settingsChanged = true;
 }
-function openSettings() {
-  if (playerReady) player.pauseVideo();
+function syncSettings() {
   $('#set-videos').checked = videosOn();
   $('#set-side').value = settings.side;
   for (const t of toggles) $(`#set-${t}`).checked = settings[t];
-  $('#set-clear').textContent = 'Clear watched history';
-  $('#set-blind').textContent = 'Clear my Blind Pick results';
+  $('#set-clear').textContent = 'Clear Watched History';
   renderMix($('#settings-mix'));
-  settingsEl.showModal();
 }
 for (const t of toggles) {
   $(`#set-${t}`).onchange = (e) => { settings[t] = e.target.checked; saveSettings(); };
@@ -639,182 +791,71 @@ $('#set-clear').onclick = (e) => {
   settingsChanged = true;
   e.target.textContent = 'Cleared';
 };
-$('#set-blind').onclick = (e) => {
-  store.set('blind', { said: '', picks: [] });
-  e.target.textContent = 'Cleared';
-};
 $('#set-reset').onclick = () => {
+  if (!confirm('Reset this device? This clears your settings, watched history and video choice.')) return;
   try { localStorage.clear(); } catch { /* private mode etc. */ }
   location.reload();
 };
-$('#settings-done').onclick = () => settingsEl.close();
-settingsEl.addEventListener('close', () => {
-  if (!feed) return;
-  if (settingsChanged) { settingsChanged = false; onScrollStart(); start(); } else settle();
-});
 
-// ---------------------------------------------------------------- compare
-const openSheet = (d) => { if (playerReady) player.pauseVideo(); d.showModal(); };
-for (const d of [$('#daily'), $('#compare')]) {
-  d.querySelector('.done').onclick = () => d.close();
-  d.addEventListener('close', () => { if (feed) settle(); });
+// ---------------------------------------------------------------- compare sheet
+function closeSheet(d) {
+  if (!d.open || d.classList.contains('closing')) return;
+  if (REDUCED) return d.close();
+  d.classList.add('closing');
+  setTimeout(() => { d.classList.remove('closing'); d.style.transform = ''; d.close(); }, 220);
 }
+compareEl.querySelector('.done').onclick = () => closeSheet(compareEl);
+compareEl.addEventListener('close', () => { if (feed) settle(); });
+compareEl.addEventListener('cancel', (e) => { e.preventDefault(); closeSheet(compareEl); });
+compareEl.addEventListener('click', (e) => { if (e.target === compareEl && e.offsetY < 0) closeSheet(compareEl); });   // the dimmed area above it
+const sheetHead = compareEl.querySelector('.sheet-head');
+let drag = null;
+sheetHead.addEventListener('pointerdown', (e) => {
+  if (e.target.closest('button')) return;
+  drag = e.clientY;
+  sheetHead.setPointerCapture(e.pointerId);
+});
+sheetHead.addEventListener('pointermove', (e) => { if (drag !== null) compareEl.style.transform = `translateY(${Math.max(0, e.clientY - drag)}px)`; });
+const endDrag = (e) => {
+  if (drag === null) return;
+  const moved = e.clientY - drag;
+  drag = null;
+  if (moved > 100) closeSheet(compareEl); else compareEl.style.transform = '';
+};
+sheetHead.addEventListener('pointerup', endDrag);
+sheetHead.addEventListener('pointercancel', endDrag);
 
 function openCompare(si, currentClip) {
   const s = stories[si], box = $('#compare-body');
   box.textContent = '';
-  if (s.blindspot) box.append(el('p', 'small', `No ${s.blindspot} coverage among the outlets in this app.`));
   for (const [col, label] of Object.entries(COLUMNS)) {
     const clips = s.clips.filter((c) => c.column === col);
+    if (s.topic !== 'sports' && col !== 'unrated' && !clips.length) {
+      box.append(el('h2', 'group-title', label), el('p', 'group-note', 'No coverage among the outlets here.'));
+      continue;
+    }
     if (!clips.length) continue;
-    if (s.topic !== 'sports') box.append(el('h3', 'set-heading', label));     // left and right mean nothing for sport
+    if (s.topic !== 'sports') box.append(el('h2', 'group-title', label));     // left and right mean nothing for sport
+    const group = el('div', 'group');
     for (const c of clips) {
-      const b = el('button', 'headline' + (c.id === currentClip ? ' now' : ''));
-      b.append(el('span', 'headline-title', c.title), el('span', 'small', `${c.channel} \u00b7 ${c.country ? `${c.country} \u00b7 ` : ''}${ago(c.published)}`));
+      const b = el('button', 'cell headline' + (c.id === currentClip ? ' now' : ''));
+      b.type = 'button';
+      if (c.id === currentClip) b.setAttribute('aria-current', 'true');
+      b.append(el('span', 'headline-title', c.title), el('span', 'headline-sub', `${c.channel} \u00b7 ${c.country ? `${c.country} \u00b7 ` : ''}${ago(c.published)}`));
       b.onclick = () => {
         const ci = s.clips.indexOf(c), sc = clipsEl(si);
-        $('#compare').close();
+        closeSheet(compareEl);
         sc.scrollTo({ left: ci * sc.clientWidth, behavior: SMOOTH });
       };
-      box.append(b);
+      group.append(b);
     }
+    box.append(group);
   }
-  const yt = el('a', 'set-link', 'Watch this clip on YouTube');
+  const yt = el('a', 'watch-link', 'Watch This Clip on YouTube');
   yt.href = `https://www.youtube.com/watch?v=${currentClip}`; yt.target = '_blank'; yt.rel = 'noopener';
-  box.append(yt, el('p', 'small', 'Headlines from YouTube videos. Sides are outlet ratings from Media Bias/Fact Check, not judgements of these headlines.'));
-  openSheet($('#compare'));
-}
-
-// ---------------------------------------------------------------- blind pick
-// Two headlines on one event, outlets hidden: which would you trust more? No right answer, no score, nothing about watching.
-// Together the picks hint at someone's politics, so they stay on this device and are never sent anywhere.
-let dailyData = null;
-const dailyState = () => store.get('dailyGame', {});
-const blindState = () => store.get('blind', { said: '', picks: [] });
-function dailyDone() {
-  const g = dailyState();
-  return g.date === dayKey() && g.finished;
-}
-async function openDaily() {
-  const box = $('#daily-body');
-  box.textContent = '';
-  box.append(el('p', 'small', 'Loading\u2026'));
-  openSheet($('#daily'));
-  try {
-    const r = await fetch(`${FEED_URL.replace('feed.json', 'daily.json')}?t=${Date.now()}`, { cache: 'no-store' });
-    if (!r.ok) throw new Error(`daily ${r.status}`);
-    dailyData = await r.json();
-  } catch {
-    box.textContent = '';
-    box.append(el('p', '', 'Couldn\u2019t load today\u2019s pairs. Check your connection.'));
-    return;
-  }
-  if (!dailyData.rounds || dailyData.rounds.length < 3) {
-    box.textContent = '';
-    box.append(el('p', '', 'Today\u2019s pairs aren\u2019t ready yet. Try again later.'));
-    return;
-  }
-  if (dailyState().date !== dailyData.date) store.set('dailyGame', { date: dailyData.date, picks: [] });
-  renderDaily();
-}
-
-function askLean(box) {
-  box.append(el('p', 'daily-q', 'Before you start: where do you think you lean?'));
-  box.append(el('p', 'small', 'Your picks get compared with this later. It stays on this device.'));
-  for (const [value, label] of [['left', 'Left'], ['center', 'Center'], ['right', 'Right'], ['unsure', 'Not sure, or I\u2019d rather not say']]) {
-    const b = el('button', 'pick short', label);
-    b.onclick = () => {
-      store.set('blind', { ...blindState(), said: value });
-      renderDaily();
-    };
-    box.append(b);
-  }
-}
-
-function renderDaily() {
-  const box = $('#daily-body'), g = dailyState(), rounds = dailyData.rounds, i = g.picks.length;
-  box.textContent = '';
-  if (!blindState().said) return askLean(box);
-  if (i >= rounds.length) return renderDailyResult();
-  const r = rounds[i];
-  box.append(el('p', 'small', `Pair ${i + 1} of ${rounds.length}`));
-  box.append(el('p', 'daily-q', 'Same event, outlets hidden. Which headline would you trust more?'));
-  r.clips.forEach((c, pick) => {
-    const b = el('button', 'pick', c.title);
-    b.onclick = () => {
-      const state = dailyState();
-      state.picks.push(pick);
-      store.set('dailyGame', state);
-      const blind = blindState();
-      blind.picks = [...blind.picks, c.column].slice(-BLIND_KEEP);
-      store.set('blind', blind);
-      revealDaily(i);
-    };
-    box.append(b);
-  });
-}
-
-function revealDaily(i) {
-  const box = $('#daily-body'), g = dailyState(), r = dailyData.rounds[i];
-  box.textContent = '';
-  box.append(el('p', 'small', `Pair ${i + 1} of ${dailyData.rounds.length}`));
-  box.append(el('p', 'daily-q', 'Here\u2019s who wrote what.'));
-  r.clips.forEach((c, n) => {
-    const card = el('div', 'pick shown' + (n === g.picks[i] ? ' chosen' : ''));
-    card.append(el('span', 'headline-title', c.title), el('span', 'small', `${c.channel} \u00b7 ${c.country} \u00b7 ${SIDE_LABEL[c.column]}${n === g.picks[i] ? ' \u00b7 your pick' : ''}`));
-    box.append(card);
-  });
-  const last = i + 1 >= dailyData.rounds.length;
-  const next = el('button', 'daily-next', last ? 'See your reading' : 'Next');
-  next.onclick = renderDaily;
-  box.append(next);
-}
-
-function renderReading(box) {
-  const { said, picks } = blindState();
-  const right = picks.filter((c) => c === 'right').length, n = picks.length;
-  if (n < BLIND_FIRST_READING) {
-    box.append(el('p', 'daily-q', `${BLIND_FIRST_READING - n} more pick${BLIND_FIRST_READING - n === 1 ? '' : 's'} until your first reading.`));
-    return;
-  }
-  const meter = el('div', 'meter');
-  const marker = el('i');
-  marker.style.left = `${Math.round((right / n) * 100)}%`;
-  meter.append(marker);
-  const ends = el('div', 'meter-ends');
-  ends.append(el('span', '', 'Trusted left-leaning'), el('span', '', 'Trusted right-leaning'));
-  const line = `Blind, you trusted the right-leaning headline ${right} of ${n} times.`;
-  const youSaid = COLUMNS[said] ? ` You said you lean ${COLUMNS[said]}.` : '';
-  box.append(el('p', 'daily-q', line + youSaid), meter, ends);
-  box.append(el('p', 'small', `${n < BLIND_SETTLED ? 'An early reading from just a few headlines. ' : ''}This is about how headlines read to you, not what you believe, and tone can sway it as much as politics. Sides are outlet ratings from Media Bias/Fact Check.`));
-}
-
-function renderDailyResult() {
-  const box = $('#daily-body'), g = dailyState();
-  if (!g.finished) {
-    g.finished = true;
-    store.set('dailyGame', g);
-    renderTopics();
-  }
-  const { picks } = blindState(), right = picks.filter((c) => c === 'right').length;
-  renderReading(box);
-  box.append(el('p', 'small', 'New pairs tomorrow, and your reading will shift as they come in.'));
-  const share = el('button', 'daily-next', 'Challenge a friend');
-  share.onclick = async () => {
-    const text = picks.length >= BLIND_FIRST_READING
-      ? `With the outlets hidden, I trusted the right-leaning headline ${right} of ${picks.length} times. What would you pick?`
-      : 'Two headlines, outlets hidden. Which would you trust? You might be surprised who wrote it.';
-    const url = location.origin + location.pathname;
-    try {
-      if (navigator.share) { await navigator.share({ text, url }); return; }
-      await navigator.clipboard.writeText(`${text}\n${url}`);
-      share.textContent = 'Copied';
-    } catch { /* they closed the share sheet */ }
-  };
-  box.append(share, el('h3', 'set-heading', 'What you actually watch'));
-  const mix = el('div');
-  renderMix(mix);
-  box.append(mix, el('p', 'small', 'Headlines from YouTube videos.'));
+  box.append(yt, el('p', 'group-note', 'Headlines from YouTube videos. Sides are outlet ratings from Media Bias/Fact Check, not judgements of these headlines.'));
+  if (playerReady) player.pauseVideo();
+  compareEl.showModal();
 }
 
 function start() {
@@ -823,6 +864,10 @@ function start() {
   ended = false;
   if (query) {
     stories = orderStories(matches(everything || feed.stories || [], query));
+  } else if (place) {
+    const all = orderStories(placeList(everything || [], place));
+    const fresh = all.filter((s) => !s._seen).slice(0, MORE_STORIES);
+    stories = fresh.length ? fresh : settings.hideWatched ? [] : all.slice(0, MORE_STORIES);
   } else {
     // Watched stories wait until the end, so they never sit in front of ones you haven't seen.
     const pool = (feed.stories || []).filter(inTopic);
@@ -846,7 +891,8 @@ function start() {
     feedEl.textContent = '';
     wrap.hidden = gesture.hidden = true;
     scrolling = false;
-    if (query) { setStatus(`Nothing about "${query}" in the last two days.`); return; }
+    if (query) { setStatus(`No results for \u201C${query}\u201D in the last two days.`); return; }
+    if (place) { setStatus('Nothing new from here right now.'); return; }
     setStatus(topic === 'all' ? 'No stories right now. Check back soon.' : `No ${TOPICS[topic].toLowerCase()} stories right now.`);
     return;
   }
@@ -860,7 +906,9 @@ function start() {
 }
 
 (async function boot() {
-  renderTopics();
+  renderBar();
+  show('news');
+  if (!consent) welcomeEl.showModal();
   try {
     feed = await loadFeed();
   } catch (e) {
@@ -868,5 +916,4 @@ function start() {
     return;
   }
   start();
-  if (!consent) consentEl.showModal();
 })();

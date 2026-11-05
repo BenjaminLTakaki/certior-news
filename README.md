@@ -37,15 +37,14 @@ Open the app in **Safari → Share → Add to Home Screen**. Open it from the Ho
 | Swipe up / down on the video | Next / previous story |
 | Swipe left / right on the video | Same story, next outlet (Left → Center → Right) |
 | Tap the video | Pause / play |
-| Tap a tab at the top | Show only that topic; scroll the tabs sideways for more |
-| Tap **Blind Pick** | Two headlines, outlets hidden: which would you trust? Builds a private reading over time |
+| Tap the title at the top | Choose a topic |
+| Tap **World** | Pick a country, or Take Me Somewhere, to see what its outlets are covering |
 | Tap **Compare** | Every outlet's headline for the story, by side |
-| Tap the magnifier | Search every story from the last two days by topic |
-| Tap **Left / Center / Right** | Jump to that side (not shown for sport) |
+| Tap **Search** | Search every story from the last two days |
+| Tap **Left / Center / Right** | Jump to that side; a grayed-out side has no coverage here (not shown for sport) |
 | 🔈 | Sound on/off |
 | **YouTube ↗** | Open the clip in the YouTube app |
 
-- **No right coverage** (or left) means several outlets covered the story, but nobody from that side did.
 - Stories covered in several regions rank first. Stories you can compare across sides come first; stories from one side, one region or one outlet sink. At most one story in every four is US domestic politics, however widely it is covered. Watched stories move to the end and are dimmed.
 - When a clip finishes, the app moves to the next outlet, then to the next story.
 - A **New stories** button appears when there are new clips, or tap the refresh icon to check. The feed starts with the top stories and loads the rest as you get near the end.

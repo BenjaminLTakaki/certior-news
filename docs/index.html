@@ -17,77 +17,134 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <nav id="topics" aria-label="Topic"></nav>
+  <header id="bar">
+    <button type="button" id="back" hidden></button>
+    <div id="bar-center">
+      <span id="bar-title"></span>
+      <svg id="bar-chevron" viewBox="0 0 12 12" aria-hidden="true"><path d="m2.5 4.5 3.5 3.5 3.5-3.5"/></svg>
+      <!-- the real iOS menu, laid invisibly over the title -->
+      <select id="topic" aria-label="Choose a topic"></select>
+    </div>
+    <button type="button" id="bar-action"></button>
+  </header>
+
   <main id="feed" aria-label="Stories"></main>
 
   <!-- the ONE YouTube player, laid over the active clip's video area -->
   <div id="player-wrap" hidden><div id="player"></div></div>
-  <!-- catches swipes and taps on top of the video so the feed still scrolls -->
+  <!-- catches swipes and taps on the middle of the video so the feed still scrolls -->
   <div id="gesture" hidden aria-hidden="true"></div>
 
-  <div id="hint" hidden></div>
-  <button id="new-pill" hidden>New stories ↻</button>
+  <div id="hint" role="status" hidden></div>
+  <button type="button" id="new-pill" hidden>New Stories</button>
   <div id="status" class="status">Loading stories…</div>
-  <div id="rotate" role="status">Turn your phone upright to keep watching.</div>
 
-  <dialog id="consent" aria-labelledby="consent-title">
-    <h2 id="consent-title" tabindex="-1" autofocus>Play videos from YouTube?</h2>
-    <p>Videos on Swipe News are played by YouTube. If you turn them on, YouTube can set cookies on this device and may track what you watch. Without them you still get every headline, with links to YouTube.</p>
-    <p class="small">By continuing you agree to the <a href="https://www.youtube.com/t/terms" target="_blank" rel="noopener">YouTube Terms of Service</a> and our <a href="privacy.html">Privacy Policy</a>. You can change this any time in Settings.</p>
-    <div class="choices">
-      <button type="button" id="consent-text">Text only</button>
-      <button type="button" id="consent-videos">Play videos</button>
+  <section id="page-world" class="page" aria-labelledby="world-title" hidden>
+    <h1 id="world-title">World</h1>
+    <p class="lead">See what outlets in each country are covering, starting with stories nobody else here has.</p>
+    <button type="button" id="somewhere" class="filled">Take Me Somewhere</button>
+    <div id="world-list"></div>
+  </section>
+
+  <section id="page-search" class="page" aria-labelledby="search-title" hidden>
+    <h1 id="search-title">Search</h1>
+    <form id="search-form" role="search">
+      <input id="search-input" type="search" placeholder="Topics, people, places" aria-label="Search stories" autocomplete="off" enterkeyhint="search">
+    </form>
+    <div id="search-recent"></div>
+  </section>
+
+  <section id="page-settings" class="page" aria-labelledby="settings-title" hidden>
+    <h1 id="settings-title">Settings</h1>
+
+    <h2 class="group-title">Playback</h2>
+    <div class="group">
+      <label class="cell"><span>Play Videos from YouTube</span><input type="checkbox" class="switch" id="set-videos"></label>
+      <label class="cell"><span>Play Next Clip Automatically</span><input type="checkbox" class="switch" id="set-auto"></label>
     </div>
-  </dialog>
+    <p class="group-note">YouTube can set cookies on this device while videos are on.</p>
 
-  <dialog id="daily" class="sheet" aria-labelledby="daily-title">
-    <header>
-      <h2 id="daily-title">Blind Pick</h2>
-      <button type="button" class="done">Done</button>
-    </header>
-    <div id="daily-body"></div>
-  </dialog>
+    <h2 class="group-title">Stories</h2>
+    <div class="group">
+      <label class="cell"><span>Open Stories On</span>
+        <select id="set-side">
+          <option value="">Last Side I Picked</option>
+          <option value="left">Left</option>
+          <option value="center">Center</option>
+          <option value="right">Right</option>
+        </select>
+      </label>
+      <label class="cell"><span>Hide Stories I've Watched</span><input type="checkbox" class="switch" id="set-hideWatched"></label>
+      <label class="cell"><span>Show Sports in All News</span><input type="checkbox" class="switch" id="set-sportsInAll"></label>
+      <label class="cell"><span>Show Funding Notices</span><input type="checkbox" class="switch" id="set-notes"></label>
+    </div>
+
+    <h2 class="group-title">Your Mix</h2>
+    <div class="group" id="settings-mix"></div>
+    <p class="group-note">Clips you've watched from each side in the last 7 days. Only this device knows, and it doesn't change your stories.</p>
+
+    <h2 class="group-title">Your Data</h2>
+    <div class="group">
+      <button type="button" class="cell action" id="set-clear">Clear Watched History</button>
+      <button type="button" class="cell action danger" id="set-reset">Reset This Device</button>
+    </div>
+    <p class="group-note">Settings are saved on this device. There are no accounts, and everyone gets the same stories.</p>
+
+    <h2 class="group-title">About</h2>
+    <div class="group">
+      <a class="cell link" href="how-it-works.html">How This Works</a>
+      <a class="cell link" href="privacy.html">Privacy</a>
+      <a class="cell link" href="https://www.youtube.com/t/terms" target="_blank" rel="noopener">YouTube Terms of Service</a>
+    </div>
+  </section>
+
+  <nav id="tabbar" aria-label="Main">
+    <button type="button" data-tab="news"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3.5" width="16" height="17" rx="3"/><path d="M8 8.5h8M8 12.5h8M8 16.5h5"/></svg>News</button>
+    <button type="button" data-tab="world"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.6 2.4 3.9 5.2 3.9 8.5s-1.3 6.1-3.9 8.5c-2.6-2.4-3.9-5.2-3.9-8.5S9.4 5.9 12 3.5Z"/></svg>World</button>
+    <button type="button" data-tab="search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.3"/><path d="m15.5 15.5 5 5"/></svg>Search</button>
+    <button type="button" data-tab="settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7.5h9.5M18 7.5h2M4 16.5h2M10.5 16.5H20"/><circle cx="15.7" cy="7.5" r="2.2"/><circle cx="8.3" cy="16.5" r="2.2"/></svg>Settings</button>
+  </nav>
 
   <dialog id="compare" class="sheet" aria-labelledby="compare-title">
-    <header>
-      <h2 id="compare-title">Compare headlines</h2>
+    <div class="sheet-head">
+      <span class="grabber" aria-hidden="true"></span>
+      <h2 id="compare-title">Compare Headlines</h2>
       <button type="button" class="done">Done</button>
-    </header>
+    </div>
     <div id="compare-body"></div>
   </dialog>
 
-  <dialog id="settings" class="sheet" aria-labelledby="settings-title">
-    <header>
-      <h2 id="settings-title">Settings</h2>
-      <button type="button" id="settings-done">Done</button>
-    </header>
-    <p class="small">Saved on this device only. There are no accounts, and everyone gets the same stories.</p>
-    <label class="set"><span>Play videos from YouTube<small>YouTube can set cookies while this is on.</small></span><input type="checkbox" id="set-videos"></label>
-    <label class="set"><span>Open stories on</span>
-      <select id="set-side">
-        <option value="">Last one I picked</option>
-        <option value="left">Left</option>
-        <option value="center">Center</option>
-        <option value="right">Right</option>
-      </select>
-    </label>
-    <label class="set"><span>Play the next clip automatically</span><input type="checkbox" id="set-auto"></label>
-    <label class="set"><span>Hide stories I've watched</span><input type="checkbox" id="set-hideWatched"></label>
-    <label class="set"><span>Show sports under All</span><input type="checkbox" id="set-sportsInAll"></label>
-    <label class="set"><span>Show funding notices</span><input type="checkbox" id="set-notes"></label>
-    <h3 class="set-heading">Your mix</h3>
-    <div id="settings-mix"></div>
-    <div class="set-actions">
-      <button type="button" id="set-clear">Clear watched history</button>
-      <button type="button" id="set-blind">Clear my Blind Pick results</button>
-      <button type="button" id="set-reset">Reset everything on this device</button>
+  <dialog id="welcome" aria-labelledby="welcome-title">
+    <div id="welcome-1" class="welcome-step">
+      <h1 id="welcome-title" tabindex="-1" autofocus>Welcome to Swipe News</h1>
+      <ul class="features">
+        <li>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20V4m0 0L6.5 9.5M12 4l5.5 5.5"/></svg>
+          <div><b>Swipe up for the next story</b><span>Short clips from about 40 outlets around the world, biggest stories first.</span></div>
+        </li>
+        <li>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h16M4 12l4.5-4.5M4 12l4.5 4.5M20 12l-4.5-4.5M20 12l-4.5 4.5"/></svg>
+          <div><b>Swipe sideways for another outlet</b><span>See who covered it. Left, Center and Right are outlet ratings from Media Bias/Fact Check.</span></div>
+        </li>
+        <li>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.6 2.4 3.9 5.2 3.9 8.5s-1.3 6.1-3.9 8.5c-2.6-2.4-3.9-5.2-3.9-8.5S9.4 5.9 12 3.5Z"/></svg>
+          <div><b>Go somewhere new</b><span>Pick a country and see what its outlets are covering today.</span></div>
+        </li>
+      </ul>
+      <button type="button" id="welcome-next" class="filled">Continue</button>
     </div>
-    <nav class="set-links" aria-label="About Swipe News">
-      <a href="how-it-works.html">How this works</a>
-      <a href="privacy.html">Privacy</a>
-      <a href="https://www.youtube.com/t/terms" target="_blank" rel="noopener">YouTube Terms of Service</a>
-    </nav>
+    <div id="welcome-2" class="welcome-step" hidden>
+      <h1>Play Videos from YouTube?</h1>
+      <p class="lead">Videos are played by YouTube. If you turn them on, it can set cookies on this device and may track what you watch. Without them you still get every headline, with links to YouTube.</p>
+      <div class="welcome-actions">
+        <button type="button" id="consent-videos" class="plain-filled">Turn On Videos</button>
+        <button type="button" id="consent-text" class="plain-filled">Text Only</button>
+      </div>
+      <p class="group-note">By continuing you agree to the <a href="https://www.youtube.com/t/terms" target="_blank" rel="noopener">YouTube Terms of Service</a> and our <a href="privacy.html">Privacy Policy</a>. You can change this any time in Settings.</p>
+    </div>
   </dialog>
+
+  <div id="rotate" role="status">Turn your phone upright to keep watching.</div>
 
   <script src="app.js" type="module"></script>
 </body>
