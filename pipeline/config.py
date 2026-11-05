@@ -68,7 +68,7 @@ POLITICS_WORDS = (r"\b(elect(ion|ions|ed|oral)|vot(e|es|er|ers|ing)|ballot|polls
                   r"netanyahu|putin|zelensky|macron|modi|schumer|jeffries|impeach\w*|hegseth|pentagon|white house|wars?|military|army|troops|navy|"
                   r"airstrikes?|missiles?|drones?|bombing|shelling|invasion|ceasefire|idf|hamas|hezbollah|houthis?|taliban|nato|sanctions?|diplomat\w*|"
                   r"embassy|treaty|summit|protest\w*|rall(y|ies) (against|in|for|over)|mass rallies|coup|opposition|party|parties|coalition|manifesto|"
-                  r"campaign|activists?|national security|policy|amendments?|anc|apc|upinzani|uchaguzi|siasa|israeli?|palestin\w+|gaza|west bank|lebanon|"
+                  r"campaign|activists?|national security|policy|politics|political|politicians?|nationwide strike|alliance|too close to call|amendments?|anc|apc|upinzani|uchaguzi|siasa|israeli?|palestin\w+|gaza|west bank|lebanon|"
                   r"ukrain\w+|russian?|iran\w*|kashmir|south china sea|lge 2026|midterms?|human rights|settlers?|migrants?)\b")
 
 REGIONS = ["mideast_africa", "americas", "asia", "europe"]
