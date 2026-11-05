@@ -1,0 +1,97 @@
+{
+ "@CNN": {
+  "channel_id": "UCupvZG-5ko_eiXAupbDfxWw",
+  "uploads": "UUupvZG-5ko_eiXAupbDfxWw",
+  "title": "CNN"
+ },
+ "@msnow": {
+  "channel_id": "UCaXkIU1QidjPwiAYu6GcHjg",
+  "uploads": "UUaXkIU1QidjPwiAYu6GcHjg",
+  "title": "MS NOW"
+ },
+ "@NBCNews": {
+  "channel_id": "UCeY0bbntWzzVIaj2z3QigXg",
+  "uploads": "UUeY0bbntWzzVIaj2z3QigXg",
+  "title": "NBC News"
+ },
+ "@ABCNews": {
+  "channel_id": "UCBi2mrWuNuyYy4gbM6fU18Q",
+  "uploads": "UUBi2mrWuNuyYy4gbM6fU18Q",
+  "title": "ABC News"
+ },
+ "@CBSNews": {
+  "channel_id": "UC8p1vwvWtl6T73JiExfWs1g",
+  "uploads": "UU8p1vwvWtl6T73JiExfWs1g",
+  "title": "CBS News"
+ },
+ "@PBSNewsHour": {
+  "channel_id": "UC6ZFN9Tx6xh-skXCuRHCDpQ",
+  "uploads": "UU6ZFN9Tx6xh-skXCuRHCDpQ",
+  "title": "PBS NewsHour"
+ },
+ "@NPR": {
+  "channel_id": "UCJnS2EsPfv46u1JR8cnD0NA",
+  "uploads": "UUJnS2EsPfv46u1JR8cnD0NA",
+  "title": "NPR"
+ },
+ "@AssociatedPress": {
+  "channel_id": "UC52X5wxOL_s5yw0dQk7NtgA",
+  "uploads": "UU52X5wxOL_s5yw0dQk7NtgA",
+  "title": "Associated Press"
+ },
+ "@Reuters": {
+  "channel_id": "UChqUTb7kYRX8-EiaN3XFrSQ",
+  "uploads": "UUhqUTb7kYRX8-EiaN3XFrSQ",
+  "title": "Reuters"
+ },
+ "@NewsNation": {
+  "channel_id": "UCCjG8NtOig0USdrT5D1FpxQ",
+  "uploads": "UUCjG8NtOig0USdrT5D1FpxQ",
+  "title": "NewsNation"
+ },
+ "@thehill": {
+  "channel_id": "UCPWXiRWZ29zrxPFIQT7eHSA",
+  "uploads": "UUPWXiRWZ29zrxPFIQT7eHSA",
+  "title": "The Hill"
+ },
+ "@wsj": {
+  "channel_id": "UCK7tptUDHh-RYDsdxO1-5QQ",
+  "uploads": "UUK7tptUDHh-RYDsdxO1-5QQ",
+  "title": "The Wall Street Journal"
+ },
+ "@StraightArrowNews": {
+  "channel_id": "UCuL3xV8AqD3sekKOhhyZqOA",
+  "uploads": "UUuL3xV8AqD3sekKOhhyZqOA",
+  "title": "Straight Arrow"
+ },
+ "@FoxNews": {
+  "channel_id": "UCXIJgqnII2ZOINSWNOGFThA",
+  "uploads": "UUXIJgqnII2ZOINSWNOGFThA",
+  "title": "Fox News"
+ },
+ "@NEWSMAX": {
+  "channel_id": "UCaDCI0bxPZ_ZHdtx9LXOxRw",
+  "uploads": "UUaDCI0bxPZ_ZHdtx9LXOxRw",
+  "title": "Newsmax"
+ },
+ "@nypost": {
+  "channel_id": "UCrvhNP_lWuPIP6QZzJmM-bw",
+  "uploads": "UUrvhNP_lWuPIP6QZzJmM-bw",
+  "title": "New York Post"
+ },
+ "@dailywire": {
+  "channel_id": "UCaeO5vkdj5xOQHp4UmIN6dw",
+  "uploads": "UUaeO5vkdj5xOQHp4UmIN6dw",
+  "title": "The Daily Wire"
+ },
+ "@DailyCaller": {
+  "channel_id": "UCP4BdwPKyYnfRLjSNfGAPRA",
+  "uploads": "UUP4BdwPKyYnfRLjSNfGAPRA",
+  "title": "Daily Caller"
+ },
+ "@WashingtonExaminer": {
+  "channel_id": "UC8BxSGcBKriJvoeyKOnJ6tA",
+  "uploads": "UU8BxSGcBKriJvoeyKOnJ6tA",
+  "title": "The Washington Examiner"
+ }
+}
