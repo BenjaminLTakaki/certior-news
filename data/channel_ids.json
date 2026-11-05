@@ -203,5 +203,15 @@
   "channel_id": "UCQfwfsi5VrQ8yKZ-UWmAEFg",
   "uploads": "UUQfwfsi5VrQ8yKZ-UWmAEFg",
   "title": "FRANCE 24 English"
+ },
+ "@News24": {
+  "channel_id": "UCO0akufu9MOzyz3nvGIXAAw",
+  "uploads": "UUO0akufu9MOzyz3nvGIXAAw",
+  "title": "News24"
+ },
+ "@GBNewsOnline": {
+  "channel_id": "UC0vn8ISa4LKMunLbzaXLnOQ",
+  "uploads": "UU0vn8ISa4LKMunLbzaXLnOQ",
+  "title": "GBNews"
  }
 }
