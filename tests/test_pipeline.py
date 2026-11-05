@@ -208,32 +208,6 @@ def test_tags_can_overlap_and_avoid_known_traps():
     assert tags("Liverpool stun Real Madrid in the Champions League") == ["sports"]
 
 
-def test_daily_game_pairs_left_and_right_headlines():
-    def story(i, left, right, us=False, topic="politics"):
-        return {"topic": topic, "us_domestic": us, "clips": [
-            {"id": f"l{i}", "title": left, "channel": "Lefty", "country": "", "column": "left", "note": ""},
-            {"id": f"r{i}", "title": right, "channel": "Righty", "country": "", "column": "right", "note": ""}]}
-    stories = [story(0, "Protesters flood the capital demanding reform", "Rioters overrun capital as police stand down"),
-               story(1, "Same words in this headline today", "Same words in this headline today"),
-               story(2, "Lefty reports on the budget vote", "Parliament approves huge spending plan tonight"),
-               story(3, "Short one", "Also a short one"),
-               story(4, "Fans celebrate a huge cup win tonight", "Champions lift the trophy after final", topic="sports"),
-               story(5, "Senate fight over the budget deepens", "Republicans slam reckless spending again", us=True),
-               story(6, "Lawmakers trade blame over the shutdown", "Democrats refuse to reopen government", us=True),
-               story(7, "Congress heads home without any deal", "Do-nothing Dems leave town again", us=True)]
-    daily = grouping.build_daily(stories, "2026-11-05")
-    picked = {c["id"] for r in daily["rounds"] for c in r["clips"]}
-    assert "l0" in picked and "l1" not in picked     # identical headlines teach nothing
-    assert "l2" not in picked                        # a headline naming its outlet gives the answer away
-    assert "l3" not in picked and "l4" not in picked
-    assert sum(c in picked for c in ("l5", "l6", "l7")) == 2     # US politics can't fill the game
-    assert all({c["column"] for c in r["clips"]} == {"left", "right"} for r in daily["rounds"])
-    assert grouping.build_daily(stories, "2026-11-05") == daily  # same day, same game
-    same_event = [story(0, "Protesters flood the capital demanding reform", "Rioters overrun capital as police stand down"),
-                  story(1, "Protesters flood the capital again tonight", "Rioters overrun capital for a second night")]
-    assert len(grouping.build_daily(same_event, "2026-11-05")["rounds"]) == 1
-
-
 def test_sports_outlet_makes_a_sports_story_without_left_right_labels():
     clips = [{**clip(i, f"S{i}", "europe", "Big transfer agreed", column="unrated"), "topic": "sports"} for i in range(3)]
     story = grouping.build_stories(clips, [[0, 1, 2]], np.eye(3), NOW)[0]

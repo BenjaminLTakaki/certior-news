@@ -403,9 +403,8 @@ function renderStory(s, si) {
       const slot = el('div', 'slot');
       if (videosOn()) {
         const img = el('img');
-        img.loading = si < 3 ? 'eager' : 'lazy';
         img.alt = '';
-        img.src = `https://i.ytimg.com/vi/${c.id}/hqdefault.jpg`;
+        img.dataset.src = `https://i.ytimg.com/vi/${c.id}/hqdefault.jpg`;     // set by showThumbs when the story comes up
         slot.append(img, el('div', 'msg'));
       } else {
         const off = el('div', 'off');
@@ -579,8 +578,18 @@ function settle() {
     if (hintEl.textContent === SIDEWAYS_HINT) showHint('');
   }
   autoAdvance = false;
+  showThumbs(s, c);
   activate(s, c);
   if (s >= stories.length - MORE_AT) loadMore();
+}
+
+// Thumbnails only for the clip you're on, its neighbours, and the next story. Loading them all up front
+// sent 35 images (about 500 KB) at once, which held YouTube's player back on a phone connection.
+function showThumbs(si, ci) {
+  const load = (img) => { if (img?.dataset.src) { img.src = img.dataset.src; delete img.dataset.src; } };
+  const imgs = storyEl(si)?.querySelectorAll('.slot img') || [];
+  for (const i of [ci - 1, ci, ci + 1]) load(imgs[i]);
+  load(storyEl(si + 1)?.querySelector('.slot img'));
 }
 
 function hintSideways() {

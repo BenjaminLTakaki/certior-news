@@ -8,5 +8,4 @@ __pycache__/
 # Built by the workflow and published on the feed branch
 docs/feed.json
 docs/search.json
-docs/daily.json
 data/

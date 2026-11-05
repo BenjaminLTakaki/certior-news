@@ -50,7 +50,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p "$RUNNER_TEMP/out/data"
-          cp docs/feed.json docs/search.json docs/daily.json "$RUNNER_TEMP/out/"
+          cp docs/feed.json docs/search.json "$RUNNER_TEMP/out/"
           cp data/*.json "$RUNNER_TEMP/out/data/"
           touch "$RUNNER_TEMP/out/.nojekyll"
           cd "$RUNNER_TEMP/out"

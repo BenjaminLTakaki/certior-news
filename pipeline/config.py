@@ -9,7 +9,6 @@ REJECTED_FILE = DATA_DIR / "rejected.json"      # IDs we looked at and dropped (
 CHANNEL_CACHE_FILE = DATA_DIR / "channel_ids.json"  # handle -> channel ID + uploads playlist
 FEED_FILE = ROOT / "docs" / "feed.json"         # what the app reads
 SEARCH_FILE = ROOT / "docs" / "search.json"     # every story in the window, fetched the first time someone searches
-DAILY_FILE = ROOT / "docs" / "daily.json"       # the day's game, chosen once a day so everyone gets the same one
 
 # --- Fetching -------------------------------------------------------------
 UPLOADS_PER_CHANNEL = 25        # newest uploads checked per channel per run (1 quota unit each call)
@@ -94,9 +93,6 @@ TAG_WORDS = {
     "culture": (r"\b(film|films|movie|movies|box office|hollywood|bollywood|actor|actress|singer|album|concert|music|musician|theatre|theater|festival|"
                 r"oscars?|grammys?|celebrit\w+|royal family|memes?|netflix|video games?|gaming|nintendo|zelda|museum|art|fashion|book|author)\b"),
 }
-DAILY_ROUNDS = 5
-DAILY_MAX_US = 2                # the game is meant to widen your view too
-DAILY_MIN_ROUNDS = 3
 
 REGIONS = ["mideast_africa", "americas", "asia", "europe"]
 ONE_SIDE_PENALTY = 0.5          # ranking: stories you can compare across left, center and right come first

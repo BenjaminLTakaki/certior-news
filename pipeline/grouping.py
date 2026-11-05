@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import math
 import os
-import random
 import re
 import sys
 from collections import Counter
@@ -246,50 +245,6 @@ def build_stories(clips: list[dict], groups: list[list[int]], X: np.ndarray, now
     out.sort(key=lambda s: s["score"], reverse=True)
     out = space_out_us(out)
     return cap_feed(out) if capped else out
-
-
-def _words(title: str) -> set[str]:
-    return set(tokens(title))
-
-
-def build_daily(stories: list[dict], date: str) -> dict:
-    """The day's Blind Pick: pairs of real headlines from the left and the right on the same event, the most differently worded first.
-    Politics only: a tornado has no framing to spot, however each side words it."""
-    candidates = []
-    for s in stories:
-        if s["topic"] != "politics":
-            continue
-        left = [c for c in s["clips"] if c["column"] == "left"]
-        right = [c for c in s["clips"] if c["column"] == "right"]
-        best = None
-        for a in left:
-            for b in right:
-                wa, wb = _words(a["title"]), _words(b["title"])
-                gives_away = any(set(tokens(c["channel"])) & _words(c["title"]) for c in (a, b))
-                if gives_away or len(wa) < 4 or len(wb) < 4:
-                    continue
-                overlap = len(wa & wb) / len(wa | wb)
-                if best is None or overlap < best[0]:
-                    best = (overlap, a, b)
-        if best and best[0] < 0.6:
-            candidates.append((best[0], s["us_domestic"], best[1], best[2]))
-    candidates.sort(key=lambda c: c[0])
-    rounds, us, used = [], 0, []
-    pick = random.Random(date)      # same pairs for everyone, and the left isn't always on top
-    for _, is_us, a, b in candidates:
-        if is_us and us >= config.DAILY_MAX_US:
-            continue
-        words = _words(a["title"]) | _words(b["title"])
-        if any(len(words & u) / len(words | u) >= 0.2 for u in used):
-            continue        # grouping can split one event into two stories: don't ask about it twice
-        used.append(words)
-        us += is_us
-        pair = [a, b]
-        pick.shuffle(pair)
-        rounds.append({"clips": [{k: c[k] for k in ("id", "title", "channel", "country", "column", "note")} for c in pair]})
-        if len(rounds) == config.DAILY_ROUNDS:
-            break
-    return {"date": date, "rounds": rounds}
 
 
 def cap_feed(stories: list[dict]) -> list[dict]:
