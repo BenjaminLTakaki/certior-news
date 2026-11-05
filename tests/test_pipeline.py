@@ -192,6 +192,48 @@ def test_topic_keywords_avoid_their_known_traps():
     assert grouping.topic_of([{"title": "Mississippi too close to call"}]) == "politics"
 
 
+def test_tags_can_overlap_and_avoid_known_traps():
+    tags = lambda t: grouping.tags_of([{"title": t}], grouping.topic_of([{"title": t}]))
+    assert "tech" in tags("New limits on AI and screen time in schools")
+    assert {"tech", "business"} <= set(tags("AI shares slide as stock markets fall"))
+    assert "business" not in tags("Cyberattack hits French blood bank fridges")
+    assert "business" not in tags("Korean kidswear goes viral at Seoul's Namdaemun Market")
+    assert "business" not in tags("IDF arrests West Bank terror cells")
+    assert "health" not in tags("Netflix show returns with humor and heart")
+    assert "crime" not in tags("Police clash with students at the march")
+    assert "tech" not in tags("Minister said the plan is fine")     # "ai" is in "said"
+    assert "climate" in tags("COP31 in Antalya aims to turn climate ambition into action")
+    assert "crime" in tags("Russell Brand found guilty of rape")
+    assert "disasters" in tags("Tornado strikes Brazil airport")
+    assert tags("Liverpool stun Real Madrid in the Champions League") == ["sports"]
+
+
+def test_daily_game_pairs_left_and_right_headlines():
+    def story(i, left, right, us=False, topic="politics"):
+        return {"topic": topic, "us_domestic": us, "clips": [
+            {"id": f"l{i}", "title": left, "channel": "Lefty", "country": "", "column": "left", "note": ""},
+            {"id": f"r{i}", "title": right, "channel": "Righty", "country": "", "column": "right", "note": ""}]}
+    stories = [story(0, "Protesters flood the capital demanding reform", "Rioters overrun capital as police stand down"),
+               story(1, "Same words in this headline today", "Same words in this headline today"),
+               story(2, "Lefty reports on the budget vote", "Parliament approves huge spending plan tonight"),
+               story(3, "Short one", "Also a short one"),
+               story(4, "Fans celebrate a huge cup win tonight", "Champions lift the trophy after final", topic="sports"),
+               story(5, "Senate fight over the budget deepens", "Republicans slam reckless spending again", us=True),
+               story(6, "Lawmakers trade blame over the shutdown", "Democrats refuse to reopen government", us=True),
+               story(7, "Congress heads home without any deal", "Do-nothing Dems leave town again", us=True)]
+    daily = grouping.build_daily(stories, "2026-11-05")
+    picked = {c["id"] for r in daily["rounds"] for c in r["clips"]}
+    assert "l0" in picked and "l1" not in picked     # identical headlines teach nothing
+    assert "l2" not in picked                        # a headline naming its outlet gives the answer away
+    assert "l3" not in picked and "l4" not in picked
+    assert sum(c in picked for c in ("l5", "l6", "l7")) == 2     # US politics can't fill the game
+    assert all({c["column"] for c in r["clips"]} == {"left", "right"} and r["ask"] in ("left", "right") for r in daily["rounds"])
+    assert grouping.build_daily(stories, "2026-11-05") == daily  # same day, same game
+    same_event = [story(0, "Protesters flood the capital demanding reform", "Rioters overrun capital as police stand down"),
+                  story(1, "Protesters flood the capital again tonight", "Rioters overrun capital for a second night")]
+    assert len(grouping.build_daily(same_event, "2026-11-05")["rounds"]) == 1
+
+
 def test_sports_outlet_makes_a_sports_story_without_left_right_labels():
     clips = [{**clip(i, f"S{i}", "europe", "Big transfer agreed", column="unrated"), "topic": "sports"} for i in range(3)]
     story = grouping.build_stories(clips, [[0, 1, 2]], np.eye(3), NOW)[0]

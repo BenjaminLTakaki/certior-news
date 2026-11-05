@@ -14,7 +14,7 @@ from pathlib import Path
 
 from . import config, youtube
 from .filters import parse_time, to_clip
-from .grouping import build_stories, cap_feed, group
+from .grouping import build_daily, build_stories, cap_feed, group
 
 
 def load_json(path: Path, default):
@@ -134,6 +134,13 @@ def main(argv=None) -> int:
     save_json(args.out, feed, compact=True)
     if not args.mock:
         save_json(config.SEARCH_FILE, {"generated": feed["generated"], "stories": everything}, compact=True)
+        today = now.strftime("%Y-%m-%d")
+        daily_state = config.DATA_DIR / "daily.json"
+        daily = load_json(daily_state, {})
+        if daily.get("date") != today or len(daily.get("rounds", [])) < config.DAILY_MIN_ROUNDS:
+            daily = build_daily(everything, today)
+            save_json(daily_state, daily)
+        save_json(config.DAILY_FILE, daily, compact=True)
 
     multi = sum(1 for s in stories if not s["single"])
     regions = sum(1 for s in stories if sum(1 for n in s["coverage"].values() if n) > 1)

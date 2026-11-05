@@ -9,6 +9,7 @@ REJECTED_FILE = DATA_DIR / "rejected.json"      # IDs we looked at and dropped (
 CHANNEL_CACHE_FILE = DATA_DIR / "channel_ids.json"  # handle -> channel ID + uploads playlist
 FEED_FILE = ROOT / "docs" / "feed.json"         # what the app reads
 SEARCH_FILE = ROOT / "docs" / "search.json"     # every story in the window, fetched the first time someone searches
+DAILY_FILE = ROOT / "docs" / "daily.json"       # the day's game, chosen once a day so everyone gets the same one
 
 # --- Fetching -------------------------------------------------------------
 UPLOADS_PER_CHANNEL = 25        # newest uploads checked per channel per run (1 quota unit each call)
@@ -69,8 +70,33 @@ POLITICS_WORDS = (r"\b(elect(ion|ions|ed|oral)|vot(e|es|er|ers|ing)|ballot|polls
                   r"netanyahu|putin|zelensky|macron|modi|schumer|jeffries|impeach\w*|hegseth|pentagon|white house|wars?|military|army|troops|navy|"
                   r"airstrikes?|missiles?|drones?|bombing|shelling|invasion|ceasefire|idf|hamas|hezbollah|houthis?|taliban|nato|sanctions?|diplomat\w*|"
                   r"embassy|treaty|summit|protest\w*|rall(y|ies) (against|in|for|over)|mass rallies|coup|opposition|party|parties|coalition|manifesto|"
-                  r"campaign|activists?|national security|policy|politics|political|politicians?|nationwide strike|alliance|too close to call|amendments?|anc|apc|upinzani|uchaguzi|siasa|israeli?|palestin\w+|gaza|west bank|lebanon|"
+                  r"campaign|activists?|national security|policy|fighting|conflict|workers? strike|politics|political|politicians?|nationwide strike|alliance|too close to call|amendments?|anc|apc|upinzani|uchaguzi|siasa|israeli?|palestin\w+|gaza|west bank|lebanon|"
                   r"ukrain\w+|russian?|iran\w*|kashmir|south china sea|lge 2026|midterms?|human rights|settlers?|migrants?)\b")
+
+# More tags. A story gets every tag a third of its titles match, so one story can sit under several tabs.
+# ponytail: keyword lists again, tests/test_pipeline.py holds their known traps.
+TAG_WORDS = {
+    "business": (r"\b(econom(y|ic|ics|ist|ists)|inflation|interest rates?|central bank|(?<!west )(?<!blood )banks?|banking|depositors?|rate (rise|hike|cut)s?|stocks?|shares|stock markets?|global markets?|wall street|dow|nasdaq|"
+                 r"investors?|investment|investing|trade (deal|war|costs?|cards?)|tariffs?|exports?|imports?|gdp|debt|budget|taxe?s?|recession|"
+                 r"billion|oil prices?|companies|company|ceo|startup|layoffs?|jobs? row|wages?|prices?|cost of living|retail)\b"),
+    "tech": (r"\b(ai|a\.i\.|artificial intelligence|chatgpt|openai|anthropic|chips?|semiconductors?|nvidia|apple|google|microsoft|meta|amazon|tesla|"
+             r"robots?|robotics|software|hackers?|cyberattacks?|cyber attack|malware|crypto|bitcoin|data cent(er|re)s?|social media|smartphone|"
+             r"nasa|spacex?|space x|satellite|meteorite|astronauts?|scientists?|researchers?|technology|tech)\b"),
+    "health": (r"\b(health|doctors?|nurses?|patients?|cancer|vaccines?|disease|virus|outbreak|pandemic|surgery|colonoscop\w+|medical|medicine|"
+               r"mental health|healthcare|heart (disease|attack|health)|nhs|lung|obesity|dementia|malaria|cholera)\b"),
+    "climate": (r"\b(climate|cop\d\d|emissions?|carbon|pollution|smog|air quality|renewable|solar|wind (farm|power|turbines?)|energy transition|"
+                r"global warming|heatwave|drought|wildfires?|coral|deforestation|environment\w*)\b"),
+    "crime": (r"\b(murder\w*|killers?|killing|convicted|guilty|jurors?|trial|sentenced|jailed|jail|prison|arrested|arrests?|rape|assault|"
+              r"robbery|theft|stolen|fraud|shooting|bomb threats?|gunman|stabb\w+|smuggl\w+|seized|bodycam|prosecut\w+|investigat\w+|detained)\b"),
+    "disasters": (r"\b(earthquake|tsunami|floods?|flooding|flooded|drenched|tornado|hurricane|cyclone|typhoon|storm|landslide|sinkhole|volcano|"
+                  r"crash(es)?|(building|bridge|mine) collapse|collision|collide|derail\w*|explosion|blast|rubble|rescuers?|helicopters?"
+                  r")\b"),
+    "culture": (r"\b(film|films|movie|movies|box office|hollywood|bollywood|actor|actress|singer|album|concert|music|musician|theatre|theater|festival|"
+                r"oscars?|grammys?|celebrit\w+|royal family|memes?|netflix|video games?|gaming|nintendo|zelda|museum|art|fashion|book|author)\b"),
+}
+DAILY_ROUNDS = 5
+DAILY_MAX_US = 2                # the game is meant to widen your view too
+DAILY_MIN_ROUNDS = 3
 
 REGIONS = ["mideast_africa", "americas", "asia", "europe"]
 ONE_SIDE_PENALTY = 0.5          # ranking: stories you can compare across left, center and right come first
