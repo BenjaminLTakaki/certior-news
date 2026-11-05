@@ -173,7 +173,7 @@ dialog::backdrop { background: oklch(0% 0 0 / .6); }
 @keyframes sheet-up { from { transform: translateY(100%); } }
 @keyframes sheet-down { to { transform: translateY(100%); } }
 .sheet-head { position: sticky; top: 0; z-index: 1; display: flex; justify-content: space-between; align-items: center; min-height: 56px; margin: 0 -16px; padding: 8px 16px 0; background: var(--bg); touch-action: none; }
-.sheet-head h2 { font-size: 17px; font-weight: 600; }
+.sheet-head h2 { font-size: 17px; font-weight: 600; outline: 0; }   /* focused on open so Done doesn't get a ring */
 .sheet-head .done { min-height: 44px; padding-left: 16px; color: var(--tint); font-weight: 600; }
 .grabber { position: absolute; top: 5px; left: 50%; width: 36px; height: 5px; margin-left: -18px; border-radius: 3px; background: var(--surface-2); }
 .headline { flex-direction: column; align-items: flex-start; gap: 2px; padding: 11px 44px 11px 16px; }

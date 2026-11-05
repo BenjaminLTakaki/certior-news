@@ -8,7 +8,9 @@
   <title>Swipe News</title>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <!-- "black", not "black-translucent": with a see-through status bar the Home Screen app got a viewport one
+       status bar too short, which left a blank strip under the tab bar on iPhone -->
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="Swipe News">
   <meta name="theme-color" content="#000000">
   <link rel="manifest" href="manifest.webmanifest">
@@ -108,7 +110,7 @@
   <dialog id="compare" class="sheet" aria-labelledby="compare-title">
     <div class="sheet-head">
       <span class="grabber" aria-hidden="true"></span>
-      <h2 id="compare-title">Compare Headlines</h2>
+      <h2 id="compare-title" tabindex="-1" autofocus>Compare Headlines</h2>
       <button type="button" class="done">Done</button>
     </div>
     <div id="compare-body"></div>
