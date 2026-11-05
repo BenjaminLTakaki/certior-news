@@ -22,10 +22,11 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .story { height: var(--app-h); scroll-snap-align: start; scroll-snap-stop: always;
   display: grid; grid-template-rows: var(--head-h) 2px 1fr; }
 
-/* ---- regions covering this story ---- */
+/* ---- sides covering this story ---- */
 .tabs { display: flex; gap: 16px; padding: env(safe-area-inset-top) 16px 0; overflow: hidden; }
 .tabs button { font-size: 13px; color: var(--muted); white-space: nowrap; transition: color 150ms ease-out; }
 .tabs button.on { color: var(--ink); font-weight: 600; }
+.blind { margin-left: auto; align-self: center; font-size: 12px; color: var(--muted); white-space: nowrap; }
 @media (max-width: 360px) { .tabs { gap: 12px; } .tabs button { font-size: 12px; } }
 
 /* ---- position inside the story ---- */

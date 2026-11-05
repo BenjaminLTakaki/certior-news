@@ -1,10 +1,11 @@
 """Group clips about the same event into stories.
 
-A clip joins a story only if BOTH:
-  1. its embedding is close to the story's average embedding (cosine >= join threshold), and
-  2. it shares at least one *distinctive* word with the story (a word that is not common
-     across the whole window), which stops "two different shootings" from merging.
-Afterwards, stories that are very close are merged.
+Two clips can share a story only if BOTH:
+  1. their title embeddings are close (cosine >= threshold), and
+  2. they share at least one *distinctive* word (a word that is not common across the whole
+     window), which stops "two different shootings" from merging.
+Complete-linkage clustering holds EVERY pair in a story to that bar. Comparing clips to a story's
+running average instead let one big event snowball: all the midterm clips became a single story.
 """
 from __future__ import annotations
 
@@ -16,6 +17,7 @@ from collections import Counter
 from datetime import datetime
 
 import numpy as np
+from sklearn.cluster import AgglomerativeClustering
 
 from . import config
 
@@ -47,7 +49,7 @@ def tokens(text: str) -> list[str]:
 
 
 def clip_text(c: dict) -> str:
-    return f"{c['title']}. {c.get('desc', '')}".strip()
+    return c["title"]       # descriptions are mostly about the outlet, and pulled unrelated clips together
 
 
 # --------------------------------------------------------------------------- embedders
@@ -65,7 +67,7 @@ def _normalize(m: np.ndarray) -> np.ndarray:
     return m / n
 
 
-def embed(texts: list[str]) -> tuple[str, np.ndarray]:
+def embed(clips: list[dict]) -> tuple[str, np.ndarray]:
     """Returns (embedder name, L2-normalised matrix). Uses bge-small via fastembed when it can,
     TF-IDF otherwise (e.g. no internet for the model download). EMBEDDER=tfidf forces the fallback."""
     if os.environ.get("EMBEDDER", "").lower() != "tfidf":
@@ -73,86 +75,57 @@ def embed(texts: list[str]) -> tuple[str, np.ndarray]:
             from fastembed import TextEmbedding
             model = TextEmbedding(model_name=config.EMBED_MODEL,
                                   cache_dir=os.environ.get("FASTEMBED_CACHE_PATH"))
-            m = np.array(list(model.embed(texts)), dtype=np.float32)
+            m = np.array(list(model.embed([clip_text(c) for c in clips])), dtype=np.float32)
             return "bge-small", _normalize(m)
         except Exception as e:  # noqa: BLE001 - any failure -> fallback, never break the feed
             print(f"[grouping] fastembed unavailable ({type(e).__name__}: {e}); using TF-IDF", file=sys.stderr)
-    return "tfidf", _tfidf(texts)
+    return "tfidf", _tfidf([f"{clip_text(c)}. {c.get('desc', '')}" for c in clips])     # word counts need more text than a title
 
 
 # --------------------------------------------------------------------------- grouping
-def _hours(a: str, b: str) -> float:
-    ta = datetime.fromisoformat(a.replace("Z", "+00:00"))
-    tb = datetime.fromisoformat(b.replace("Z", "+00:00"))
-    return abs((ta - tb).total_seconds()) / 3600
-
-
-def group(clips: list[dict], thresholds: dict | None = None,
+def group(clips: list[dict], threshold: float | None = None,
           embedded: tuple[str, np.ndarray] | None = None) -> tuple[str, list[list[int]], np.ndarray]:
     """Returns (embedder name, list of stories as lists of clip indexes, embedding matrix).
-    `clips` must be sorted oldest -> newest. Pass `embedded` to reuse embeddings (tuning)."""
-    if not clips:
-        return "none", [], np.zeros((0, 1))
-    name, X = embedded or embed([clip_text(c) for c in clips])
-    th = thresholds or config.THRESHOLDS[name]
+    Pass `embedded` to reuse embeddings (tuning)."""
+    if len(clips) < 2:
+        name, X = embedded or embed(clips) if clips else ("none", np.zeros((0, 1)))
+        return name, [[i] for i in range(len(clips))], X
+    name, X = embedded or embed(clips)
+    th = config.THRESHOLDS[name] if threshold is None else threshold
 
-    # distinctive words: appear in at most 15% of clips in the window (and at least in the clip itself)
-    docs = [set(tokens(clip_text(c))) for c in clips]
+    # distinctive words: appear in at most 15% of clips in the window
+    docs = [set(tokens(f"{clip_text(c)}. {c.get('desc', '')}")) for c in clips]
     df = Counter(w for d in docs for w in d)
     cap = max(3, int(0.15 * len(clips)))
     kw = [{w for w in d if df[w] <= cap} for d in docs]
+    hours = np.array([_ts(c["published"]) for c in clips]) / 3600
 
-    stories: list[dict] = []   # {members, sum, words: Counter, last}
-    for i, c in enumerate(clips):
-        best, best_sim = None, -1.0
-        for s in stories:
-            if _hours(c["published"], s["last"]) > config.STORY_GAP_HOURS:
-                continue
-            centroid = s["sum"] / (np.linalg.norm(s["sum"]) or 1)
-            sim = float(centroid @ X[i])
-            if sim < th["join"] or sim <= best_sim:
-                continue
-            if len(kw[i] & s["words"].keys()) < config.MIN_SHARED_KEYWORDS:
-                continue
-            best, best_sim = s, sim
-        if best is None:
-            stories.append({"members": [i], "sum": X[i].copy(), "words": Counter(kw[i]), "last": c["published"]})
-        else:
-            best["members"].append(i)
-            best["sum"] += X[i]
-            best["words"].update(kw[i])
-            best["last"] = c["published"]
+    # pairs that must never share a story sit past the cut, whatever their similarity
+    D = np.clip(1 - X @ X.T, 0, 2)
+    D = (D + D.T) / 2
+    NEVER = 2.0
+    D[np.abs(hours[:, None] - hours[None, :]) > config.STORY_GAP_HOURS] = NEVER
+    for i, a in enumerate(kw):
+        for j in range(i + 1, len(kw)):
+            if len(a & kw[j]) < config.MIN_SHARED_KEYWORDS[name]:
+                D[i, j] = D[j, i] = NEVER
+    np.fill_diagonal(D, 0)
 
-    # merge pass (union-find on stories)
-    parent = list(range(len(stories)))
-
-    def find(a):
-        while parent[a] != a:
-            parent[a] = parent[parent[a]]
-            a = parent[a]
-        return a
-
-    cents = [s["sum"] / (np.linalg.norm(s["sum"]) or 1) for s in stories]
-    for a in range(len(stories)):
-        for b in range(a + 1, len(stories)):
-            sa, sb = stories[a], stories[b]
-            first_b = clips[sb["members"][0]]["published"]
-            if _hours(sa["last"], first_b) > config.STORY_GAP_HOURS and _hours(sb["last"], clips[sa["members"][0]]["published"]) > config.STORY_GAP_HOURS:
-                continue
-            if float(cents[a] @ cents[b]) < th["merge"]:
-                continue
-            if len(sa["words"].keys() & sb["words"].keys()) < max(2, config.MIN_SHARED_KEYWORDS):
-                continue
-            parent[find(b)] = find(a)
-
-    merged: dict[int, list[int]] = {}
-    for idx, s in enumerate(stories):
-        merged.setdefault(find(idx), []).extend(s["members"])
-    return name, [sorted(m) for m in merged.values()], X
+    labels = AgglomerativeClustering(n_clusters=None, metric="precomputed", linkage="complete",
+                                     distance_threshold=1 - th).fit_predict(D)
+    stories: dict[int, list[int]] = {}
+    for i, label in enumerate(labels):
+        stories.setdefault(int(label), []).append(i)
+    return name, list(stories.values()), X
 
 
 # --------------------------------------------------------------------------- feed building
-REGION_ORDER = {r: i for i, r in enumerate(config.REGIONS)}
+COL_ORDER = {c: i for i, c in enumerate(config.COLUMNS)}
+_US_DOMESTIC = re.compile(config.US_DOMESTIC, re.I)
+
+
+def is_us_domestic(titles: list[str]) -> bool:
+    return sum(bool(_US_DOMESTIC.search(t)) for t in titles) >= config.US_DOMESTIC_SHARE * len(titles)
 
 
 def build_stories(clips: list[dict], groups: list[list[int]], X: np.ndarray, now: datetime) -> list[dict]:
@@ -161,13 +134,18 @@ def build_stories(clips: list[dict], groups: list[list[int]], X: np.ndarray, now
         ms = [clips[i] for i in members]
         # cap clips per outlet (keep newest)
         per_outlet: dict[str, list[int]] = {}
+        seen_titles = set()
         for i in sorted(members, key=lambda i: clips[i]["published"], reverse=True):
-            per_outlet.setdefault(clips[i]["channel"], []).append(i)
+            repost = (clips[i]["channel"], clips[i]["title"].casefold())   # outlets re-upload the same clip
+            if repost not in seen_titles:
+                seen_titles.add(repost)
+                per_outlet.setdefault(clips[i]["channel"], []).append(i)
         kept = [i for lst in per_outlet.values() for i in lst[:config.MAX_CLIPS_PER_OUTLET]]
 
         centroid = X[members].sum(axis=0)
         centroid = centroid / (np.linalg.norm(centroid) or 1)
-        head = max(kept, key=lambda i: float(X[i] @ centroid))
+        centre_pool = [i for i in kept if clips[i]["column"] == "center"] or kept
+        head = max(centre_pool, key=lambda i: float(X[i] @ centroid))
 
         cov = {r: set() for r in config.REGIONS}
         for c in ms:
@@ -176,29 +154,57 @@ def build_stories(clips: list[dict], groups: list[list[int]], X: np.ndarray, now
         n_outlets = sum(coverage.values())
         n_regions = sum(1 for v in coverage.values() if v)
 
+        by_col = {k: set() for k in config.COLUMNS}
+        for c in ms:
+            by_col[c["column"]].add(c["channel"])
+        sides = {k: len(v) for k, v in by_col.items()}
+        n_sides = sum(1 for k in ("left", "center", "right") if sides[k])
+
+        blindspot = None
+        if n_outlets >= config.BLINDSPOT_MIN_CLIPS:
+            if sides["right"] == 0 and sides["left"] >= 2:
+                blindspot = "right"     # the right didn't cover it
+            elif sides["left"] == 0 and sides["right"] >= 2:
+                blindspot = "left"
+
         latest = max(c["published"] for c in ms)
         age_h = (now - datetime.fromisoformat(latest.replace("Z", "+00:00"))).total_seconds() / 3600
-        score = (n_outlets + 2 * n_regions) * math.pow(0.5, age_h / config.RECENCY_HALF_LIFE_H)
+        score = (n_outlets + 2 * n_regions + n_sides) * math.pow(0.5, age_h / config.RECENCY_HALF_LIFE_H)
         if n_regions == 1:
             score *= config.SINGLE_REGION_PENALTY
         if n_outlets == 1:
             score *= 0.3
+        if n_sides == 1:
+            score *= config.ONE_SIDE_PENALTY
 
-        # region by region, newest first inside each
-        ordered = sorted(kept, key=lambda i: (REGION_ORDER[clips[i]["region"]], -_ts(clips[i]["published"])))
+        # Left -> Center -> Right -> unrated, newest first inside each
+        ordered = sorted(kept, key=lambda i: (COL_ORDER[clips[i]["column"]], -_ts(clips[i]["published"])))
         first = min(ms, key=lambda c: c["published"])
         out.append({
             "id": "s_" + first["id"],
             "headline": clips[head]["title"],
             "updated": latest,
             "coverage": coverage,
+            "sides": sides,
+            "blindspot": blindspot,
             "single": n_outlets == 1,
             "score": round(score, 4),
-            "clips": [{k: clips[i][k] for k in ("id", "title", "channel", "country", "region", "published", "duration")}
+            "us_domestic": is_us_domestic([c["title"] for c in ms]),
+            "clips": [{k: clips[i][k] for k in ("id", "title", "channel", "country", "region", "lean", "column", "published", "duration")}
                       for i in ordered],
         })
     out.sort(key=lambda s: s["score"], reverse=True)
-    return out[:config.MAX_STORIES_IN_FEED]
+    return space_out_us(out)[:config.MAX_STORIES_IN_FEED]
+
+
+def space_out_us(stories: list[dict]) -> list[dict]:
+    world = [s for s in stories if not s["us_domestic"]]
+    us = [s for s in stories if s["us_domestic"]]
+    out = []
+    while world or us:
+        us_turn = (len(out) + 1) % config.US_DOMESTIC_EVERY == 0
+        out.append((us if us and (us_turn or not world) else world).pop(0))
+    return out
 
 
 def _ts(s: str) -> float:

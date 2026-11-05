@@ -70,10 +70,15 @@ def fetch(channels: list[dict], store: dict, rejected: dict, cache: dict, now: d
 
 
 def apply_channels(store: dict, channels: list[dict]) -> dict:
-    """channels.json decides: a removed outlet's clips leave the feed and a changed region applies at once."""
+    """channels.json decides: a removed outlet's clips leave the feed and a changed region or lean applies at once."""
     by_name = {c["name"]: c for c in channels}
-    return {k: {**v, "region": by_name[v["channel"]]["region"], "country": by_name[v["channel"]]["country"]}
-            for k, v in store.items() if v["channel"] in by_name}
+    out = {}
+    for k, v in store.items():
+        ch = by_name.get(v["channel"])
+        if ch:
+            out[k] = {**v, "region": ch["region"], "country": ch["country"], "lean": ch["lean"],
+                      "column": config.LEAN_TO_COLUMN[ch["lean"]]}
+    return out
 
 
 def load_mock(path: Path, now: datetime) -> dict:

@@ -1,6 +1,6 @@
 # Swipe News
 
-Short news clips from 26 outlets around the world, grouped by story. **Swipe up** for the next story, **swipe sideways** to see the same story from outlets in other regions. It runs as a Home Screen web app on iPhone and costs €0.
+Short news clips from 28 outlets around the world, grouped by story. **Swipe up** for the next story, **swipe sideways** to see the same story from Left, Center and Right outlets. It runs as a Home Screen web app on iPhone and costs €0.
 
 ```
 YouTube Data API ──► GitHub Actions (every 30 min) ──► docs/feed.json ──► GitHub Pages ──► iPhone
@@ -36,18 +36,19 @@ Open the Pages URL in **Safari → Share → Add to Home Screen**. Open it from 
 | Gesture | What happens |
 | --- | --- |
 | Swipe up / down on the video | Next / previous story |
-| Swipe left / right on the video | Same story, next outlet (region by region) |
+| Swipe left / right on the video | Same story, next outlet (Left → Center → Right) |
 | Tap the video | Pause / play |
-| Tap a region at the top | Jump to that region |
+| Tap **Left / Center / Right** at the top | Jump to that side |
 | 🔈 | Sound on/off |
 | **YouTube ↗** | Open the clip in the YouTube app |
 
-- Stories covered in several regions rank first. Stories from one region or one outlet sink. Watched stories move to the end and are dimmed.
+- **No right coverage** (or left) means several outlets covered the story, but nobody from that side did.
+- Stories covered in several regions rank first. Stories you can compare across sides come first; stories from one side, one region or one outlet sink. At most one story in every four is US domestic politics, however widely it is covered. Watched stories move to the end and are dimmed.
 - When a clip finishes, the app moves to the next outlet, then to the next story.
 - Reopening the app after 5+ minutes shows a **New stories** button if the feed changed.
 
 ## Tuning the grouping (do this after 2–3 days)
-The default thresholds for the real embedding model are a starting guess. To fit them to real clips, on your PC:
+The threshold for the real embedding model was set by reading the stories it makes from real clips, not by scoring it against labels. To fit it properly, on your PC:
 
 ```bash
 git pull                                   # get the latest data/clips.json
@@ -56,12 +57,12 @@ python -m pipeline.tune export             # writes data/labels.csv with the app
 #   open data/labels.csv, fix the `story` column so clips about the same event share a label (~100 rows is enough)
 python -m pipeline.tune evaluate           # tries many thresholds, prints the best
 ```
-Copy the suggested numbers into `THRESHOLDS` in `pipeline/config.py`, commit, push. The setting it picks keeps wrong merges near zero, because an unrelated clip when you swipe sideways is worse than a missed one.
+Copy the suggested number into `THRESHOLDS` in `pipeline/config.py`, commit, push. The setting it picks keeps wrong merges near zero, because an unrelated clip when you swipe sideways is worse than a missed one.
 
 Other knobs in `pipeline/config.py`: the title blocklist (promos, "full episode"…), max clip length, how long stories stay in the feed.
 
 ## Changing outlets
-Edit `channels.json`. `region` (`mideast_africa`, `americas`, `asia`, `europe`) is where the outlet is based and sets the side it appears under. `country` is shown next to the outlet name. Changes apply on the next run, including to clips already collected.
+Edit `channels.json`. `lean` is the outlet's [Media Bias/Fact Check](https://mediabiasfactcheck.com) rating and sets the side it appears under (`left` + `lean-left` = Left, `center` = Center, `lean-right` + `right` = Right, `unrated` = Not rated). `region` (`mideast_africa`, `americas`, `asia`, `europe`) is where the outlet is based and is used for ranking. `country` is shown next to the outlet name. Changes apply on the next run, including to clips already collected.
 
 ## Running it on your PC (Windows)
 ```bash
@@ -75,8 +76,8 @@ The demo feed uses fake clip IDs, so videos won't play; it's for checking the la
 To test on the iPhone over Wi-Fi, open `http://<your-PC-IP>:8000/` and add `?debug=1` for an on-screen console (Safari's Web Inspector needs a Mac).
 
 ## How it works
-- **`pipeline/run.py`**: for each channel, lists the newest 25 uploads (1 quota unit), fetches details only for IDs it hasn't seen (1 unit per 50), and keeps embeddable, public, non-live clips of 8 s – 3 min from the last 48 h that don't match the blocklist. About 1,000 of the 10,000 free daily units.
-- **`pipeline/grouping.py`**: embeds title + cleaned description with `bge-small-en-v1.5` (via fastembed, CPU). A clip joins a story only if it is close to the story's average *and* shares a distinctive word with it, which keeps "two different shootings" apart. Then close stories are merged. If the model can't load, it falls back to TF-IDF so the feed never breaks.
+- **`pipeline/run.py`**: for each channel, lists the newest 25 uploads (1 quota unit), fetches details only for IDs it hasn't seen (1 unit per 50), and keeps embeddable, public, non-live clips of 8 s – 5 min from the last 48 h that don't match the blocklist. About 1,000 of the 10,000 free daily units.
+- **`pipeline/grouping.py`**: embeds each title with `bge-small-en-v1.5` (via fastembed, CPU). Two clips can share a story only if they are close *and* share a distinctive word, which keeps "two different shootings" apart. Complete-linkage clustering holds every pair in a story to that bar, so one big event doesn't snowball into a single story. If the model can't load, it falls back to TF-IDF so the feed never breaks.
 - **`docs/`**: plain HTML/CSS/JS, no build step. One YouTube IFrame player is reused for every clip and laid over the active clip, with a transparent layer on top that turns swipes into navigation.
 - State lives in `data/` (clips from the last 72 h, rejected IDs, resolved channel IDs) and is committed by the workflow.
 

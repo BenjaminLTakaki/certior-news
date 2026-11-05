@@ -23,7 +23,7 @@ from pathlib import Path
 import numpy as np
 
 from . import config
-from .grouping import clip_text, embed, group
+from .grouping import embed, group
 from .run import load_json, load_mock
 
 LABELS = config.DATA_DIR / "labels.csv"
@@ -71,26 +71,23 @@ def evaluate(fixture: Path | None):
         rows = {r["id"]: r["story"] for r in csv.DictReader(LABELS.open(encoding="utf-8"))}
         clips = sorted((c for c in store.values() if c["id"] in rows), key=lambda c: c["published"])
         true = [rows[c["id"]] for c in clips]
-    name, X = embed([clip_text(c) for c in clips])
+    name, X = embed(clips)
     print(f"embedder={name}  clips={len(clips)}  true stories={len(set(true))}")
     base = config.THRESHOLDS[name]
     results = []
-    for join in np.arange(base["join"] - 0.15, base["join"] + 0.151, 0.025):
-        for merge in np.arange(join, join + 0.2, 0.05):
-            _, groups, _ = group(clips, {"join": float(join), "merge": float(merge)}, (name, X))
-            s = pair_scores(true, groups)
-            results.append((round(float(join), 3), round(float(merge), 3), s))
+    for th in np.arange(max(0.025, base - 0.15), base + 0.151, 0.025):
+        s = pair_scores(true, group(clips, float(th), (name, X))[1])
+        results.append((round(float(th), 3), s))
     # a wrong merge (unrelated clip when swiping sideways) is worse than a missed one:
     # keep settings with precision >= 0.97, then take the best recall
-    good = [r for r in results if r[2]["precision"] >= 0.97] or results
-    good.sort(key=lambda r: (r[2]["recall"], r[2]["precision"]), reverse=True)
-    print(f"{'join':>6} {'merge':>6} {'precision':>9} {'recall':>7} {'wrong merges':>12} {'missed':>7}")
-    for join, merge, s in good[:8]:
-        print(f"{join:6.3f} {merge:6.3f} {s['precision']:9.3f} {s['recall']:7.3f} {s['wrong_merges']:12d} {s['missed']:7d}")
+    good = [r for r in results if r[1]["precision"] >= 0.97] or results
+    good.sort(key=lambda r: (r[1]["recall"], r[1]["precision"]), reverse=True)
+    print(f"{'thresh':>6} {'precision':>9} {'recall':>7} {'wrong merges':>12} {'missed':>7}")
+    for th, s in good[:8]:
+        print(f"{th:6.3f} {s['precision']:9.3f} {s['recall']:7.3f} {s['wrong_merges']:12d} {s['missed']:7d}")
     cur = pair_scores(true, group(clips, base, (name, X))[1])
     print(f"\ncurrent config ({base}): precision={cur['precision']:.3f} recall={cur['recall']:.3f}")
-    j, m, _ = good[0]
-    print(f'suggested: THRESHOLDS["{name}"] = {{"join": {j}, "merge": {m}}}')
+    print(f'suggested: THRESHOLDS["{name}"] = {good[0][0]}')
 
 
 def main(argv=None):

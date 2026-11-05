@@ -13,7 +13,7 @@ FEED_FILE = ROOT / "docs" / "feed.json"         # what the app reads
 UPLOADS_PER_CHANNEL = 25        # newest uploads checked per channel per run (1 quota unit each call)
 
 # --- Filtering ------------------------------------------------------------
-MAX_DURATION_S = 180            # YouTube Shorts can be up to 3 minutes
+MAX_DURATION_S = 300            # outlets often post the same event at 3-5 minutes, so a 3 minute limit lost comparisons
 MIN_DURATION_S = 8
 MAX_AGE_HOURS = 48              # clips older than this never enter the feed
 WINDOW_HOURS = 72               # how long clips are kept in data/clips.json
@@ -34,17 +34,36 @@ BLOCKLIST = [                   # case-insensitive regexes matched against the t
 
 # --- Grouping -------------------------------------------------------------
 EMBED_MODEL = "BAAI/bge-small-en-v1.5"   # fastembed (ONNX, CPU); falls back to TF-IDF if unavailable
-# Thresholds per embedder. Start here, then tune with `python -m pipeline.tune`.
+# Lowest title similarity two clips in one story may have. Tune with `python -m pipeline.tune`.
 THRESHOLDS = {
-    "bge-small": {"join": 0.76, "merge": 0.84},   # untested starting point: tune after a few days
-    "tfidf":     {"join": 0.15, "merge": 0.25},   # tuned on tests/fixtures/sample_clips.json
+    "bge-small": 0.68,      # set by reading the stories it makes from 484 real clips, not scored against labels
+    "tfidf": 0.06,          # tuned on tests/fixtures/sample_clips.json
 }
 STORY_GAP_HOURS = 36            # a clip can only join a story that had a clip within this many hours
-MIN_SHARED_KEYWORDS = 1         # distinctive words a clip must share with a story to join it
+MIN_SHARED_KEYWORDS = {"bge-small": 3, "tfidf": 1}     # distinctive words (title + description) two clips must share to be in one story
 MAX_CLIPS_PER_OUTLET = 2        # per story
 MAX_STORIES_IN_FEED = 80
 RECENCY_HALF_LIFE_H = 12        # ranking: a story's score halves every N hours
 
-# Swipe order. Alphabetical by label, so no region always comes first.
+BLINDSPOT_MIN_CLIPS = 3         # a story needs at least this many outlets to get a blindspot label
+
+LEAN_TO_COLUMN = {
+    "left": "left", "lean-left": "left",
+    "center": "center",
+    "lean-right": "right", "right": "right",
+    "unrated": "unrated",
+}
+COLUMNS = ["left", "center", "right", "unrated"]    # swipe order
+
 REGIONS = ["mideast_africa", "americas", "asia", "europe"]
+ONE_SIDE_PENALTY = 0.5          # ranking: stories you can compare across left, center and right come first
 SINGLE_REGION_PENALTY = 0.4     # ranking: stories only one region covers sink, which keeps domestic news from dominating
+US_DOMESTIC_EVERY = 4           # feed order: at most one US domestic story in every N. Every region covers US politics, so scores alone can't hold it back
+US_DOMESTIC_SHARE = 1 / 3       # a story counts as US domestic when this share of its clip titles match below
+# ponytail: keyword list on titles, misses US stories that name none of these. Swap for a classifier if it misjudges too many.
+# Bare senate/congress/governor are left out because they also mean Nigerian governors and India's Congress party.
+US_DOMESTIC = (r"\b(midterms?|republicans?|democrats?|gop|white house|pentagon|impeach\w*|u\.?s\.? (senate|congress|house)|"
+               r"alabama|alaska|arizona|arkansas|california|colorado|connecticut|delaware|florida|hawaii|idaho|illinois|indiana|iowa|"
+               r"kansas|kentucky|louisiana|maine|maryland|massachusetts|michigan|minnesota|mississippi|missouri|montana|nebraska|nevada|"
+               r"new hampshire|new jersey|new mexico|new york|north carolina|north dakota|ohio|oklahoma|oregon|pennsylvania|rhode island|"
+               r"south carolina|south dakota|tennessee|texas|utah|vermont|virginia|wisconsin|wyoming)\b")

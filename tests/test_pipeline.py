@@ -12,7 +12,7 @@ from pipeline.tune import pair_scores  # noqa: E402
 
 FIX = Path(__file__).parent / "fixtures" / "sample_clips.json"
 NOW = datetime(2026, 11, 5, 12, 0, tzinfo=timezone.utc)
-CH = {"name": "CNN", "region": "americas", "country": "US"}
+CH = {"name": "CNN", "region": "americas", "country": "US", "lean": "lean-left"}
 
 
 def raw(**over):
@@ -39,7 +39,7 @@ def test_duration_parse():
 
 def test_filter_accepts_short_news_clip():
     clip, why = filters.to_clip(raw(), CH, NOW)
-    assert why == "" and clip["region"] == "americas" and clip["duration"] == 45
+    assert why == "" and clip["region"] == "americas" and clip["column"] == "left" and clip["duration"] == 45
     assert "Subscribe" not in clip["desc"]
 
 
@@ -47,7 +47,7 @@ def test_filter_rejections():
     cases = {
         "embedding disabled": raw(status__embeddable=False),
         "live": raw(snippet__liveBroadcastContent="live"),
-        "duration": raw(contentDetails__duration="PT4M"),
+        "duration": raw(contentDetails__duration="PT6M"),
         "too old": raw(snippet__publishedAt="2026-11-01T00:00:00Z"),
         "blocklist": raw(snippet__title="FULL EPISODE: Tonight's show"),
         "not public": raw(status__privacyStatus="unlisted"),
@@ -78,10 +78,10 @@ def test_feed_shape(tmp_path):
     assert run.main(["--mock", str(FIX), "--out", str(out)]) == 0
     feed = json.loads(out.read_text())
     assert feed["stories"] and feed["clips"] == 40
-    order = {r: i for i, r in enumerate(config.REGIONS)}
+    order = {c: i for i, c in enumerate(config.COLUMNS)}
     for s in feed["stories"]:
-        regions = [order[c["region"]] for c in s["clips"]]
-        assert regions == sorted(regions), "clips must run region by region"
+        cols = [order[c["column"]] for c in s["clips"]]
+        assert cols == sorted(cols), "clips must run left, center, right, unrated"
         per_outlet = {}
         for c in s["clips"]:
             per_outlet[c["channel"]] = per_outlet.get(c["channel"], 0) + 1
@@ -97,18 +97,20 @@ def test_fetch_with_fake_api(monkeypatch):
         return [{**raw(), "id": "v1"}, {**raw(contentDetails__duration="PT10M"), "id": "v2"}]
     monkeypatch.setattr(youtube, "video_details", details)
     store, rejected, cache = {"seen": {}}, {}, {}
-    chans = [{"name": "CNN", "handle": "@CNN", "region": "americas", "country": "US"},
-             {"name": "Nope", "handle": "@missing", "region": "asia", "country": "Japan"}]
+    chans = [{"name": "CNN", "handle": "@CNN", "region": "americas", "country": "US", "lean": "lean-left"},
+             {"name": "Nope", "handle": "@missing", "region": "asia", "country": "Japan", "lean": "center"}]
     log = run.fetch(chans, store, rejected, cache, NOW)
     assert calls == [["v1", "v2"]]               # already-stored IDs are not paid for again
     assert "v1" in store and "v2" in rejected
     assert log["channels_missing"] == ["Nope (@missing)"] and "@CNN" in cache
 
 
+def clip(i, channel, region, title="t", column="center"):
+    return {"id": f"c{i}", "title": title, "channel": channel, "country": "", "region": region, "lean": column,
+            "column": column, "published": NOW.isoformat().replace("+00:00", "Z"), "duration": 60}
+
+
 def test_multi_region_story_outranks_bigger_single_region_story():
-    def clip(i, channel, region):
-        return {"id": f"c{i}", "title": "t", "channel": channel, "country": "", "region": region,
-                "published": NOW.isoformat().replace("+00:00", "Z"), "duration": 60}
     clips = [clip(0, "A", "americas"), clip(1, "B", "americas"), clip(2, "C", "americas"), clip(3, "D", "americas"),
              clip(4, "E", "europe"), clip(5, "F", "asia")]
     stories = grouping.build_stories(clips, [[0, 1, 2, 3], [4, 5]], np.eye(6), NOW)
@@ -117,5 +119,43 @@ def test_multi_region_story_outranks_bigger_single_region_story():
 
 def test_channels_file_decides_outlets_and_regions():
     store = {"a": {"channel": "BBC", "region": "old"}, "b": {"channel": "Gone", "region": "old"}}
-    out = run.apply_channels(store, [{"name": "BBC", "region": "europe", "country": "UK"}])
-    assert list(out) == ["a"] and out["a"]["region"] == "europe" and out["a"]["country"] == "UK"
+    out = run.apply_channels(store, [{"name": "BBC", "region": "europe", "country": "UK", "lean": "center"}])
+    assert list(out) == ["a"] and out["a"]["region"] == "europe" and out["a"]["country"] == "UK" and out["a"]["column"] == "center"
+
+
+def test_at_most_one_us_story_in_every_four_until_world_stories_run_out():
+    def story(n):
+        return [clip(n * 2, f"A{n}", "europe", f"Republicans lose seat {n}"), clip(n * 2 + 1, f"B{n}", "asia", f"Republicans lose seat {n}")]
+    us = [c for n in range(5) for c in story(n)]
+    world = [clip(10 + i, f"W{i}", "europe", f"Sudan talks {i}") for i in range(4)]
+    groups = [[n * 2, n * 2 + 1] for n in range(5)] + [[10 + i] for i in range(4)]
+    stories = grouping.build_stories(us + world, groups, np.eye(14), NOW)
+    assert [s["us_domestic"] for s in stories] == [False, False, False, True, False, True, True, True, True]
+
+
+def test_us_domestic_terms_leave_other_countries_alone():
+    assert grouping.is_us_domestic(["Republicans lose the Senate", "Michigan too close to call"])
+    assert not grouping.is_us_domestic(["Nigerian governor sworn in", "India's Congress party wins state vote"])
+
+
+def test_one_big_event_does_not_snowball_into_one_story(monkeypatch):
+    monkeypatch.setattr(config, "MIN_SHARED_KEYWORDS", {"x": 0})
+    # every neighbour is close, but the two ends of the chain are not: they must not share a story
+    v = np.array([[1, 0, 0], [.9, .43, 0], [.65, .75, 0], [.3, .95, 0]], dtype=np.float32)
+    v /= np.linalg.norm(v, axis=1, keepdims=True)
+    clips = [clip(i, f"O{i}", "europe", "Midterms update seat race") for i in range(4)]
+    _, groups, _ = grouping.group(clips, 0.8, ("x", v))
+    assert sorted(sorted(g) for g in groups) == [[0, 1], [2, 3]]
+
+
+def test_same_clip_reposted_by_an_outlet_appears_once():
+    clips = [clip(0, "A", "europe", "Same title"), clip(1, "A", "europe", "same TITLE"), clip(2, "B", "asia", "Other")]
+    story = grouping.build_stories(clips, [[0, 1, 2]], np.eye(3), NOW)[0]
+    assert len(story["clips"]) == 2
+
+
+def test_blindspot_when_one_side_skips_a_story():
+    clips = [clip(0, "A", "europe", column="left"), clip(1, "B", "asia", column="left"), clip(2, "C", "asia", column="center")]
+    assert grouping.build_stories(clips, [[0, 1, 2]], np.eye(3), NOW)[0]["blindspot"] == "right"
+    clips[2] = clip(2, "C", "asia", column="right")
+    assert grouping.build_stories(clips, [[0, 1, 2]], np.eye(3), NOW)[0]["blindspot"] is None

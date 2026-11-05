@@ -1,10 +1,10 @@
 // Swipe News — one story per screen. Swipe up/down = next/previous story,
-// swipe left/right = the same story from outlets in other regions.
+// swipe left/right = the same story from Left, Center and Right outlets around the world.
 // One YouTube player is reused for every clip and laid over the active clip's video area.
 
 const params = new URLSearchParams(location.search);
 const FEED_URL = params.get('feed') || 'feed.json';
-const REGIONS = { mideast_africa: 'Africa & Mideast', americas: 'Americas', asia: 'Asia-Pacific', europe: 'Europe' };
+const COLUMNS = { left: 'Left', center: 'Center', right: 'Right', unrated: 'Not rated' };
 const SMOOTH = matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
 const icon = (path) => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5H4Z"/>${path}</svg>`;
 const SOUND_ON = icon('<path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11"/>');
@@ -82,14 +82,15 @@ function render() {
     sec.setAttribute('aria-label', s.headline);
 
     const tabs = el('nav', 'tabs');
-    tabs.setAttribute('aria-label', 'Regions covering this story');
-    for (const [region, label] of Object.entries(REGIONS)) {
-      if (!s.coverage[region]) continue;
+    tabs.setAttribute('aria-label', 'Political lean of the outlets covering this story');
+    for (const [col, label] of Object.entries(COLUMNS)) {
+      if (!s.sides[col]) continue;
       const b = el('button', '', label);
-      b.dataset.region = region;
-      b.onclick = () => jumpToRegion(si, region);
+      b.dataset.column = col;
+      b.onclick = () => jumpToColumn(si, col);
       tabs.append(b);
     }
+    if (s.blindspot) tabs.append(el('span', 'blind', `No ${s.blindspot} coverage`));
 
     const clips = el('div', 'clips');
     const ticks = el('div', 'ticks');
@@ -125,9 +126,9 @@ function render() {
 }
 
 function markPosition(s, c) {
-  const sec = storyEl(s), region = stories[s].clips[c].region;
+  const sec = storyEl(s), column = stories[s].clips[c].column;
   sec.querySelectorAll('.tabs button').forEach((b) => {
-    const on = b.dataset.region === region;
+    const on = b.dataset.column === column;
     b.classList.toggle('on', on);
     if (on) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current');
   });
@@ -157,8 +158,8 @@ function goClip(d) {
   if (c + d >= n && d > 0) return goStory(1);          // past the last side -> next story
   sc.scrollTo({ left: Math.max(0, Math.min(n - 1, c + d)) * sc.clientWidth, behavior: SMOOTH });
 }
-function jumpToRegion(si, region) {
-  const ci = stories[si].clips.findIndex((c) => c.region === region);
+function jumpToColumn(si, column) {
+  const ci = stories[si].clips.findIndex((c) => c.column === column);
   const sc = clipsEl(si);
   if (ci >= 0 && sc) sc.scrollTo({ left: ci * sc.clientWidth, behavior: SMOOTH });
 }
