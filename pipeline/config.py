@@ -33,14 +33,14 @@ BLOCKLIST = [                   # case-insensitive regexes matched against the t
 ]
 
 # --- Grouping -------------------------------------------------------------
-EMBED_MODEL = "BAAI/bge-small-en-v1.5"   # fastembed (ONNX, CPU); falls back to TF-IDF if unavailable
+EMBED_MODEL = "BAAI/bge-base-en-v1.5"   # fastembed (ONNX, CPU); falls back to TF-IDF if unavailable
 # Lowest title similarity two clips in one story may have. Tune with `python -m pipeline.tune`.
 THRESHOLDS = {
-    "bge-small": 0.68,      # set by reading the stories it makes from 484 real clips, not scored against labels
+    "bge-base": 0.73,       # on tests/fixtures/real_pairs.json: `python -m pipeline.tune pairs`
     "tfidf": 0.06,          # tuned on tests/fixtures/sample_clips.json
 }
 STORY_GAP_HOURS = 36            # a clip can only join a story that had a clip within this many hours
-MIN_SHARED_KEYWORDS = {"bge-small": 3, "tfidf": 1}     # distinctive words (title + description) two clips must share to be in one story
+MIN_SHARED_KEYWORDS = 1         # distinctive words (title + description) two clips must share to be in one story
 MAX_CLIPS_PER_OUTLET = 2        # per story
 MAX_STORIES_IN_FEED = 80
 RECENCY_HALF_LIFE_H = 12        # ranking: a story's score halves every N hours
@@ -62,7 +62,7 @@ US_DOMESTIC_EVERY = 4           # feed order: at most one US domestic story in e
 US_DOMESTIC_SHARE = 1 / 3       # a story counts as US domestic when this share of its clip titles match below
 # ponytail: keyword list on titles, misses US stories that name none of these. Swap for a classifier if it misjudges too many.
 # Bare senate/congress/governor are left out because they also mean Nigerian governors and India's Congress party.
-US_DOMESTIC = (r"\b(midterms?|republicans?|democrats?|gop|white house|pentagon|impeach\w*|u\.?s\.? (senate|congress|house)|"
+US_DOMESTIC = (r"\b(midterms?|republicans?|democrats?|gop|white house|pentagon|impeach\w*|vance|in america|(?<!latin )americans?|u\.?s\.? (senate|congress|house)|"
                r"alabama|alaska|arizona|arkansas|california|colorado|connecticut|delaware|florida|hawaii|idaho|illinois|indiana|iowa|"
                r"kansas|kentucky|louisiana|maine|maryland|massachusetts|michigan|minnesota|mississippi|missouri|montana|nebraska|nevada|"
                r"new hampshire|new jersey|new mexico|new york|north carolina|north dakota|ohio|oklahoma|oregon|pennsylvania|rhode island|"

@@ -48,8 +48,26 @@ def tokens(text: str) -> list[str]:
     return out
 
 
+_TAGS = re.compile(r"(\s*#\w+)+\s*$")
+_TAIL = re.compile(r"^(.*?\S(?:\s+\S+){3,})\s*\|\s*(?:\S+(?:\s+\S+){0,3})\s*$")
+
+
+def clean_title(title: str, channel: str = "") -> str:
+    """Drop what outlets bolt onto titles ("| DW News", "#BBCNews", "FRANCE 24 English"): it is noise to read and to compare."""
+    t = title.strip()
+    for _ in range(3):      # "... | AJ #shorts" needs the hashtag gone before the tail can go
+        before = t
+        t = _TAGS.sub("", t)
+        t = re.sub(rf"[\s|:\-]*{re.escape(channel)}\s*$", "", t, flags=re.I) if channel else t
+        m = _TAIL.match(t)
+        t = m[1].rstrip() if m else t
+        if t == before:
+            break
+    return t or title.strip()
+
+
 def clip_text(c: dict) -> str:
-    return c["title"]       # descriptions are mostly about the outlet, and pulled unrelated clips together
+    return clean_title(c["title"], c["channel"])       # descriptions are mostly about the outlet, and pulled unrelated clips together
 
 
 # --------------------------------------------------------------------------- embedders
@@ -68,7 +86,7 @@ def _normalize(m: np.ndarray) -> np.ndarray:
 
 
 def embed(clips: list[dict]) -> tuple[str, np.ndarray]:
-    """Returns (embedder name, L2-normalised matrix). Uses bge-small via fastembed when it can,
+    """Returns (embedder name, L2-normalised matrix). Uses bge-base via fastembed when it can,
     TF-IDF otherwise (e.g. no internet for the model download). EMBEDDER=tfidf forces the fallback."""
     if os.environ.get("EMBEDDER", "").lower() != "tfidf":
         try:
@@ -76,7 +94,7 @@ def embed(clips: list[dict]) -> tuple[str, np.ndarray]:
             model = TextEmbedding(model_name=config.EMBED_MODEL,
                                   cache_dir=os.environ.get("FASTEMBED_CACHE_PATH"))
             m = np.array(list(model.embed([clip_text(c) for c in clips])), dtype=np.float32)
-            return "bge-small", _normalize(m)
+            return "bge-base", _normalize(m)
         except Exception as e:  # noqa: BLE001 - any failure -> fallback, never break the feed
             print(f"[grouping] fastembed unavailable ({type(e).__name__}: {e}); using TF-IDF", file=sys.stderr)
     return "tfidf", _tfidf([f"{clip_text(c)}. {c.get('desc', '')}" for c in clips])     # word counts need more text than a title
@@ -107,7 +125,7 @@ def group(clips: list[dict], threshold: float | None = None,
     D[np.abs(hours[:, None] - hours[None, :]) > config.STORY_GAP_HOURS] = NEVER
     for i, a in enumerate(kw):
         for j in range(i + 1, len(kw)):
-            if len(a & kw[j]) < config.MIN_SHARED_KEYWORDS[name]:
+            if len(a & kw[j]) < config.MIN_SHARED_KEYWORDS:
                 D[i, j] = D[j, i] = NEVER
     np.fill_diagonal(D, 0)
 
@@ -136,7 +154,7 @@ def build_stories(clips: list[dict], groups: list[list[int]], X: np.ndarray, now
         per_outlet: dict[str, list[int]] = {}
         seen_titles = set()
         for i in sorted(members, key=lambda i: clips[i]["published"], reverse=True):
-            repost = (clips[i]["channel"], clips[i]["title"].casefold())   # outlets re-upload the same clip
+            repost = (clips[i]["channel"], clip_text(clips[i]).casefold())   # outlets re-upload the same clip
             if repost not in seen_titles:
                 seen_titles.add(repost)
                 per_outlet.setdefault(clips[i]["channel"], []).append(i)
@@ -182,7 +200,7 @@ def build_stories(clips: list[dict], groups: list[list[int]], X: np.ndarray, now
         first = min(ms, key=lambda c: c["published"])
         out.append({
             "id": "s_" + first["id"],
-            "headline": clips[head]["title"],
+            "headline": clip_text(clips[head]),
             "updated": latest,
             "coverage": coverage,
             "sides": sides,
@@ -190,8 +208,8 @@ def build_stories(clips: list[dict], groups: list[list[int]], X: np.ndarray, now
             "single": n_outlets == 1,
             "score": round(score, 4),
             "us_domestic": is_us_domestic([c["title"] for c in ms]),
-            "clips": [{k: clips[i][k] for k in ("id", "title", "channel", "country", "region", "lean", "column", "published", "duration")}
-                      for i in ordered],
+            "clips": [{**{k: clips[i][k] for k in ("id", "channel", "country", "region", "lean", "column", "published", "duration")},
+                       "title": clip_text(clips[i])} for i in ordered],
         })
     out.sort(key=lambda s: s["score"], reverse=True)
     return space_out_us(out)[:config.MAX_STORIES_IN_FEED]

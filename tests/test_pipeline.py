@@ -135,17 +135,32 @@ def test_at_most_one_us_story_in_every_four_until_world_stories_run_out():
 
 def test_us_domestic_terms_leave_other_countries_alone():
     assert grouping.is_us_domestic(["Republicans lose the Senate", "Michigan too close to call"])
+    assert grouping.is_us_domestic(["Morning again in America after blue wave", "JD Vance trolled over Senate win"])
     assert not grouping.is_us_domestic(["Nigerian governor sworn in", "India's Congress party wins state vote"])
+    assert not grouping.is_us_domestic(["Latin American leaders meet in Bogota"])
 
 
 def test_one_big_event_does_not_snowball_into_one_story(monkeypatch):
-    monkeypatch.setattr(config, "MIN_SHARED_KEYWORDS", {"x": 0})
+    monkeypatch.setattr(config, "MIN_SHARED_KEYWORDS", 0)
     # every neighbour is close, but the two ends of the chain are not: they must not share a story
     v = np.array([[1, 0, 0], [.9, .43, 0], [.65, .75, 0], [.3, .95, 0]], dtype=np.float32)
     v /= np.linalg.norm(v, axis=1, keepdims=True)
     clips = [clip(i, f"O{i}", "europe", "Midterms update seat race") for i in range(4)]
     _, groups, _ = grouping.group(clips, 0.8, ("x", v))
     assert sorted(sorted(g) for g in groups) == [[0, 1], [2, 3]]
+
+
+def test_clean_title_drops_outlet_tags_but_keeps_the_story():
+    cases = {
+        ("Abdul El-Sayed: The US' first Muslim senator | DW News", "DW News"): "Abdul El-Sayed: The US' first Muslim senator",
+        ("Key moments as Democrats sweep to victories in US midterms | AJ #shorts", "Al Jazeera English"): "Key moments as Democrats sweep to victories in US midterms",
+        ("Republicans in Texas shocked by midterm results. #BBCNews", "BBC News"): "Republicans in Texas shocked by midterm results.",
+        ("How Trump's promises handed Democrats the midterms FRANCE 24 English", "FRANCE 24 English"): "How Trump's promises handed Democrats the midterms",
+        ("United States | Democrats lead elections", "TeleSUR English"): "United States | Democrats lead elections",
+        ("#shorts", "X"): "#shorts",
+    }
+    for (title, channel), want in cases.items():
+        assert grouping.clean_title(title, channel) == want, title
 
 
 def test_same_clip_reposted_by_an_outlet_appears_once():

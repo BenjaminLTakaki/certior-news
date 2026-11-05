@@ -11,6 +11,7 @@ const SOUND_ON = icon('<path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11"/>')
 const SOUND_OFF = icon('<path d="m16 9.5 5 5m0-5-5 5"/>');
 const PLAY_CHECK_MS = 1800;   // if a clip isn't playing after this, ask for a tap
 const WATCHED_AFTER_MS = 3000;
+const CHECK_FEED_MS = 2 * 60000;
 
 const $ = (s, el = document) => el.querySelector(s);
 const feedEl = $('#feed'), wrap = $('#player-wrap'), gesture = $('#gesture');
@@ -38,7 +39,7 @@ function markWatched(id) {
 let feed = null, stories = [];
 let activeS = -1, activeC = -1, currentId = null;
 let player = null, playerReady = false, unlocked = false, playing = false;
-let playCheck = 0, watchTimer = 0, loadedAt = Date.now();
+let playCheck = 0, watchTimer = 0;
 
 // ---------------------------------------------------------------- helpers
 function ago(iso) {
@@ -298,17 +299,19 @@ let feedTimer = 0;
 feedEl.addEventListener('scroll', () => { onScrollStart(); clearTimeout(feedTimer); feedTimer = setTimeout(settle, 140); }, { passive: true });
 window.addEventListener('resize', () => { setAppHeight(); if (activeS >= 0) placePlayer(activeS, activeC); });
 
-document.addEventListener('visibilitychange', async () => {
+async function checkForNewStories() {
   if (document.visibilityState !== 'visible' || !feed) return;
-  if (Date.now() - loadedAt < 5 * 60000) return;
   try {
     const fresh = await loadFeed();
-    if (fresh.generated !== feed.generated) {
+    const known = new Set(feed.stories.flatMap((s) => s.clips.map((c) => c.id)));
+    if (fresh.stories.some((s) => s.clips.some((c) => !known.has(c.id)))) {
       newPill.hidden = false;
-      newPill.onclick = () => { newPill.hidden = true; feed = fresh; loadedAt = Date.now(); start(false); };
+      newPill.onclick = () => { newPill.hidden = true; feed = fresh; start(false); };
     }
   } catch { /* offline: keep what we have */ }
-});
+}
+document.addEventListener('visibilitychange', checkForNewStories);
+setInterval(checkForNewStories, CHECK_FEED_MS);
 
 function start(withPlayer) {
   stories = orderStories(feed.stories || []);

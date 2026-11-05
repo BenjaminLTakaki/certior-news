@@ -1,10 +1,10 @@
 # Swipe News
 
-Short news clips from 28 outlets around the world, grouped by story. **Swipe up** for the next story, **swipe sideways** to see the same story from Left, Center and Right outlets. It runs as a Home Screen web app on iPhone and costs €0.
+Short news clips from 36 outlets around the world, grouped by story. **Swipe up** for the next story, **swipe sideways** to see the same story from Left, Center and Right outlets. It runs as a Home Screen web app on iPhone and costs €0.
 
 ```
-YouTube Data API ──► GitHub Actions (every 30 min) ──► docs/feed.json ──► GitHub Pages ──► iPhone
-  26 outlet channels   fetch → filter → group             story feed         hosts the app      plays clips straight from YouTube
+YouTube Data API ──► GitHub Actions (every 10 min) ──► docs/feed.json ──► portfolio site ──► iPhone
+  36 outlet channels   fetch → filter → group             story feed         hosts the app      plays clips straight from YouTube
 ```
 
 ## One-time setup (≈15 minutes)
@@ -20,16 +20,15 @@ YouTube Data API ──► GitHub Actions (every 30 min) ──► docs/feed.jso
 - Name: `YT_API_KEY`
 - Value: the key from step 1
 
-### 3. Turn on GitHub Pages
-**Settings → Pages → Build and deployment → Source: Deploy from a branch → Branch: `main`, folder: `/docs`** → Save.
-After a minute the app is live at `https://benjaminltakaki.github.io/<repo>/`.
+### 3. Host the app
+The app is hosted by the portfolio at <https://www.benjamintakaki.com/swipe-news/>, from a copy of `docs/` in that repo's `public/swipe-news`. App changes need that copy updated and a Render deploy; new stories don't, because the app reads `docs/feed.json` straight from GitHub.
 
 ### 4. Run the feed once
-**Actions → Update feed → Run workflow**. It takes 1–3 minutes the first time (it downloads the small embedding model once and caches it). After that it runs on its own every 30 minutes.
+**Actions → Update feed → Run workflow**. It takes 1–3 minutes the first time (it downloads the small embedding model once and caches it). After that the portfolio's server starts it every 10 minutes, if its `SWIPE_NEWS_DISPATCH_TOKEN` is set (a fine-grained GitHub token with Actions: write on this repo). GitHub's own schedule stays on as a backup, but it ran only once in 12 hours when it was all there was.
 If the log says `handles not found`, fix those handles in `channels.json` (open the outlet's YouTube page; the handle is the `@name` in the URL).
 
 ### 5. Install on your iPhone
-Open the Pages URL in **Safari → Share → Add to Home Screen**. Open it from the Home Screen icon.
+Open the app in **Safari → Share → Add to Home Screen**. Open it from the Home Screen icon.
 **The first time, tap the video itself to start.** iOS only allows sound after a real tap on the player; after that, swiping plays the next clips with sound.
 
 ## Using it
@@ -48,7 +47,7 @@ Open the Pages URL in **Safari → Share → Add to Home Screen**. Open it from 
 - Reopening the app after 5+ minutes shows a **New stories** button if the feed changed.
 
 ## Tuning the grouping (do this after 2–3 days)
-The threshold for the real embedding model was set by reading the stories it makes from real clips, not by scoring it against labels. To fit it properly, on your PC:
+`python -m pipeline.tune pairs` scores the threshold on 200 real clip pairs in `tests/fixtures/real_pairs.json`. They were sampled to be hard and labelled by Claude, not an independent reviewer: at 0.73, about 90% of the pairs it groups are right and it finds about 85% of real matches. To fit it to your own labels, on your PC:
 
 ```bash
 git pull                                   # get the latest data/clips.json
@@ -76,8 +75,8 @@ The demo feed uses fake clip IDs, so videos won't play; it's for checking the la
 To test on the iPhone over Wi-Fi, open `http://<your-PC-IP>:8000/` and add `?debug=1` for an on-screen console (Safari's Web Inspector needs a Mac).
 
 ## How it works
-- **`pipeline/run.py`**: for each channel, lists the newest 25 uploads (1 quota unit), fetches details only for IDs it hasn't seen (1 unit per 50), and keeps embeddable, public, non-live clips of 8 s – 5 min from the last 48 h that don't match the blocklist. About 1,000 of the 10,000 free daily units.
-- **`pipeline/grouping.py`**: embeds each title with `bge-small-en-v1.5` (via fastembed, CPU). Two clips can share a story only if they are close *and* share a distinctive word, which keeps "two different shootings" apart. Complete-linkage clustering holds every pair in a story to that bar, so one big event doesn't snowball into a single story. If the model can't load, it falls back to TF-IDF so the feed never breaks.
+- **`pipeline/run.py`**: for each channel, lists the newest 25 uploads (1 quota unit), fetches details only for IDs it hasn't seen (1 unit per 50), and keeps embeddable, public, non-live clips of 8 s – 5 min from the last 48 h that don't match the blocklist. About 6,500 of the 10,000 free daily units at one run every 10 minutes.
+- **`pipeline/grouping.py`**: embeds each cleaned title with `bge-base-en-v1.5` (via fastembed, CPU). Two clips can share a story only if they are close *and* share a distinctive word, which keeps "two different shootings" apart. Complete-linkage clustering holds every pair in a story to that bar, so one big event doesn't snowball into a single story. If the model can't load, it falls back to TF-IDF so the feed never breaks.
 - **`docs/`**: plain HTML/CSS/JS, no build step. One YouTube IFrame player is reused for every clip and laid over the active clip, with a transparent layer on top that turns swipes into navigation.
 - State lives in `data/` (clips from the last 72 h, rejected IDs, resolved channel IDs) and is committed by the workflow.
 

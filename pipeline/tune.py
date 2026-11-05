@@ -10,6 +10,10 @@
       THRESHOLDS in pipeline/config.py.
 
 `--fixture tests/fixtures/sample_clips.json` evaluates against the built-in sample instead.
+
+`python -m pipeline.tune pairs` scores the embedding alone on tests/fixtures/real_pairs.json: 200 real clip
+pairs, sampled to be hard (most sit near the threshold), each marked same event or not by Claude, not an
+independent reviewer. The distinctive-word check needs descriptions, so it is not applied here.
 """
 from __future__ import annotations
 
@@ -90,12 +94,26 @@ def evaluate(fixture: Path | None):
     print(f'suggested: THRESHOLDS["{name}"] = {good[0][0]}')
 
 
+def pairs():
+    rows = json.loads((Path(__file__).parent.parent / "tests" / "fixtures" / "real_pairs.json").read_text(encoding="utf-8"))
+    titles = sorted({r["ta"] for r in rows} | {r["tb"] for r in rows})
+    name, X = embed([{"title": t, "channel": ""} for t in titles])
+    at = {t: i for i, t in enumerate(titles)}
+    sim = np.array([float(X[at[r["ta"]]] @ X[at[r["tb"]]]) for r in rows])
+    same = np.array([r["same"] for r in rows])
+    print(f"embedder={name} pairs={len(rows)} same={same.sum()} (configured threshold {config.THRESHOLDS[name]})")
+    print(f"{'thresh':>6} {'precision':>9} {'recall':>7}")
+    for th in np.arange(config.THRESHOLDS[name] - 0.06, config.THRESHOLDS[name] + 0.061, 0.01):
+        hit = sim >= th
+        print(f"{th:6.2f} {(hit & same).sum() / max(1, hit.sum()):9.3f} {(hit & same).sum() / same.sum():7.3f}")
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["export", "evaluate"])
+    ap.add_argument("cmd", choices=["export", "evaluate", "pairs"])
     ap.add_argument("--fixture", type=Path)
     a = ap.parse_args(argv)
-    export() if a.cmd == "export" else evaluate(a.fixture)
+    {"export": export, "pairs": pairs}.get(a.cmd, lambda: evaluate(a.fixture))()
 
 
 if __name__ == "__main__":

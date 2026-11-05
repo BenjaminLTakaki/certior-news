@@ -2,8 +2,8 @@ name: Update feed
 
 on:
   schedule:
-    - cron: "7,37 * * * *"     # every 30 min (off the hour; GitHub may still run it a bit late)
-  workflow_dispatch:           # "Run workflow" button in the Actions tab
+    - cron: "7,37 * * * *"     # backup only: GitHub ran this once in 12 hours when it was all we had
+  workflow_dispatch:           # the portfolio's server calls this every 10 min; also the "Run workflow" button
 
 permissions:
   contents: write              # to commit docs/feed.json and data/
@@ -29,7 +29,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .cache/fastembed
-          key: fastembed-bge-small-en-v1.5
+          key: fastembed-bge-base-en-v1.5
 
       - run: pip install -r pipeline/requirements.txt
 

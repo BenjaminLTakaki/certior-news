@@ -5,6 +5,7 @@
     { "name": "TRT World",                "handle": "@TRTWorld",               "region": "mideast_africa", "country": "Turkey", "lean": "right" },
     { "name": "Al Arabiya English",       "handle": "@AlArabiyaEnglish",       "region": "mideast_africa", "country": "Saudi Arabia", "lean": "lean-right" },
     { "name": "i24NEWS English",          "handle": "@i24NEWS_EN",             "region": "mideast_africa", "country": "Israel", "lean": "lean-right" },
+    { "name": "Arab News",                "handle": "@arabnews",               "region": "mideast_africa", "country": "Saudi Arabia", "lean": "lean-right" },
     { "name": "africanews",               "handle": "@africanews",             "region": "mideast_africa", "country": "Pan-African", "lean": "lean-left" },
     { "name": "SABC News",                "handle": "@SABCDigitalNews",        "region": "mideast_africa", "country": "South Africa", "lean": "unrated" },
     { "name": "Channels Television",      "handle": "@channelstelevision",     "region": "mideast_africa", "country": "Nigeria", "lean": "unrated" },
@@ -13,6 +14,8 @@
     { "name": "Associated Press",         "handle": "@AssociatedPress",        "region": "americas", "country": "US", "lean": "lean-left" },
     { "name": "CNN",                      "handle": "@CNN",                    "region": "americas", "country": "US", "lean": "lean-left" },
     { "name": "Fox News",                 "handle": "@FoxNews",                "region": "americas", "country": "US", "lean": "right" },
+    { "name": "Wall Street Journal",      "handle": "@wsj",                    "region": "americas", "country": "US", "lean": "lean-right" },
+    { "name": "New York Post",            "handle": "@nypost",                 "region": "americas", "country": "US", "lean": "lean-right" },
     { "name": "CBC News",                 "handle": "@CBCNews",                "region": "americas", "country": "Canada", "lean": "lean-left" },
     { "name": "TeleSUR English",          "handle": "@teleSUREnglish",         "region": "americas", "country": "Venezuela", "lean": "left" },
 
@@ -23,6 +26,8 @@
     { "name": "South China Morning Post", "handle": "@SouthChinaMorningPost",  "region": "asia", "country": "Hong Kong", "lean": "lean-left" },
     { "name": "ABC News Australia",       "handle": "@abcnewsaustralia",       "region": "asia", "country": "Australia", "lean": "lean-left" },
     { "name": "Sky News Australia",       "handle": "@News24",                 "region": "asia", "country": "Australia", "lean": "right" },
+    { "name": "Times of India",           "handle": "@timesofindia",           "region": "asia", "country": "India", "lean": "lean-right" },
+    { "name": "India Today",              "handle": "@IndiaToday",             "region": "asia", "country": "India", "lean": "lean-right" },
     { "name": "Arirang News",             "handle": "@ArirangCoKrArirangNEWS", "region": "asia", "country": "South Korea", "lean": "center" },
 
     { "name": "BBC News",                 "handle": "@BBCNews",                "region": "europe", "country": "UK", "lean": "center" },
@@ -30,6 +35,9 @@
     { "name": "Reuters",                  "handle": "@Reuters",                "region": "europe", "country": "UK", "lean": "center" },
     { "name": "Guardian News",            "handle": "@guardiannews",           "region": "europe", "country": "UK", "lean": "lean-left" },
     { "name": "GB News",                  "handle": "@GBNewsOnline",           "region": "europe", "country": "UK", "lean": "right" },
+    { "name": "The Telegraph",            "handle": "@telegraph",              "region": "europe", "country": "UK", "lean": "right" },
+    { "name": "Daily Mail",               "handle": "@DailyMail",              "region": "europe", "country": "UK", "lean": "right" },
+    { "name": "euronews",                 "handle": "@euronews",               "region": "europe", "country": "France", "lean": "lean-left" },
     { "name": "DW News",                  "handle": "@dwnews",                 "region": "europe", "country": "Germany", "lean": "lean-left" },
     { "name": "FRANCE 24 English",        "handle": "@France24_en",            "region": "europe", "country": "France", "lean": "center" }
   ]
