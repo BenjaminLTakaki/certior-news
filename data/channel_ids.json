@@ -213,5 +213,35 @@
   "channel_id": "UC0vn8ISa4LKMunLbzaXLnOQ",
   "uploads": "UU0vn8ISa4LKMunLbzaXLnOQ",
   "title": "GBNews"
+ },
+ "@arabnews": {
+  "channel_id": "UCI8DegIWgK51cGakXcf1dOQ",
+  "uploads": "UUI8DegIWgK51cGakXcf1dOQ",
+  "title": "Arab News"
+ },
+ "@timesofindia": {
+  "channel_id": "UCckHqySbfy5FcPP6MD_S-Yg",
+  "uploads": "UUckHqySbfy5FcPP6MD_S-Yg",
+  "title": "Times Of India"
+ },
+ "@IndiaToday": {
+  "channel_id": "UCYPvAwZP8pZhSMW8qs7cVCw",
+  "uploads": "UUYPvAwZP8pZhSMW8qs7cVCw",
+  "title": "India Today"
+ },
+ "@telegraph": {
+  "channel_id": "UCPgLNge0xqQHWM5B5EFH9Cg",
+  "uploads": "UUPgLNge0xqQHWM5B5EFH9Cg",
+  "title": "The Telegraph"
+ },
+ "@DailyMail": {
+  "channel_id": "UCw3fku0sH3qA3c3pZeJwdAw",
+  "uploads": "UUw3fku0sH3qA3c3pZeJwdAw",
+  "title": "Daily Mail World"
+ },
+ "@euronews": {
+  "channel_id": "UCSrZ3UV4jOidv8ppoVuvW9Q",
+  "uploads": "UUSrZ3UV4jOidv8ppoVuvW9Q",
+  "title": "euronews"
  }
 }
