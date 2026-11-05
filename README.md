@@ -3,7 +3,7 @@
 Short news clips from 40 outlets around the world, grouped by story. **Swipe up** for the next story, **swipe sideways** to see the same story from Left, Center and Right outlets. It runs as a Home Screen web app on iPhone and costs €0.
 
 ```
-YouTube Data API ──► GitHub Actions (every 10 min) ──► docs/feed.json ──► portfolio site ──► iPhone
+YouTube Data API ──► GitHub Actions (every 10 min) ──► GitHub Pages ──► portfolio site ──► iPhone
   40 outlet channels   fetch → filter → group             story feed         hosts the app      plays clips straight from YouTube
 ```
 
@@ -21,7 +21,7 @@ YouTube Data API ──► GitHub Actions (every 10 min) ──► docs/feed.jso
 - Value: the key from step 1
 
 ### 3. Host the app
-The app is hosted by the portfolio at <https://www.benjamintakaki.com/swipe-news/>, from a copy of `docs/` in that repo's `public/swipe-news`. App changes need that copy updated and a Render deploy; new stories don't, because the app reads `docs/feed.json` straight from GitHub.
+The app is hosted by the portfolio at <https://www.benjamintakaki.com/swipe-news/>, from a copy of `docs/` in that repo's `public/swipe-news`. App changes need that copy updated and a Render deploy; new stories don't, because the app reads the feed from GitHub Pages.
 
 ### 4. Run the feed once
 **Actions → Update feed → Run workflow**. It takes 1–3 minutes the first time (it downloads the small embedding model once and caches it). After that the portfolio's server starts it every 10 minutes, if its `SWIPE_NEWS_DISPATCH_TOKEN` is set (a fine-grained GitHub token with Actions: write on this repo). GitHub's own schedule stays on as a backup, but it ran only once in 12 hours when it was all there was.
@@ -46,13 +46,13 @@ Open the app in **Safari → Share → Add to Home Screen**. Open it from the Ho
 - **No right coverage** (or left) means several outlets covered the story, but nobody from that side did.
 - Stories covered in several regions rank first. Stories you can compare across sides come first; stories from one side, one region or one outlet sink. At most one story in every four is US domestic politics, however widely it is covered. Watched stories move to the end and are dimmed.
 - When a clip finishes, the app moves to the next outlet, then to the next story.
-- Reopening the app after 5+ minutes shows a **New stories** button if the feed changed.
+- A **New stories** button appears when there are new clips, or tap the refresh icon to check. The feed starts with the top stories and loads the rest as you get near the end.
 
 ## Tuning the grouping (do this after 2–3 days)
 `python -m pipeline.tune pairs` scores the threshold on 200 real clip pairs in `tests/fixtures/real_pairs.json`. They were sampled to be hard and labelled by Claude, not an independent reviewer: at 0.73, about 90% of the pairs it groups are right and it finds about 85% of real matches. To fit it to your own labels, on your PC:
 
 ```bash
-git pull                                   # get the latest data/clips.json
+git fetch origin feed && git checkout FETCH_HEAD -- data && git reset -q data    # get the latest data/clips.json
 pip install -r pipeline/requirements.txt
 python -m pipeline.tune export             # writes data/labels.csv with the app's current grouping
 #   open data/labels.csv, fix the `story` column so clips about the same event share a label (~100 rows is enough)
@@ -80,7 +80,7 @@ To test on the iPhone over Wi-Fi, open `http://<your-PC-IP>:8000/` and add `?deb
 - **`pipeline/run.py`**: for each channel, lists the newest 25 uploads (1 quota unit), fetches details only for IDs it hasn't seen (1 unit per 50), and keeps embeddable, public, non-live clips of 8 s – 5 min from the last 48 h that don't match the blocklist. About 8,000 of the 10,000 free daily units at one run every 10 minutes (roughly 55 units a run with 40 outlets).
 - **`pipeline/grouping.py`**: embeds each cleaned title with `bge-base-en-v1.5` (via fastembed, CPU). Two clips can share a story only if they are close *and* share a distinctive word, which keeps "two different shootings" apart. Complete-linkage clustering holds every pair in a story to that bar, so one big event doesn't snowball into a single story. If the model can't load, it falls back to TF-IDF so the feed never breaks.
 - **`docs/`**: plain HTML/CSS/JS, no build step. One YouTube IFrame player is reused for every clip and laid over the active clip, with a transparent layer on top that turns swipes into navigation.
-- State lives in `data/` (clips from the last 72 h, rejected IDs, resolved channel IDs) and is committed by the workflow.
+- State lives in `data/` (clips from the last 72 h, rejected IDs, resolved channel IDs) and is published with the feed on the `feed` branch, which GitHub Pages serves. Each build replaces that branch with one commit, so it never grows.
 
 ## Troubleshooting
 | Problem | Fix |

@@ -44,15 +44,6 @@ jobs:
           FASTEMBED_CACHE_PATH: .cache/fastembed
         run: python -m pipeline.run
 
-      - name: Commit the new feed
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/feed.json docs/search.json data/
-          if git diff --cached --quiet; then echo "No changes"; exit 0; fi
-          git commit -m "Update feed" -q
-          git pull --rebase -q && git push -q
-
       # One commit, force-pushed: GitHub Pages serves this branch, and main doesn't grow with every build.
       - name: Publish the feed
         env:

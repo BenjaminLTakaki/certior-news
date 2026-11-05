@@ -20,6 +20,9 @@ const SETTINGS_DEFAULTS = { side: '', auto: true, hideWatched: false, sportsInAl
 // YouTube forbids disabling the links inside its player, and they sit along its top and bottom edges.
 // So swipes are only caught in the middle band; everything above and below reaches YouTube.
 const GESTURE_TOP = 0.25, GESTURE_HEIGHT = 0.5;
+const REFRESH_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3L19.5 9"/><path d="M19.5 4.5V9H15"/></svg>';
+const MORE_AT = 8, MORE_STORIES = 40;      // the feed is the top stories only: fetch the rest when you get this close to its end
+const FLASH_MS = 3000;
 const FIND_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>';
 const CHECK_FEED_MS = 2 * 60000;
 
@@ -55,6 +58,7 @@ let activeS = -1, activeC = -1, currentId = null;
 let player = null, playerReady = false, unlocked = false, playing = false, playerStarted = false;
 let topic = TOPICS[store.get('topic', 'all')] ? store.get('topic', 'all') : 'all';
 let query = '', everything = null;
+let reserve = null, loadingMore = false, ended = false, startRun = 0, flashTimer = 0, refreshing = false;
 let side = settings.side || null, autoAdvance = false, hintTimer = 0;     // side: the one you last chose, kept from story to story
 let playCheck = 0, watchTimer = 0;
 
@@ -107,7 +111,11 @@ function renderTopics() {
   gear.innerHTML = SETTINGS_ICON;
   gear.setAttribute('aria-label', 'Settings');
   gear.onclick = openSettings;
-  topicsEl.append(find, gear);
+  const refresh = el('button', 'refresh');
+  refresh.innerHTML = REFRESH_ICON;
+  refresh.setAttribute('aria-label', 'Check for new stories');
+  refresh.onclick = refreshFeed;
+  topicsEl.append(refresh, find, gear);
 }
 
 function renderSearch() {
@@ -173,7 +181,10 @@ function orderStories(list) {
 
 function render() {
   feedEl.textContent = '';
-  stories.forEach((s, si) => {
+  stories.forEach(renderStory);
+}
+
+function renderStory(s, si) {
     const sec = el('section', 'story' + (s._seen ? ' seen' : '') + (s.topic === 'sports' ? ' sports' : ''));
     sec.dataset.i = si;
     sec.setAttribute('aria-label', s.headline);
@@ -232,7 +243,67 @@ function render() {
     sec.append(ticks, clips);
     feedEl.append(sec);
     markPosition(si, 0);
-  });
+}
+
+function showEnd() {
+  ended = true;
+  const sec = el('section', 'story end');
+  sec.append(el('p', '', query ? 'That\u2019s every match from the last two days.' : 'That\u2019s everything from the last two days.'));
+  const b = el('button', '', 'Check for new stories');
+  b.onclick = refreshFeed;
+  sec.append(b);
+  feedEl.append(sec);
+}
+
+const inTopic = (s) => (topic === 'all' ? settings.sportsInAll || s.topic !== 'sports' : s.topic === topic);
+
+async function loadMore() {
+  if (query || ended || loadingMore || !stories.length) return;
+  loadingMore = true;
+  const run = startRun;
+  everything = everything || await loadEverything();
+  loadingMore = false;
+  if (run !== startRun) return;
+  if (!reserve) {
+    const shown = new Set(stories.flatMap((s) => s.clips.map((c) => c.id)));
+    reserve = orderStories(everything.filter(inTopic)).filter((s) => !s.clips.some((c) => shown.has(c.id)));
+  }
+  for (const s of reserve.splice(0, MORE_STORIES)) {
+    stories.push(s);
+    renderStory(s, stories.length - 1);
+  }
+  if (!reserve.length) showEnd();
+}
+
+function flash(text) {
+  showHint(text);
+  clearTimeout(flashTimer);
+  flashTimer = setTimeout(() => { if (hintEl.textContent === text) showHint(''); }, FLASH_MS);
+}
+
+async function refreshFeed() {
+  if (refreshing || !feed) return;
+  refreshing = true;
+  flash('Checking for new stories\u2026');
+  try {
+    const fresh = await loadFeed();
+    const known = new Set(feed.stories.flatMap((s) => s.clips.map((c) => c.id)));
+    const added = fresh.stories.some((s) => s.clips.some((c) => !known.has(c.id)));
+    feed = fresh;
+    newPill.hidden = true;
+    if (added) {
+      everything = null;
+      if (query) everything = await loadEverything();
+      onScrollStart();
+      start();
+      flash('New stories added');
+    } else {
+      flash(`You\u2019re up to date. Updated ${ago(fresh.generated)}.`);
+    }
+  } catch {
+    flash('Couldn\u2019t reach the feed. Check your connection.');
+  }
+  refreshing = false;
 }
 
 function markPosition(s, c) {
@@ -258,7 +329,7 @@ function current() {
 }
 function goStory(d) {
   const [s] = current();
-  const t = Math.max(0, Math.min(stories.length - 1, s + d));
+  const t = Math.max(0, Math.min(feedEl.children.length - 1, s + d));
   feedEl.scrollTo({ top: t * feedEl.clientHeight, behavior: SMOOTH });
 }
 function goClip(d) {
@@ -287,6 +358,11 @@ function onScrollStart() {
 function settle() {
   scrolling = false;
   if (!stories.length || LANDSCAPE.matches) return;   // rotating moves the scroll position: keep the clip we were on
+  if (ended && Math.round(feedEl.scrollTop / (feedEl.clientHeight || 1)) >= stories.length) {    // on the end screen
+    if (playerReady) player.pauseVideo();
+    wrap.hidden = gesture.hidden = true;
+    return;
+  }
   const [s, c] = current();
   if (s !== activeS) {          // a new story opens on the side you were watching, if it has that side
     const ci = stories[s].clips.findIndex((k) => k.column === side);
@@ -303,6 +379,7 @@ function settle() {
   }
   autoAdvance = false;
   activate(s, c);
+  if (s >= stories.length - MORE_AT) loadMore();
 }
 
 function hintSideways() {
@@ -514,9 +591,28 @@ settingsEl.addEventListener('close', () => {
 });
 
 function start() {
-  stories = query
-    ? orderStories(matches(everything || feed.stories || [], query))
-    : orderStories((feed.stories || []).filter((s) => (topic === 'all' ? settings.sportsInAll || s.topic !== 'sports' : s.topic === topic)));
+  startRun++;
+  reserve = null;
+  ended = false;
+  if (query) {
+    stories = orderStories(matches(everything || feed.stories || [], query));
+  } else {
+    // Watched stories wait until the end, so they never sit in front of ones you haven't seen.
+    const pool = (feed.stories || []).filter(inTopic);
+    let fresh = orderStories(pool).filter((s) => !s._seen);
+    if (!fresh.length && pool.length) {
+      if (!everything) {
+        const run = startRun;
+        setStatus('Loading\u2026');
+        loadEverything().then((all) => { everything = all; if (run === startRun) start(); });
+        return;
+      }
+      const all = orderStories(everything.filter(inTopic));
+      fresh = all.filter((s) => !s._seen).slice(0, MORE_STORIES);
+      if (!fresh.length) fresh = settings.hideWatched ? [] : all;
+    }
+    stories = fresh;
+  }
   currentId = null;
   activeS = -1;
   if (!stories.length) {
@@ -529,6 +625,7 @@ function start() {
   }
   setStatus('');
   render();
+  if (query) showEnd();
   feedEl.scrollTop = 0;
   if (playerStarted || !videosOn()) { settle(); return; }
   playerStarted = true;
