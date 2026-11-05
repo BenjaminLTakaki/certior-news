@@ -14936,5 +14936,47 @@
   "published": "2026-11-05T15:40:49Z",
   "duration": 68,
   "note": "France 24 is a French public broadcast service."
+ },
+ "YwyeqOy2hT0": {
+  "id": "YwyeqOy2hT0",
+  "title": "Wakulima wa kahawa Likuyani, Ikolomani na Shinyalu wakadiria hasara kwa kukosa mafunzo",
+  "desc": "",
+  "channel": "NTV Kenya",
+  "topic": "",
+  "lean": "unrated",
+  "column": "unrated",
+  "region": "mideast_africa",
+  "country": "Kenya",
+  "published": "2026-11-05T15:45:40Z",
+  "duration": 157,
+  "note": ""
+ },
+ "L_Vtn3Dd66c": {
+  "id": "L_Vtn3Dd66c",
+  "title": "‘We’re homeless’: North Georgia drenched by flood",
+  "desc": "Heavy rain triggered dangerous flooding in North Georgia and southern Tennessee, swamping homes and prompting water rescues and evacuations.",
+  "channel": "CNN",
+  "topic": "",
+  "lean": "lean-left",
+  "column": "left",
+  "region": "americas",
+  "country": "US",
+  "published": "2026-11-05T15:45:34Z",
+  "duration": 49,
+  "note": ""
+ },
+ "GHcpnpoHkyU": {
+  "id": "GHcpnpoHkyU",
+  "title": "Woman Stunned After Spotting Suspected SHARK Swimming Through Flooded Florida Streets",
+  "desc": "A woman was left in 'disbelief' Monday when she saw what she described as a shark swimming in floodwaters in Fort Pierce, Florida. Mother Franshara Napoleon was picking up her daughter when she saw “something moving in the water” at a flooded intersection. The rare sighting appeared amid widespread ",
+  "channel": "New York Post",
+  "topic": "",
+  "lean": "lean-right",
+  "column": "right",
+  "region": "americas",
+  "country": "US",
+  "published": "2026-11-05T15:46:02Z",
+  "duration": 136,
+  "note": ""
  }
 }
