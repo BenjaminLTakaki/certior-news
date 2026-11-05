@@ -1,7 +1,7 @@
 {
   "name": "Swipe News",
   "short_name": "Swipe News",
-  "description": "Short news clips from left, center and right outlets, grouped by story.",
+  "description": "Short news clips from outlets around the world, grouped by story.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

@@ -1,10 +1,14 @@
 // Swipe News — one story per screen. Swipe up/down = next/previous story,
-// swipe left/right = the same story from Left -> Center -> Right outlets.
+// swipe left/right = the same story from outlets in other regions.
 // One YouTube player is reused for every clip and laid over the active clip's video area.
 
 const params = new URLSearchParams(location.search);
 const FEED_URL = params.get('feed') || 'feed.json';
-const COL_LABEL = { left: 'Left', center: 'Center', right: 'Right' };
+const REGIONS = { mideast_africa: 'Africa & Mideast', americas: 'Americas', asia: 'Asia-Pacific', europe: 'Europe' };
+const SMOOTH = matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+const icon = (path) => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5H4Z"/>${path}</svg>`;
+const SOUND_ON = icon('<path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11"/>');
+const SOUND_OFF = icon('<path d="m16 9.5 5 5m0-5-5 5"/>');
 const PLAY_CHECK_MS = 1800;   // if a clip isn't playing after this, ask for a tap
 const WATCHED_AFTER_MS = 3000;
 
@@ -75,52 +79,59 @@ function render() {
   stories.forEach((s, si) => {
     const sec = el('section', 'story' + (s._seen ? ' seen' : ''));
     sec.dataset.i = si;
+    sec.setAttribute('aria-label', s.headline);
 
-    const head = el('div', 'head');
-    const cov = el('div', 'cov');
-    for (const col of ['left', 'center', 'right']) {
-      const n = s.coverage[col];
-      const b = el('button', col, `${COL_LABEL[col]} ${n}`);
-      b.dataset.n = n; b.style.flexGrow = n;
-      b.onclick = () => jumpToColumn(si, col);
-      cov.append(b);
+    const tabs = el('nav', 'tabs');
+    tabs.setAttribute('aria-label', 'Regions covering this story');
+    for (const [region, label] of Object.entries(REGIONS)) {
+      if (!s.coverage[region]) continue;
+      const b = el('button', '', label);
+      b.dataset.region = region;
+      b.onclick = () => jumpToRegion(si, region);
+      tabs.append(b);
     }
-    const badges = el('div', 'badges');
-    if (s.blindspot) badges.append(el('span', 'badge blind', `Blindspot: no ${COL_LABEL[s.blindspot]} coverage`));
-    if (s.single) badges.append(el('span', 'badge', 'Single source'));
-    if (s._seen) badges.append(el('span', 'badge', 'Seen'));
-    badges.append(el('span', 'badge', ago(s.updated)));
-    head.append(cov, el('h2', '', s.headline), badges);
 
     const clips = el('div', 'clips');
-    const dots = el('div', 'dots');
-    s.clips.forEach((c, ci) => {
+    const ticks = el('div', 'ticks');
+    s.clips.forEach((c) => {
       const clip = el('article', 'clip');
-      clip.dataset.col = c.column;
       const slot = el('div', 'slot');
       const img = el('img');
       img.loading = si < 3 ? 'eager' : 'lazy';
       img.alt = '';
       img.src = `https://i.ytimg.com/vi/${c.id}/hqdefault.jpg`;
-      const msg = el('div', 'msg');
-      slot.append(img, el('div', 'edge'), msg);
+      slot.append(img, el('div', 'msg'));
 
       const meta = el('div', 'meta');
       const row = el('div', 'row');
-      const yt = el('a', '', 'YouTube ↗');
+      const src = el('span', 'src');
+      src.append(el('b', '', c.channel), ` · ${c.country ? `${c.country} · ` : ''}${ago(c.published)}`);
+      const snd = el('button', 'snd');
+      snd.innerHTML = SOUND_ON; snd.setAttribute('aria-label', 'Sound on or off'); snd.onclick = toggleMute;
+      const yt = el('a', '', 'YouTube');
       yt.href = `https://www.youtube.com/watch?v=${c.id}`; yt.target = '_blank'; yt.rel = 'noopener';
-      const snd = el('button', 'snd', '🔈'); snd.title = 'Sound on/off'; snd.onclick = toggleMute;
-      row.append(el('span', 'outlet', c.channel), el('span', `pill ${c.column}`, c.column), el('span', '', ago(c.published)), snd, yt);
-      meta.append(row, el('p', 'ctitle', c.title));
+      row.append(src, snd, yt);
+      meta.append(el('h2', 'ctitle', c.title), row);
       clip.append(slot, meta);
       clips.append(clip);
-      dots.append(el('i', c.column));
+      ticks.append(el('i'));
     });
     let t = 0;
     clips.addEventListener('scroll', () => { onScrollStart(); clearTimeout(t); t = setTimeout(settle, 140); }, { passive: true });
-    sec.append(head, clips, dots);
+    sec.append(tabs, ticks, clips);
     feedEl.append(sec);
+    markPosition(si, 0);
   });
+}
+
+function markPosition(s, c) {
+  const sec = storyEl(s), region = stories[s].clips[c].region;
+  sec.querySelectorAll('.tabs button').forEach((b) => {
+    const on = b.dataset.region === region;
+    b.classList.toggle('on', on);
+    if (on) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current');
+  });
+  sec.querySelectorAll('.ticks i').forEach((t, i) => t.classList.toggle('on', i === c));
 }
 
 // ---------------------------------------------------------------- navigation
@@ -137,19 +148,19 @@ function current() {
 function goStory(d) {
   const [s] = current();
   const t = Math.max(0, Math.min(stories.length - 1, s + d));
-  feedEl.scrollTo({ top: t * feedEl.clientHeight, behavior: 'smooth' });
+  feedEl.scrollTo({ top: t * feedEl.clientHeight, behavior: SMOOTH });
 }
 function goClip(d) {
   const [s, c] = current();
   const sc = clipsEl(s);
   const n = stories[s].clips.length;
   if (c + d >= n && d > 0) return goStory(1);          // past the last side -> next story
-  sc.scrollTo({ left: Math.max(0, Math.min(n - 1, c + d)) * sc.clientWidth, behavior: 'smooth' });
+  sc.scrollTo({ left: Math.max(0, Math.min(n - 1, c + d)) * sc.clientWidth, behavior: SMOOTH });
 }
-function jumpToColumn(si, col) {
-  const ci = stories[si].clips.findIndex((c) => c.column === col);
+function jumpToRegion(si, region) {
+  const ci = stories[si].clips.findIndex((c) => c.region === region);
   const sc = clipsEl(si);
-  if (ci >= 0 && sc) sc.scrollTo({ left: ci * sc.clientWidth, behavior: 'smooth' });
+  if (ci >= 0 && sc) sc.scrollTo({ left: ci * sc.clientWidth, behavior: SMOOTH });
 }
 
 let scrolling = false;
@@ -171,7 +182,7 @@ function settle() {
 
 function activate(s, c) {
   const clip = stories[s].clips[c];
-  [...storyEl(s).querySelectorAll('.dots i')].forEach((d, i) => d.classList.toggle('on', i === c));
+  markPosition(s, c);
   placePlayer(s, c);
   const same = clip.id === currentId;
   activeS = s; activeC = c; currentId = clip.id;
@@ -239,8 +250,8 @@ function toggleMute() {
 }
 function updateMuteIcons() {
   if (!playerReady) return;
-  const icon = player.isMuted() ? '🔇' : '🔈';
-  document.querySelectorAll('.snd').forEach((b) => { b.textContent = icon; });
+  const svg = player.isMuted() ? SOUND_OFF : SOUND_ON;
+  document.querySelectorAll('.snd').forEach((b) => { b.innerHTML = svg; });
 }
 
 function loadYouTubeApi() {
@@ -301,7 +312,7 @@ document.addEventListener('visibilitychange', async () => {
 function start(withPlayer) {
   stories = orderStories(feed.stories || []);
   if (!stories.length) {
-    setStatus('No stories yet. Run the “Update feed” workflow on GitHub (Actions tab), then reopen the app.');
+    setStatus('No stories right now. Check back soon.');
     return;
   }
   setStatus('');

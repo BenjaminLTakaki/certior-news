@@ -152,7 +152,7 @@ def group(clips: list[dict], thresholds: dict | None = None,
 
 
 # --------------------------------------------------------------------------- feed building
-COL_ORDER = {"left": 0, "center": 1, "right": 2}
+REGION_ORDER = {r: i for i, r in enumerate(config.REGIONS)}
 
 
 def build_stories(clips: list[dict], groups: list[list[int]], X: np.ndarray, now: datetime) -> list[dict]:
@@ -167,41 +167,34 @@ def build_stories(clips: list[dict], groups: list[list[int]], X: np.ndarray, now
 
         centroid = X[members].sum(axis=0)
         centroid = centroid / (np.linalg.norm(centroid) or 1)
-        centre_pool = [i for i in kept if clips[i]["column"] == "center"] or kept
-        head = max(centre_pool, key=lambda i: float(X[i] @ centroid))
+        head = max(kept, key=lambda i: float(X[i] @ centroid))
 
-        cov = {"left": set(), "center": set(), "right": set()}
+        cov = {r: set() for r in config.REGIONS}
         for c in ms:
-            cov[c["column"]].add(c["channel"])
+            cov[c["region"]].add(c["channel"])
         coverage = {k: len(v) for k, v in cov.items()}
         n_outlets = sum(coverage.values())
-        n_cols = sum(1 for v in coverage.values() if v)
-
-        blindspot = None
-        if n_outlets >= config.BLINDSPOT_MIN_CLIPS:
-            if coverage["right"] == 0 and coverage["left"] >= 2:
-                blindspot = "right"     # the right didn't cover it
-            elif coverage["left"] == 0 and coverage["right"] >= 2:
-                blindspot = "left"
+        n_regions = sum(1 for v in coverage.values() if v)
 
         latest = max(c["published"] for c in ms)
         age_h = (now - datetime.fromisoformat(latest.replace("Z", "+00:00"))).total_seconds() / 3600
-        score = (n_outlets + 0.5 * n_cols) * math.pow(0.5, age_h / config.RECENCY_HALF_LIFE_H)
+        score = (n_outlets + 2 * n_regions) * math.pow(0.5, age_h / config.RECENCY_HALF_LIFE_H)
+        if n_regions == 1:
+            score *= config.SINGLE_REGION_PENALTY
         if n_outlets == 1:
             score *= 0.3
 
-        # Left -> Center -> Right, newest first inside each column
-        ordered = sorted(kept, key=lambda i: (COL_ORDER[clips[i]["column"]], -_ts(clips[i]["published"])))
+        # region by region, newest first inside each
+        ordered = sorted(kept, key=lambda i: (REGION_ORDER[clips[i]["region"]], -_ts(clips[i]["published"])))
         first = min(ms, key=lambda c: c["published"])
         out.append({
             "id": "s_" + first["id"],
             "headline": clips[head]["title"],
             "updated": latest,
             "coverage": coverage,
-            "blindspot": blindspot,
             "single": n_outlets == 1,
             "score": round(score, 4),
-            "clips": [{k: clips[i][k] for k in ("id", "title", "channel", "lean", "column", "published", "duration")}
+            "clips": [{k: clips[i][k] for k in ("id", "title", "channel", "country", "region", "published", "duration")}
                       for i in ordered],
         })
     out.sort(key=lambda s: s["score"], reverse=True)

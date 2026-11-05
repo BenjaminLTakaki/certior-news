@@ -43,11 +43,8 @@ STORY_GAP_HOURS = 36            # a clip can only join a story that had a clip w
 MIN_SHARED_KEYWORDS = 1         # distinctive words a clip must share with a story to join it
 MAX_CLIPS_PER_OUTLET = 2        # per story
 MAX_STORIES_IN_FEED = 80
-BLINDSPOT_MIN_CLIPS = 3         # a story needs at least this many clips to get a blindspot label
 RECENCY_HALF_LIFE_H = 12        # ranking: a story's score halves every N hours
 
-LEAN_TO_COLUMN = {
-    "left": "left", "lean-left": "left",
-    "center": "center",
-    "lean-right": "right", "right": "right",
-}
+# Swipe order. Alphabetical by label, so no region always comes first.
+REGIONS = ["mideast_africa", "americas", "asia", "europe"]
+SINGLE_REGION_PENALTY = 0.4     # ranking: stories only one region covers sink, which keeps domestic news from dominating

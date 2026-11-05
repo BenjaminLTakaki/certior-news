@@ -1,10 +1,10 @@
 # Swipe News
 
-Short news clips from US outlets, grouped by story. **Swipe up** for the next story, **swipe sideways** to see the same story from Left → Center → Right outlets. It runs as a Home Screen web app on iPhone and costs €0.
+Short news clips from 26 outlets around the world, grouped by story. **Swipe up** for the next story, **swipe sideways** to see the same story from outlets in other regions. It runs as a Home Screen web app on iPhone and costs €0.
 
 ```
 YouTube Data API ──► GitHub Actions (every 30 min) ──► docs/feed.json ──► GitHub Pages ──► iPhone
-  19 outlet channels   fetch → filter → group             story feed         hosts the app      plays clips straight from YouTube
+  26 outlet channels   fetch → filter → group             story feed         hosts the app      plays clips straight from YouTube
 ```
 
 ## One-time setup (≈15 minutes)
@@ -36,15 +36,14 @@ Open the Pages URL in **Safari → Share → Add to Home Screen**. Open it from 
 | Gesture | What happens |
 | --- | --- |
 | Swipe up / down on the video | Next / previous story |
-| Swipe left / right on the video | Same story, next outlet (Left → Center → Right) |
+| Swipe left / right on the video | Same story, next outlet (region by region) |
 | Tap the video | Pause / play |
-| Tap **Left / Center / Right** in the bar | Jump to that side |
+| Tap a region at the top | Jump to that region |
 | 🔈 | Sound on/off |
 | **YouTube ↗** | Open the clip in the YouTube app |
 
-- **Blindspot** = several outlets covered it, but nobody from one side did.
-- **Single source** stories sink to the bottom. Watched stories move to the end and are marked **Seen**.
-- When a clip finishes, the app moves to the next side, then to the next story.
+- Stories covered in several regions rank first. Stories from one region or one outlet sink. Watched stories move to the end and are dimmed.
+- When a clip finishes, the app moves to the next outlet, then to the next story.
 - Reopening the app after 5+ minutes shows a **New stories** button if the feed changed.
 
 ## Tuning the grouping (do this after 2–3 days)
@@ -62,7 +61,7 @@ Copy the suggested numbers into `THRESHOLDS` in `pipeline/config.py`, commit, pu
 Other knobs in `pipeline/config.py`: the title blocklist (promos, "full episode"…), max clip length, how long stories stay in the feed.
 
 ## Changing outlets
-Edit `channels.json`. `lean` is the [AllSides media bias rating](https://www.allsides.com/media-bias) (`left`, `lean-left`, `center`, `lean-right`, `right`), checked Nov 2026. Entries marked `"verify": true` have a handle or rating worth double-checking.
+Edit `channels.json`. `region` (`mideast_africa`, `americas`, `asia`, `europe`) is where the outlet is based and sets the side it appears under. `country` is shown next to the outlet name. Changes apply on the next run, including to clips already collected.
 
 ## Running it on your PC (Windows)
 ```bash

@@ -69,13 +69,20 @@ def fetch(channels: list[dict], store: dict, rejected: dict, cache: dict, now: d
     return log
 
 
+def apply_channels(store: dict, channels: list[dict]) -> dict:
+    """channels.json decides: a removed outlet's clips leave the feed and a changed region applies at once."""
+    by_name = {c["name"]: c for c in channels}
+    return {k: {**v, "region": by_name[v["channel"]]["region"], "country": by_name[v["channel"]]["country"]}
+            for k, v in store.items() if v["channel"] in by_name}
+
+
 def load_mock(path: Path, now: datetime) -> dict:
     """Fixture clips carry `minutes_ago` instead of a timestamp so the demo is always 'fresh'."""
     store = {}
     for c in load_json(path, []):
         c = dict(c)
         c["published"] = iso(now - timedelta(minutes=c.pop("minutes_ago")))
-        c["column"] = config.LEAN_TO_COLUMN[c["lean"]]
+        c.setdefault("country", "")
         c.setdefault("desc", "")
         c.setdefault("duration", 60)
         store[c["id"]] = c
@@ -100,7 +107,7 @@ def main(argv=None) -> int:
         log = fetch(channels, store, rejected, cache, now)
         # prune state
         cutoff = now - timedelta(hours=config.WINDOW_HOURS)
-        store = {k: v for k, v in store.items() if parse_time(v["published"]) >= cutoff}
+        store = {k: v for k, v in apply_channels(store, channels).items() if parse_time(v["published"]) >= cutoff}
         rejected = {k: v for k, v in rejected.items() if parse_time(v) >= cutoff}
         save_json(config.CLIPS_FILE, store)
         save_json(config.REJECTED_FILE, rejected)
@@ -121,7 +128,8 @@ def main(argv=None) -> int:
     save_json(args.out, feed, compact=True)
 
     multi = sum(1 for s in stories if not s["single"])
-    print(f"[run] embedder={embedder} clips={len(window)} stories={len(stories)} multi-outlet={multi} "
+    regions = sum(1 for s in stories if sum(1 for n in s["coverage"].values() if n) > 1)
+    print(f"[run] embedder={embedder} clips={len(window)} stories={len(stories)} multi-outlet={multi} multi-region={regions} "
           f"quota_units={youtube.QuotaUsed.units}")
     if not args.mock:
         print(f"[run] channels ok={log['channels_ok']} new clips={log['new']} rejected={dict(log['rejected'])}")
