@@ -30,6 +30,46 @@
   <div id="status" class="status">Loading stories…</div>
   <div id="rotate" role="status">Turn your phone upright to keep watching.</div>
 
+  <dialog id="consent" aria-labelledby="consent-title">
+    <h2 id="consent-title" tabindex="-1" autofocus>Play videos from YouTube?</h2>
+    <p>Videos on Swipe News are played by YouTube. If you turn them on, YouTube can set cookies on this device and may track what you watch. Without them you still get every headline, with links to YouTube.</p>
+    <p class="small">By continuing you agree to the <a href="https://www.youtube.com/t/terms" target="_blank" rel="noopener">YouTube Terms of Service</a> and our <a href="privacy.html">Privacy Policy</a>. You can change this any time in Settings.</p>
+    <div class="choices">
+      <button type="button" id="consent-text">Text only</button>
+      <button type="button" id="consent-videos">Play videos</button>
+    </div>
+  </dialog>
+
+  <dialog id="settings" aria-labelledby="settings-title">
+    <header>
+      <h2 id="settings-title">Settings</h2>
+      <button type="button" id="settings-done">Done</button>
+    </header>
+    <p class="small">Saved on this device only. There are no accounts, and everyone gets the same stories.</p>
+    <label class="set"><span>Play videos from YouTube<small>YouTube can set cookies while this is on.</small></span><input type="checkbox" id="set-videos"></label>
+    <label class="set"><span>Open stories on</span>
+      <select id="set-side">
+        <option value="">Last one I picked</option>
+        <option value="left">Left</option>
+        <option value="center">Center</option>
+        <option value="right">Right</option>
+      </select>
+    </label>
+    <label class="set"><span>Play the next clip automatically</span><input type="checkbox" id="set-auto"></label>
+    <label class="set"><span>Hide stories I've watched</span><input type="checkbox" id="set-hideWatched"></label>
+    <label class="set"><span>Show sports under All</span><input type="checkbox" id="set-sportsInAll"></label>
+    <label class="set"><span>Show funding notices</span><input type="checkbox" id="set-notes"></label>
+    <div class="set-actions">
+      <button type="button" id="set-clear">Clear watched history</button>
+      <button type="button" id="set-reset">Reset everything on this device</button>
+    </div>
+    <nav class="set-links" aria-label="About Swipe News">
+      <a href="how-it-works.html">How this works</a>
+      <a href="privacy.html">Privacy</a>
+      <a href="https://www.youtube.com/t/terms" target="_blank" rel="noopener">YouTube Terms of Service</a>
+    </nav>
+  </dialog>
+
   <script src="app.js" type="module"></script>
 </body>
 </html>

@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<title>How this works | Swipe News</title>
+<style>
+  :root { --bg: oklch(14% .006 265); --ink: oklch(96% .004 265); --muted: oklch(72% .01 265); }
+  body { margin: 0 auto; max-width: 68ch; padding: 20px 16px 48px; background: var(--bg); color: var(--ink); font: 16px/1.55 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif; }
+  a { color: inherit; text-underline-offset: 3px; }
+  h1 { font-size: 26px; line-height: 1.2; margin: 24px 0 4px; }
+  h2 { font-size: 17px; margin: 28px 0 6px; }
+  p, ul { margin: 0 0 10px; }
+  ul { padding-left: 20px; }
+  .muted { color: var(--muted); font-size: 14px; }
+  .back { display: inline-flex; align-items: center; min-height: 44px; }
+</style>
+</head>
+<body>
+<a class="back" href="./">Back to Swipe News</a>
+<h1>How this works</h1>
+<p>Swipe News shows how outlets across the political spectrum and around the world cover the same event. It is the same feed for everyone, with no accounts and no personalisation, so it can't learn to show you only what you already agree with.</p>
+<p>It is not neutral, though. Every choice below shapes what you see, so here they are.</p>
+
+<h2>Which outlets</h2>
+<p>Around 40 YouTube channels that publish in English, chosen by hand. <a href="https://github.com/BenjaminLTakaki/swipe-news/blob/main/channels.json" target="_blank" rel="noopener">The full list is public</a>. English only leaves out most local-language coverage, and Latin America is thinly covered.</p>
+
+<h2>Left, Center and Right</h2>
+<p>These come from <a href="https://mediabiasfactcheck.com" target="_blank" rel="noopener">Media Bias/Fact Check</a>. They rate the whole outlet, not the individual clip, so a clip can differ from its label. The scale fits US politics best and suits state broadcasters elsewhere less well. Outlets it doesn't rate appear as Not rated.</p>
+
+<h2>Funding notices</h2>
+<p>The notices under some clips use YouTube's own wording about who funds or runs the outlet.</p>
+
+<h2>Grouping clips into stories</h2>
+<p>An AI model compares clip titles, and clips with very similar titles about the same thing become one story. It makes mistakes: sometimes a clip lands in the wrong story, and sometimes coverage of one event is split up. In a test on 200 deliberately hard pairs of real clips, labelled by Claude rather than an independent reviewer, about 90% of the pairs it grouped were right and it found about 85% of real matches. That is not its accuracy across the whole feed.</p>
+
+<h2>What comes first</h2>
+<ul>
+  <li>Stories covered by more outlets, more regions and more sides rank higher, and newer beats older.</li>
+  <li>Stories you can compare across sides come before one-sided ones.</li>
+  <li>At most one story in every four is US domestic politics, because every region covers it and it would otherwise fill the feed. Word matching decides this, and it sometimes gets it wrong.</li>
+</ul>
+
+<h2>Politics and Sports</h2>
+<p>Stories are sorted by words in their titles, so some are misfiled. Anything else appears only under All.</p>
+
+<h2>"No right coverage"</h2>
+<p>This means several outlets covered a story but none from that side did, among the outlets in this app. Other outlets may well have covered it.</p>
+
+<h2>Search</h2>
+<p>Search matches the words in titles from the last two days. It doesn't understand meaning, so related stories that don't use your words won't appear.</p>
+
+</body>
+</html>

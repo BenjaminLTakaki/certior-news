@@ -15,12 +15,18 @@ const PLAY_CHECK_MS = 1800;   // if a clip isn't playing after this, ask for a t
 const WATCHED_AFTER_MS = 3000;
 const SIDEWAYS_HINT = 'Swipe sideways for other outlets';
 const SIDEWAYS_HINT_MS = 5000, SIDEWAYS_HINTS = 3;
+const SETTINGS_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9m4 0h3M4 17h3m4 0h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>';
+const SETTINGS_DEFAULTS = { side: '', auto: true, hideWatched: false, sportsInAll: true, notes: true };
+// YouTube forbids disabling the links inside its player, and they sit along its top and bottom edges.
+// So swipes are only caught in the middle band; everything above and below reaches YouTube.
+const GESTURE_TOP = 0.25, GESTURE_HEIGHT = 0.5;
 const FIND_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>';
 const CHECK_FEED_MS = 2 * 60000;
 
 const $ = (s, el = document) => el.querySelector(s);
 const feedEl = $('#feed'), wrap = $('#player-wrap'), gesture = $('#gesture'), topicsEl = $('#topics');
 const hintEl = $('#hint'), statusEl = $('#status'), newPill = $('#new-pill');
+const consentEl = $('#consent'), settingsEl = $('#settings');
 
 if (params.has('debug')) {   // on-screen console for testing on the iPhone without a Mac
   const s = document.createElement('script');
@@ -33,6 +39,9 @@ const store = {
   get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* private mode etc. */ } },
 };
+const settings = { ...SETTINGS_DEFAULTS, ...store.get('settings', {}) };
+let consent = store.get('consent', null);    // 'videos' or 'text'. Nothing from YouTube loads until it is 'videos'.
+const videosOn = () => consent === 'videos';
 let watched = new Set(store.get('watched', []));
 function markWatched(id) {
   if (watched.has(id)) return;
@@ -46,7 +55,7 @@ let activeS = -1, activeC = -1, currentId = null;
 let player = null, playerReady = false, unlocked = false, playing = false, playerStarted = false;
 let topic = TOPICS[store.get('topic', 'all')] ? store.get('topic', 'all') : 'all';
 let query = '', everything = null;
-let side = null, autoAdvance = false, hintTimer = 0;     // side: the one you last chose, kept from story to story
+let side = settings.side || null, autoAdvance = false, hintTimer = 0;     // side: the one you last chose, kept from story to story
 let playCheck = 0, watchTimer = 0;
 
 // ---------------------------------------------------------------- helpers
@@ -94,7 +103,11 @@ function renderTopics() {
   find.innerHTML = FIND_ICON;
   find.setAttribute('aria-label', 'Search stories');
   find.onclick = renderSearch;
-  topicsEl.append(find);
+  const gear = el('button', 'gear');
+  gear.innerHTML = SETTINGS_ICON;
+  gear.setAttribute('aria-label', 'Settings');
+  gear.onclick = openSettings;
+  topicsEl.append(find, gear);
 }
 
 function renderSearch() {
@@ -154,7 +167,8 @@ function matches(list, q) {
 function orderStories(list) {
   // unseen stories first (feed order = ranking), fully watched ones at the end
   const seen = (s) => s.clips.every((c) => watched.has(c.id));
-  return [...list.filter((s) => !seen(s)), ...list.filter(seen).map((s) => ({ ...s, _seen: true }))];
+  const unseen = list.filter((s) => !seen(s));
+  return settings.hideWatched ? unseen : [...unseen, ...list.filter(seen).map((s) => ({ ...s, _seen: true }))];
 }
 
 function render() {
@@ -180,11 +194,21 @@ function render() {
     s.clips.forEach((c) => {
       const clip = el('article', 'clip');
       const slot = el('div', 'slot');
-      const img = el('img');
-      img.loading = si < 3 ? 'eager' : 'lazy';
-      img.alt = '';
-      img.src = `https://i.ytimg.com/vi/${c.id}/hqdefault.jpg`;
-      slot.append(img, el('div', 'msg'));
+      if (videosOn()) {
+        const img = el('img');
+        img.loading = si < 3 ? 'eager' : 'lazy';
+        img.alt = '';
+        img.src = `https://i.ytimg.com/vi/${c.id}/hqdefault.jpg`;
+        slot.append(img, el('div', 'msg'));
+      } else {
+        const off = el('div', 'off');
+        const open = el('a', '', 'Watch on YouTube');
+        open.href = `https://www.youtube.com/watch?v=${c.id}`; open.target = '_blank'; open.rel = 'noopener';
+        const on = el('button', '', 'Turn on videos');
+        on.onclick = openSettings;
+        off.append(el('span', '', 'Videos are off'), open, on);
+        slot.append(off);
+      }
 
       const meta = el('div', 'meta');
       const row = el('div', 'row');
@@ -194,9 +218,9 @@ function render() {
       snd.innerHTML = SOUND_ON; snd.setAttribute('aria-label', 'Sound on or off'); snd.onclick = toggleMute;
       const yt = el('a', '', 'YouTube');
       yt.href = `https://www.youtube.com/watch?v=${c.id}`; yt.target = '_blank'; yt.rel = 'noopener';
-      row.append(src, snd, yt);
+      row.append(src, ...(videosOn() ? [snd] : []), yt);
       meta.append(el('h2', 'ctitle', c.title));
-      if (c.note) meta.append(el('p', 'note', c.note));    // YouTube's box in the player cuts this off, and we can't change it
+      if (c.note && settings.notes) meta.append(el('p', 'note', c.note));    // YouTube's box in the player cuts this off, and we can't change it
       meta.append(row);
       clip.append(slot, meta);
       clips.append(clip);
@@ -293,6 +317,7 @@ function hintSideways() {
 function activate(s, c) {
   const clip = stories[s].clips[c];
   markPosition(s, c);
+  if (!videosOn()) { activeS = s; activeC = c; return; }
   placePlayer(s, c);
   const same = clip.id === currentId;
   activeS = s; activeC = c; currentId = clip.id;
@@ -305,7 +330,8 @@ function activate(s, c) {
 function placePlayer(s, c) {
   const slot = storyEl(s).querySelectorAll('.slot')[c];
   const r = slot.getBoundingClientRect();
-  for (const e of [wrap, gesture]) Object.assign(e.style, { left: `${r.left}px`, top: `${r.top}px`, width: `${r.width}px`, height: `${r.height}px` });
+  Object.assign(wrap.style, { left: `${r.left}px`, top: `${r.top}px`, width: `${r.width}px`, height: `${r.height}px` });
+  Object.assign(gesture.style, { left: `${r.left}px`, top: `${r.top + r.height * GESTURE_TOP}px`, width: `${r.width}px`, height: `${r.height * GESTURE_HEIGHT}px` });
   wrap.hidden = false;
   wrap.classList.remove('off');
   gesture.hidden = !unlocked;     // before the first real tap, taps must reach the YouTube player itself
@@ -336,7 +362,10 @@ function onState(e) {
     watchTimer = setTimeout(() => markWatched(id), WATCHED_AFTER_MS);
     updateMuteIcons();
   }
-  if (e.data === S.ENDED) { markWatched(currentId); autoAdvance = true; goClip(1); }
+  if (e.data === S.ENDED) {
+    markWatched(currentId);
+    if (settings.auto) { autoAdvance = true; goClip(1); }
+  }
 }
 
 function onError() {
@@ -380,7 +409,7 @@ async function createPlayer(firstId) {
     width: '100%', height: '100%', videoId: firstId,
     playerVars: { playsinline: 1, controls: 0, rel: 0, fs: 0, iv_load_policy: 3, disablekb: 1, origin: location.origin },
     events: {
-      onReady: () => { playerReady = true; const [s, c] = current(); activate(s, c); },
+      onReady: () => { playerReady = true; settle(); },
       onStateChange: onState,
       onError,
     },
@@ -436,10 +465,58 @@ async function checkForNewStories() {
 document.addEventListener('visibilitychange', checkForNewStories);
 setInterval(checkForNewStories, CHECK_FEED_MS);
 
+// ---------------------------------------------------------------- consent + settings
+function chooseVideos(on) {
+  consent = on ? 'videos' : 'text';
+  store.set('consent', consent);
+}
+$('#consent-videos').onclick = () => { chooseVideos(true); consentEl.close(); if (feed) start(); };
+$('#consent-text').onclick = () => { chooseVideos(false); consentEl.close(); if (feed) start(); };
+consentEl.addEventListener('cancel', (e) => e.preventDefault());      // a real choice, either way
+
+let settingsChanged = false;
+const toggles = ['auto', 'hideWatched', 'sportsInAll', 'notes'];
+function saveSettings() {
+  store.set('settings', settings);
+  settingsChanged = true;
+}
+function openSettings() {
+  if (playerReady) player.pauseVideo();
+  $('#set-videos').checked = videosOn();
+  $('#set-side').value = settings.side;
+  for (const t of toggles) $(`#set-${t}`).checked = settings[t];
+  $('#set-clear').textContent = 'Clear watched history';
+  settingsEl.showModal();
+}
+for (const t of toggles) {
+  $(`#set-${t}`).onchange = (e) => { settings[t] = e.target.checked; saveSettings(); };
+}
+$('#set-side').onchange = (e) => { settings.side = e.target.value; side = settings.side || null; saveSettings(); };
+$('#set-videos').onchange = (e) => {
+  chooseVideos(e.target.checked);
+  if (e.target.checked) settingsChanged = true;
+  else location.reload();     // the only way to fully take the YouTube player back out of the page
+};
+$('#set-clear').onclick = (e) => {
+  watched = new Set();
+  store.set('watched', []);
+  settingsChanged = true;
+  e.target.textContent = 'Cleared';
+};
+$('#set-reset').onclick = () => {
+  try { localStorage.clear(); } catch { /* private mode etc. */ }
+  location.reload();
+};
+$('#settings-done').onclick = () => settingsEl.close();
+settingsEl.addEventListener('close', () => {
+  if (!feed) return;
+  if (settingsChanged) { settingsChanged = false; onScrollStart(); start(); } else settle();
+});
+
 function start() {
   stories = query
     ? orderStories(matches(everything || feed.stories || [], query))
-    : orderStories((feed.stories || []).filter((s) => topic === 'all' || s.topic === topic));
+    : orderStories((feed.stories || []).filter((s) => (topic === 'all' ? settings.sportsInAll || s.topic !== 'sports' : s.topic === topic)));
   currentId = null;
   activeS = -1;
   if (!stories.length) {
@@ -453,7 +530,7 @@ function start() {
   setStatus('');
   render();
   feedEl.scrollTop = 0;
-  if (playerStarted) { settle(); return; }
+  if (playerStarted || !videosOn()) { settle(); return; }
   playerStarted = true;
   createPlayer(stories[0].clips[0].id);
 }
@@ -467,4 +544,5 @@ function start() {
     return;
   }
   start();
+  if (!consent) consentEl.showModal();
 })();
