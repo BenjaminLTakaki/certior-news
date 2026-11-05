@@ -4,6 +4,7 @@
 
 const params = new URLSearchParams(location.search);
 const FEED_URL = params.get('feed') || 'feed.json';
+const TOPICS = { all: 'All', politics: 'Politics', sports: 'Sports' };
 const COLUMNS = { left: 'Left', center: 'Center', right: 'Right', unrated: 'Not rated' };
 const SMOOTH = matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
 const icon = (path) => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5H4Z"/>${path}</svg>`;
@@ -14,7 +15,7 @@ const WATCHED_AFTER_MS = 3000;
 const CHECK_FEED_MS = 2 * 60000;
 
 const $ = (s, el = document) => el.querySelector(s);
-const feedEl = $('#feed'), wrap = $('#player-wrap'), gesture = $('#gesture');
+const feedEl = $('#feed'), wrap = $('#player-wrap'), gesture = $('#gesture'), topicsEl = $('#topics');
 const hintEl = $('#hint'), statusEl = $('#status'), newPill = $('#new-pill');
 
 if (params.has('debug')) {   // on-screen console for testing on the iPhone without a Mac
@@ -38,7 +39,8 @@ function markWatched(id) {
 // ---------------------------------------------------------------- state
 let feed = null, stories = [];
 let activeS = -1, activeC = -1, currentId = null;
-let player = null, playerReady = false, unlocked = false, playing = false;
+let player = null, playerReady = false, unlocked = false, playing = false, playerStarted = false;
+let topic = TOPICS[store.get('topic', 'all')] ? store.get('topic', 'all') : 'all';
 let playCheck = 0, watchTimer = 0;
 
 // ---------------------------------------------------------------- helpers
@@ -60,13 +62,28 @@ function setStatus(text, retry) {
   statusEl.textContent = text || '';
   if (retry) { const b = el('button', '', 'Try again'); b.onclick = () => location.reload(); statusEl.append(el('br'), b); }
 }
-function setAppHeight() { document.documentElement.style.setProperty('--app-h', `${window.innerHeight}px`); }
 
 // ---------------------------------------------------------------- feed
 async function loadFeed() {
   const r = await fetch(`${FEED_URL}?t=${Date.now()}`, { cache: 'no-store' });
   if (!r.ok) throw new Error(`feed ${r.status}`);
   return r.json();
+}
+
+function renderTopics() {
+  topicsEl.textContent = '';
+  for (const [key, label] of Object.entries(TOPICS)) {
+    const b = el('button', key === topic ? 'on' : '', label);
+    b.setAttribute('aria-pressed', key === topic);
+    b.onclick = () => {
+      if (key === topic) return;
+      topic = key;
+      store.set('topic', key);
+      renderTopics();
+      if (feed) { onScrollStart(); start(); }
+    };
+    topicsEl.append(b);
+  }
 }
 
 function orderStories(list) {
@@ -78,14 +95,14 @@ function orderStories(list) {
 function render() {
   feedEl.textContent = '';
   stories.forEach((s, si) => {
-    const sec = el('section', 'story' + (s._seen ? ' seen' : ''));
+    const sec = el('section', 'story' + (s._seen ? ' seen' : '') + (s.topic === 'sports' ? ' sports' : ''));
     sec.dataset.i = si;
     sec.setAttribute('aria-label', s.headline);
 
     const tabs = el('nav', 'tabs');
     tabs.setAttribute('aria-label', 'Political lean of the outlets covering this story');
     for (const [col, label] of Object.entries(COLUMNS)) {
-      if (!s.sides[col]) continue;
+      if (!s.sides[col] || s.topic === 'sports') continue;     // left and right mean nothing for sport
       const b = el('button', '', label);
       b.dataset.column = col;
       b.onclick = () => jumpToColumn(si, col);
@@ -113,14 +130,17 @@ function render() {
       const yt = el('a', '', 'YouTube');
       yt.href = `https://www.youtube.com/watch?v=${c.id}`; yt.target = '_blank'; yt.rel = 'noopener';
       row.append(src, snd, yt);
-      meta.append(el('h2', 'ctitle', c.title), row);
+      meta.append(el('h2', 'ctitle', c.title));
+      if (c.note) meta.append(el('p', 'note', c.note));    // YouTube's box in the player cuts this off, and we can't change it
+      meta.append(row);
       clip.append(slot, meta);
       clips.append(clip);
       ticks.append(el('i'));
     });
     let t = 0;
     clips.addEventListener('scroll', () => { onScrollStart(); clearTimeout(t); t = setTimeout(settle, 140); }, { passive: true });
-    sec.append(tabs, ticks, clips);
+    if (s.topic !== 'sports') sec.append(tabs);
+    sec.append(ticks, clips);
     feedEl.append(sec);
     markPosition(si, 0);
   });
@@ -293,11 +313,13 @@ gesture.addEventListener('pointerup', (e) => {
   if (dt < 400 && playerReady) playing ? player.pauseVideo() : player.playVideo();
 });
 gesture.addEventListener('pointercancel', () => { g0 = null; });
+// Without this, Chromium treats a flick here as a fling and swallows the next tap anywhere on the page.
+gesture.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
 
 // ---------------------------------------------------------------- boot
 let feedTimer = 0;
 feedEl.addEventListener('scroll', () => { onScrollStart(); clearTimeout(feedTimer); feedTimer = setTimeout(settle, 140); }, { passive: true });
-window.addEventListener('resize', () => { setAppHeight(); if (activeS >= 0) placePlayer(activeS, activeC); });
+window.addEventListener('resize', () => { if (activeS >= 0) placePlayer(activeS, activeC); });
 
 async function checkForNewStories() {
   if (document.visibilityState !== 'visible' || !feed) return;
@@ -306,34 +328,39 @@ async function checkForNewStories() {
     const known = new Set(feed.stories.flatMap((s) => s.clips.map((c) => c.id)));
     if (fresh.stories.some((s) => s.clips.some((c) => !known.has(c.id)))) {
       newPill.hidden = false;
-      newPill.onclick = () => { newPill.hidden = true; feed = fresh; start(false); };
+      newPill.onclick = () => { newPill.hidden = true; feed = fresh; start(); };
     }
   } catch { /* offline: keep what we have */ }
 }
 document.addEventListener('visibilitychange', checkForNewStories);
 setInterval(checkForNewStories, CHECK_FEED_MS);
 
-function start(withPlayer) {
-  stories = orderStories(feed.stories || []);
+function start() {
+  stories = orderStories((feed.stories || []).filter((s) => topic === 'all' || s.topic === topic));
+  currentId = null;
   if (!stories.length) {
-    setStatus('No stories right now. Check back soon.');
+    feedEl.textContent = '';
+    wrap.hidden = gesture.hidden = true;
+    activeS = -1;
+    scrolling = false;
+    setStatus(topic === 'all' ? 'No stories right now. Check back soon.' : `No ${TOPICS[topic].toLowerCase()} stories right now.`);
     return;
   }
   setStatus('');
   render();
   feedEl.scrollTop = 0;
-  currentId = null;
-  if (withPlayer) createPlayer(stories[0].clips[0].id);
-  else settle();
+  if (playerStarted) { settle(); return; }
+  playerStarted = true;
+  createPlayer(stories[0].clips[0].id);
 }
 
 (async function boot() {
-  setAppHeight();
+  renderTopics();
   try {
     feed = await loadFeed();
   } catch (e) {
     setStatus('Couldn’t load the feed. Check your connection.', true);
     return;
   }
-  start(true);
+  start();
 })();

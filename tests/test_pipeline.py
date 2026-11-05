@@ -121,6 +121,12 @@ def test_channels_file_decides_outlets_and_regions():
     store = {"a": {"channel": "BBC", "region": "old"}, "b": {"channel": "Gone", "region": "old"}}
     out = run.apply_channels(store, [{"name": "BBC", "region": "europe", "country": "UK", "lean": "center"}])
     assert list(out) == ["a"] and out["a"]["region"] == "europe" and out["a"]["country"] == "UK" and out["a"]["column"] == "center"
+    assert out["a"]["note"] == ""
+
+
+def test_funding_note_reaches_the_feed():
+    c = {**clip(0, "A", "europe"), "note": "A is funded by B."}
+    assert grouping.build_stories([c], [[0]], np.eye(1), NOW)[0]["clips"][0]["note"] == "A is funded by B."
 
 
 def test_at_most_one_us_story_in_every_four_until_world_stories_run_out():
@@ -167,6 +173,34 @@ def test_same_clip_reposted_by_an_outlet_appears_once():
     clips = [clip(0, "A", "europe", "Same title"), clip(1, "A", "europe", "same TITLE"), clip(2, "B", "asia", "Other")]
     story = grouping.build_stories(clips, [[0, 1, 2]], np.eye(3), NOW)[0]
     assert len(story["clips"]) == 2
+
+
+def test_topics_on_labelled_real_stories():
+    rows = json.loads((Path(__file__).parent / "fixtures" / "topic_labels.json").read_text(encoding="utf-8"))
+    pred = [grouping.topic_of([{"title": t} for t in r["titles"]]) for r in rows]
+    for topic, min_precision, min_recall in (("politics", 0.9, 0.75), ("sports", 0.9, 0.9)):
+        hit = sum(p == topic and r["topic"] == topic for p, r in zip(pred, rows))
+        assert hit / max(1, pred.count(topic)) >= min_precision, topic
+        assert hit / sum(r["topic"] == topic for r in rows) >= min_recall, topic
+
+
+def test_topic_keywords_avoid_their_known_traps():
+    assert grouping.topic_of([{"title": "Wall Street stocks rally after the jobs report"}]) == "other"
+    assert grouping.topic_of([{"title": "Your hydro bill is going up"}]) == "other"
+    assert grouping.topic_of([{"title": "Senate race too close to call"}]) == "politics"
+
+
+def test_sports_outlet_makes_a_sports_story_without_left_right_labels():
+    clips = [{**clip(i, f"S{i}", "europe", "Big transfer agreed", column="unrated"), "topic": "sports"} for i in range(3)]
+    story = grouping.build_stories(clips, [[0, 1, 2]], np.eye(3), NOW)[0]
+    assert story["topic"] == "sports" and story["blindspot"] is None and story["us_domestic"] is False
+
+
+def test_sports_stories_survive_a_full_news_feed(monkeypatch):
+    monkeypatch.setattr(config, "MAX_STORIES_IN_FEED", 2)
+    clips = [clip(i, f"N{i}", "europe", f"Parliament votes on law {i}") for i in range(5)] + [{**clip(5, "S", "europe", "Cup final"), "topic": "sports"}]
+    stories = grouping.build_stories(clips, [[i] for i in range(6)], np.eye(6), NOW)
+    assert [s["topic"] for s in stories].count("politics") == 2 and [s["topic"] for s in stories].count("sports") == 1
 
 
 def test_blindspot_when_one_side_skips_a_story():

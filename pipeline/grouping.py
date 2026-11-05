@@ -142,8 +142,25 @@ COL_ORDER = {c: i for i, c in enumerate(config.COLUMNS)}
 _US_DOMESTIC = re.compile(config.US_DOMESTIC, re.I)
 
 
+_SPORTS = re.compile(config.SPORTS_WORDS, re.I)
+_POLITICS = re.compile(config.POLITICS_WORDS, re.I)
+
+
+def _share_matches(rx: re.Pattern, titles: list[str]) -> bool:
+    return sum(bool(rx.search(t)) for t in titles) >= config.US_DOMESTIC_SHARE * len(titles)
+
+
 def is_us_domestic(titles: list[str]) -> bool:
-    return sum(bool(_US_DOMESTIC.search(t)) for t in titles) >= config.US_DOMESTIC_SHARE * len(titles)
+    return _share_matches(_US_DOMESTIC, titles)
+
+
+def topic_of(clips: list[dict]) -> str:
+    titles = [c["title"] for c in clips]
+    if any(c.get("topic") == "sports" for c in clips) or _share_matches(_SPORTS, titles):
+        return "sports"
+    if _share_matches(_POLITICS, titles) or is_us_domestic(titles):
+        return "politics"
+    return "other"
 
 
 def build_stories(clips: list[dict], groups: list[list[int]], X: np.ndarray, now: datetime) -> list[dict]:
@@ -178,8 +195,9 @@ def build_stories(clips: list[dict], groups: list[list[int]], X: np.ndarray, now
         sides = {k: len(v) for k, v in by_col.items()}
         n_sides = sum(1 for k in ("left", "center", "right") if sides[k])
 
+        topic = topic_of(ms)
         blindspot = None
-        if n_outlets >= config.BLINDSPOT_MIN_CLIPS:
+        if n_outlets >= config.BLINDSPOT_MIN_CLIPS and topic != "sports":      # left and right mean nothing for a transfer
             if sides["right"] == 0 and sides["left"] >= 2:
                 blindspot = "right"     # the right didn't cover it
             elif sides["left"] == 0 and sides["right"] >= 2:
@@ -192,7 +210,7 @@ def build_stories(clips: list[dict], groups: list[list[int]], X: np.ndarray, now
             score *= config.SINGLE_REGION_PENALTY
         if n_outlets == 1:
             score *= 0.3
-        if n_sides == 1:
+        if n_sides == 1 and topic != "sports":
             score *= config.ONE_SIDE_PENALTY
 
         # Left -> Center -> Right -> unrated, newest first inside each
@@ -207,12 +225,17 @@ def build_stories(clips: list[dict], groups: list[list[int]], X: np.ndarray, now
             "blindspot": blindspot,
             "single": n_outlets == 1,
             "score": round(score, 4),
-            "us_domestic": is_us_domestic([c["title"] for c in ms]),
+            "topic": topic,
+            "us_domestic": topic != "sports" and is_us_domestic([c["title"] for c in ms]),
             "clips": [{**{k: clips[i][k] for k in ("id", "channel", "country", "region", "lean", "column", "published", "duration")},
-                       "title": clip_text(clips[i])} for i in ordered],
+                       "title": clip_text(clips[i]), "note": clips[i].get("note", "")} for i in ordered],
         })
     out.sort(key=lambda s: s["score"], reverse=True)
-    return space_out_us(out)[:config.MAX_STORIES_IN_FEED]
+    out = space_out_us(out)
+    sports = [s for s in out if s["topic"] == "sports"][:config.MAX_SPORTS_STORIES]
+    news = [s for s in out if s["topic"] != "sports"][:config.MAX_STORIES_IN_FEED]
+    keep = {id(s) for s in sports + news}
+    return [s for s in out if id(s) in keep]
 
 
 def space_out_us(stories: list[dict]) -> list[dict]:

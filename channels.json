@@ -1,13 +1,13 @@
 {
-  "_readme": "Outlets the feed pulls from, all publishing in English. region = where the outlet is based. lean = Media Bias/Fact Check rating of the outlet (mediabiasfactcheck.com), checked Nov 2026: left, lean-left (their left-center), center (their least biased), lean-right (their right-center), right, or unrated when they have no rating. In the app: left + lean-left = Left, center = Center, lean-right + right = Right. The pipeline logs any handle it cannot find.",
+  "_readme": "Outlets the feed pulls from, all publishing in English. region = where the outlet is based. lean = Media Bias/Fact Check rating of the outlet (mediabiasfactcheck.com), checked Nov 2026: left, lean-left (their left-center), center (their least biased), lean-right (their right-center), right, or unrated when they have no rating. In the app: left + lean-left = Left, center = Center, lean-right + right = Right. note = YouTube's own funding notice for that outlet, read from its embedded player in Nov 2026; the app shows it in full because the player cuts it off. topic = sports puts every clip from that outlet under Sports, where left and right do not apply. The pipeline logs any handle it cannot find.",
   "channels": [
-    { "name": "Al Jazeera English",       "handle": "@aljazeeraenglish",       "region": "mideast_africa", "country": "Qatar", "lean": "lean-left" },
-    { "name": "TRT World",                "handle": "@TRTWorld",               "region": "mideast_africa", "country": "Turkey", "lean": "right" },
-    { "name": "Al Arabiya English",       "handle": "@AlArabiyaEnglish",       "region": "mideast_africa", "country": "Saudi Arabia", "lean": "lean-right" },
+    { "name": "Al Jazeera English",       "handle": "@aljazeeraenglish",       "region": "mideast_africa", "country": "Qatar", "lean": "lean-left", "note": "Al Jazeera is funded in whole or in part by the Qatari government." },
+    { "name": "TRT World",                "handle": "@TRTWorld",               "region": "mideast_africa", "country": "Turkey", "lean": "right", "note": "TRT is a Turkish public broadcast service." },
+    { "name": "Al Arabiya English",       "handle": "@AlArabiyaEnglish",       "region": "mideast_africa", "country": "Saudi Arabia", "lean": "lean-right", "note": "Al Arabiya is funded in whole or in part by the Saudi government." },
     { "name": "i24NEWS English",          "handle": "@i24NEWS_EN",             "region": "mideast_africa", "country": "Israel", "lean": "lean-right" },
-    { "name": "Arab News",                "handle": "@arabnews",               "region": "mideast_africa", "country": "Saudi Arabia", "lean": "lean-right" },
-    { "name": "africanews",               "handle": "@africanews",             "region": "mideast_africa", "country": "Pan-African", "lean": "lean-left" },
-    { "name": "SABC News",                "handle": "@SABCDigitalNews",        "region": "mideast_africa", "country": "South Africa", "lean": "unrated" },
+    { "name": "Arab News",                "handle": "@arabnews",               "region": "mideast_africa", "country": "Saudi Arabia", "lean": "lean-right", "note": "SRMG is funded in whole or in part by the Saudi government." },
+    { "name": "africanews",               "handle": "@africanews",             "region": "mideast_africa", "country": "Pan-African", "lean": "lean-left", "note": "Euronews is funded in whole or in part by the European Union." },
+    { "name": "SABC News",                "handle": "@SABCDigitalNews",        "region": "mideast_africa", "country": "South Africa", "lean": "unrated", "note": "SABC is funded in whole or in part by the South African government." },
     { "name": "Channels Television",      "handle": "@channelstelevision",     "region": "mideast_africa", "country": "Nigeria", "lean": "unrated" },
     { "name": "NTV Kenya",                "handle": "@NTVKenyaOnline",         "region": "mideast_africa", "country": "Kenya", "lean": "unrated" },
 
@@ -16,29 +16,34 @@
     { "name": "Fox News",                 "handle": "@FoxNews",                "region": "americas", "country": "US", "lean": "right" },
     { "name": "Wall Street Journal",      "handle": "@wsj",                    "region": "americas", "country": "US", "lean": "lean-right" },
     { "name": "New York Post",            "handle": "@nypost",                 "region": "americas", "country": "US", "lean": "lean-right" },
-    { "name": "CBC News",                 "handle": "@CBCNews",                "region": "americas", "country": "Canada", "lean": "lean-left" },
-    { "name": "TeleSUR English",          "handle": "@teleSUREnglish",         "region": "americas", "country": "Venezuela", "lean": "left" },
+    { "name": "CBC News",                 "handle": "@CBCNews",                "region": "americas", "country": "Canada", "lean": "lean-left", "note": "CBC/Radio-Canada is a Canadian public broadcast service." },
+    { "name": "TeleSUR English",          "handle": "@teleSUREnglish",         "region": "americas", "country": "Venezuela", "lean": "left", "note": "teleSUR is funded in whole or in part by multiple Latin American governments." },
 
-    { "name": "CNA",                      "handle": "@channelnewsasia",        "region": "asia", "country": "Singapore", "lean": "center" },
+    { "name": "CNA",                      "handle": "@channelnewsasia",        "region": "asia", "country": "Singapore", "lean": "center", "note": "Mediacorp is a Singaporean public broadcast service." },
     { "name": "NHK WORLD-JAPAN",          "handle": "@NHKWORLDJAPAN",          "region": "asia", "country": "Japan", "lean": "lean-left" },
     { "name": "WION",                     "handle": "@WION",                   "region": "asia", "country": "India", "lean": "center" },
     { "name": "NDTV",                     "handle": "@NDTV",                   "region": "asia", "country": "India", "lean": "lean-right" },
     { "name": "South China Morning Post", "handle": "@SouthChinaMorningPost",  "region": "asia", "country": "Hong Kong", "lean": "lean-left" },
-    { "name": "ABC News Australia",       "handle": "@abcnewsaustralia",       "region": "asia", "country": "Australia", "lean": "lean-left" },
+    { "name": "ABC News Australia",       "handle": "@abcnewsaustralia",       "region": "asia", "country": "Australia", "lean": "lean-left", "note": "ABC is an Australian public broadcast service." },
     { "name": "Sky News Australia",       "handle": "@News24",                 "region": "asia", "country": "Australia", "lean": "right" },
     { "name": "Times of India",           "handle": "@timesofindia",           "region": "asia", "country": "India", "lean": "lean-right" },
     { "name": "India Today",              "handle": "@IndiaToday",             "region": "asia", "country": "India", "lean": "lean-right" },
     { "name": "Arirang News",             "handle": "@ArirangCoKrArirangNEWS", "region": "asia", "country": "South Korea", "lean": "center" },
 
-    { "name": "BBC News",                 "handle": "@BBCNews",                "region": "europe", "country": "UK", "lean": "center" },
+    { "name": "BBC News",                 "handle": "@BBCNews",                "region": "europe", "country": "UK", "lean": "center", "note": "BBC is a British public broadcast service." },
     { "name": "Sky News",                 "handle": "@SkyNews",                "region": "europe", "country": "UK", "lean": "center" },
     { "name": "Reuters",                  "handle": "@Reuters",                "region": "europe", "country": "UK", "lean": "center" },
     { "name": "Guardian News",            "handle": "@guardiannews",           "region": "europe", "country": "UK", "lean": "lean-left" },
     { "name": "GB News",                  "handle": "@GBNewsOnline",           "region": "europe", "country": "UK", "lean": "right" },
     { "name": "The Telegraph",            "handle": "@telegraph",              "region": "europe", "country": "UK", "lean": "right" },
     { "name": "Daily Mail",               "handle": "@DailyMail",              "region": "europe", "country": "UK", "lean": "right" },
-    { "name": "euronews",                 "handle": "@euronews",               "region": "europe", "country": "France", "lean": "lean-left" },
-    { "name": "DW News",                  "handle": "@dwnews",                 "region": "europe", "country": "Germany", "lean": "lean-left" },
-    { "name": "FRANCE 24 English",        "handle": "@France24_en",            "region": "europe", "country": "France", "lean": "center" }
+    { "name": "euronews",                 "handle": "@euronews",               "region": "europe", "country": "France", "lean": "lean-left", "note": "Euronews is funded in whole or in part by the European Union." },
+    { "name": "DW News",                  "handle": "@dwnews",                 "region": "europe", "country": "Germany", "lean": "lean-left", "note": "DW is a German public broadcast service." },
+    { "name": "FRANCE 24 English",        "handle": "@France24_en",            "region": "europe", "country": "France", "lean": "center", "note": "France 24 is a French public broadcast service." },
+
+    { "name": "BBC Sport",                "handle": "@BBCSport",               "region": "europe", "country": "UK", "lean": "unrated", "topic": "sports" },
+    { "name": "Sky Sports News",          "handle": "@SkySportsNews",          "region": "europe", "country": "UK", "lean": "unrated", "topic": "sports" },
+    { "name": "ESPN",                     "handle": "@espn",                   "region": "americas", "country": "US", "lean": "unrated", "topic": "sports" },
+    { "name": "beIN SPORTS",              "handle": "@beINSPORTS",             "region": "mideast_africa", "country": "Qatar", "lean": "unrated", "topic": "sports" }
   ]
 }

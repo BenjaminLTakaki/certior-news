@@ -1,10 +1,10 @@
 # Swipe News
 
-Short news clips from 36 outlets around the world, grouped by story. **Swipe up** for the next story, **swipe sideways** to see the same story from Left, Center and Right outlets. It runs as a Home Screen web app on iPhone and costs €0.
+Short news clips from 40 outlets around the world, grouped by story. **Swipe up** for the next story, **swipe sideways** to see the same story from Left, Center and Right outlets. It runs as a Home Screen web app on iPhone and costs €0.
 
 ```
 YouTube Data API ──► GitHub Actions (every 10 min) ──► docs/feed.json ──► portfolio site ──► iPhone
-  36 outlet channels   fetch → filter → group             story feed         hosts the app      plays clips straight from YouTube
+  40 outlet channels   fetch → filter → group             story feed         hosts the app      plays clips straight from YouTube
 ```
 
 ## One-time setup (≈15 minutes)
@@ -37,7 +37,8 @@ Open the app in **Safari → Share → Add to Home Screen**. Open it from the Ho
 | Swipe up / down on the video | Next / previous story |
 | Swipe left / right on the video | Same story, next outlet (Left → Center → Right) |
 | Tap the video | Pause / play |
-| Tap **Left / Center / Right** at the top | Jump to that side |
+| Tap **All / Politics / Sports** at the top | Show only that topic |
+| Tap **Left / Center / Right** | Jump to that side (not shown for sport) |
 | 🔈 | Sound on/off |
 | **YouTube ↗** | Open the clip in the YouTube app |
 
@@ -61,7 +62,7 @@ Copy the suggested number into `THRESHOLDS` in `pipeline/config.py`, commit, pus
 Other knobs in `pipeline/config.py`: the title blocklist (promos, "full episode"…), max clip length, how long stories stay in the feed.
 
 ## Changing outlets
-Edit `channels.json`. `lean` is the outlet's [Media Bias/Fact Check](https://mediabiasfactcheck.com) rating and sets the side it appears under (`left` + `lean-left` = Left, `center` = Center, `lean-right` + `right` = Right, `unrated` = Not rated). `region` (`mideast_africa`, `americas`, `asia`, `europe`) is where the outlet is based and is used for ranking. `country` is shown next to the outlet name. Changes apply on the next run, including to clips already collected.
+Edit `channels.json`. `lean` is the outlet's [Media Bias/Fact Check](https://mediabiasfactcheck.com) rating and sets the side it appears under (`left` + `lean-left` = Left, `center` = Center, `lean-right` + `right` = Right, `unrated` = Not rated). `region` (`mideast_africa`, `americas`, `asia`, `europe`) is where the outlet is based and is used for ranking. `country` is shown next to the outlet name. `"topic": "sports"` puts all of an outlet's clips under Sports. Changes apply on the next run, including to clips already collected.
 
 ## Running it on your PC (Windows)
 ```bash
@@ -75,7 +76,7 @@ The demo feed uses fake clip IDs, so videos won't play; it's for checking the la
 To test on the iPhone over Wi-Fi, open `http://<your-PC-IP>:8000/` and add `?debug=1` for an on-screen console (Safari's Web Inspector needs a Mac).
 
 ## How it works
-- **`pipeline/run.py`**: for each channel, lists the newest 25 uploads (1 quota unit), fetches details only for IDs it hasn't seen (1 unit per 50), and keeps embeddable, public, non-live clips of 8 s – 5 min from the last 48 h that don't match the blocklist. About 7,000 of the 10,000 free daily units at one run every 10 minutes (48 units a run with 36 outlets).
+- **`pipeline/run.py`**: for each channel, lists the newest 25 uploads (1 quota unit), fetches details only for IDs it hasn't seen (1 unit per 50), and keeps embeddable, public, non-live clips of 8 s – 5 min from the last 48 h that don't match the blocklist. About 8,000 of the 10,000 free daily units at one run every 10 minutes (roughly 55 units a run with 40 outlets).
 - **`pipeline/grouping.py`**: embeds each cleaned title with `bge-base-en-v1.5` (via fastembed, CPU). Two clips can share a story only if they are close *and* share a distinctive word, which keeps "two different shootings" apart. Complete-linkage clustering holds every pair in a story to that bar, so one big event doesn't snowball into a single story. If the model can't load, it falls back to TF-IDF so the feed never breaks.
 - **`docs/`**: plain HTML/CSS/JS, no build step. One YouTube IFrame player is reused for every clip and laid over the active clip, with a transparent layer on top that turns swipes into navigation.
 - State lives in `data/` (clips from the last 72 h, rejected IDs, resolved channel IDs) and is committed by the workflow.

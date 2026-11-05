@@ -55,6 +55,22 @@ LEAN_TO_COLUMN = {
 }
 COLUMNS = ["left", "center", "right", "unrated"]    # swipe order
 
+MAX_SPORTS_STORIES = 30         # on top of MAX_STORIES_IN_FEED, so the Sports tab survives a heavy news day
+
+# A story's topic: a third of its clip titles match, sports checked first. Anything else only appears under All.
+# ponytail: keyword lists, they miss politicians and places they don't name. tests/fixtures/topic_labels.json holds the check.
+SPORTS_WORDS = (r"\b(football(er|ers)?|soccer|cricket(er|ers)?|tennis|rugby|raga|hockey|basketball|baseball|nba|wnba|nfl|mlb|nhl|fifa|uefa|ucl|"
+                r"olympics?|olympian|paralympics?|para athletes?|athletes?|tournament|world cup|premier league|champions league|la liga|"
+                r"grand prix|formula (1|one)|f1|golf|boxing|mma|ufc|wushu|equestrian|padel|marathon|red cards?|track and field|women's sports|"
+                r"kombe|mbio|anglers?|manu|manchester (united|city)|arsenal|liverpool|chelsea|real madrid|ronaldo|messi|route du rhum)\b")
+POLITICS_WORDS = (r"\b(elect(ion|ions|ed|oral)|vot(e|es|er|ers|ing)|ballot|polls?|president\w*|prime minister|pm|minister\w*|ministry|parliament\w*|"
+                  r"senat\w+|congress\w*|governor\w*|gubernatorial|mayor|government\w*|lawmakers?|democrat\w*|republicans?|gop|trump|vance|biden|"
+                  r"netanyahu|putin|zelensky|macron|modi|schumer|jeffries|impeach\w*|hegseth|pentagon|white house|wars?|military|army|troops|navy|"
+                  r"airstrikes?|missiles?|drones?|bombing|shelling|invasion|ceasefire|idf|hamas|hezbollah|houthis?|taliban|nato|sanctions?|diplomat\w*|"
+                  r"embassy|treaty|summit|protest\w*|rall(y|ies) (against|in|for|over)|mass rallies|coup|opposition|party|parties|coalition|manifesto|"
+                  r"campaign|activists?|national security|policy|amendments?|anc|apc|upinzani|uchaguzi|siasa|israeli?|palestin\w+|gaza|west bank|lebanon|"
+                  r"ukrain\w+|russian?|iran\w*|kashmir|south china sea|lge 2026|midterms?|human rights|settlers?|migrants?)\b")
+
 REGIONS = ["mideast_africa", "americas", "asia", "europe"]
 ONE_SIDE_PENALTY = 0.5          # ranking: stories you can compare across left, center and right come first
 SINGLE_REGION_PENALTY = 0.4     # ranking: stories only one region covers sink, which keeps domestic news from dominating
