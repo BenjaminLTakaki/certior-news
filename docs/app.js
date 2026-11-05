@@ -6,6 +6,7 @@ const params = new URLSearchParams(location.search);
 const FEED_URL = params.get('feed') || 'feed.json';
 const TOPICS = { all: 'All', politics: 'Politics', sports: 'Sports' };
 const COLUMNS = { left: 'Left', center: 'Center', right: 'Right', unrated: 'Not rated' };
+const LANDSCAPE = matchMedia('(orientation: landscape) and (max-height: 500px) and (pointer: coarse)');   // a sideways phone: see #rotate
 const SMOOTH = matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
 const icon = (path) => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5H4Z"/>${path}</svg>`;
 const SOUND_ON = icon('<path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11"/>');
@@ -197,7 +198,7 @@ function onScrollStart() {
 
 function settle() {
   scrolling = false;
-  if (!stories.length) return;
+  if (!stories.length || LANDSCAPE.matches) return;   // rotating moves the scroll position: keep the clip we were on
   const [s, c] = current();
   activate(s, c);
 }
@@ -319,6 +320,17 @@ gesture.addEventListener('touchstart', (e) => e.preventDefault(), { passive: fal
 // ---------------------------------------------------------------- boot
 let feedTimer = 0;
 feedEl.addEventListener('scroll', () => { onScrollStart(); clearTimeout(feedTimer); feedTimer = setTimeout(settle, 140); }, { passive: true });
+LANDSCAPE.addEventListener('change', (e) => {
+  if (e.matches) {
+    if (playerReady) player.pauseVideo();
+    return;
+  }
+  if (activeS >= 0 && stories[activeS]) {
+    feedEl.scrollTop = activeS * feedEl.clientHeight;
+    clipsEl(activeS).scrollLeft = activeC * clipsEl(activeS).clientWidth;
+  }
+  settle();
+});
 window.addEventListener('resize', () => { if (activeS >= 0) placePlayer(activeS, activeC); });
 
 async function checkForNewStories() {

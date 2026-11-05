@@ -18,6 +18,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main            # a queued run must start from the feed the run before it just committed
 
       - uses: actions/setup-python@v5
         with:
