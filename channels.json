@@ -1,0 +1,24 @@
+{
+  "_readme": "Outlets the feed pulls from. lean = AllSides Media Bias Rating (allsides.com/media-bias), checked Nov 2026. 'verify': true means the YouTube handle or rating should be double-checked; the pipeline logs any handle it cannot find. Columns in the app: left + lean-left = Left, center = Center, lean-right + right = Right.",
+  "channels": [
+    { "name": "CNN",                 "handle": "@CNN",                "lean": "lean-left" },
+    { "name": "MS NOW",              "handle": "@msnow",              "lean": "left" },
+    { "name": "NBC News",            "handle": "@NBCNews",            "lean": "lean-left" },
+    { "name": "ABC News",            "handle": "@ABCNews",            "lean": "lean-left" },
+    { "name": "CBS News",            "handle": "@CBSNews",            "lean": "lean-left" },
+    { "name": "PBS NewsHour",        "handle": "@PBSNewsHour",        "lean": "lean-left", "verify": true },
+    { "name": "NPR",                 "handle": "@NPR",                "lean": "lean-left" },
+    { "name": "Associated Press",    "handle": "@AssociatedPress",    "lean": "lean-left" },
+    { "name": "Reuters",             "handle": "@Reuters",            "lean": "center" },
+    { "name": "NewsNation",          "handle": "@NewsNation",         "lean": "center" },
+    { "name": "The Hill",            "handle": "@thehill",            "lean": "center" },
+    { "name": "Wall Street Journal", "handle": "@wsj",                "lean": "center" },
+    { "name": "Straight Arrow News", "handle": "@StraightArrowNews",  "lean": "center", "verify": true },
+    { "name": "Fox News",            "handle": "@FoxNews",            "lean": "right" },
+    { "name": "Newsmax",             "handle": "@NEWSMAX",            "lean": "right" },
+    { "name": "New York Post",       "handle": "@nypost",             "lean": "right" },
+    { "name": "The Daily Wire",      "handle": "@dailywire",          "lean": "right", "verify": true },
+    { "name": "Daily Caller",        "handle": "@DailyCaller",        "lean": "right", "verify": true },
+    { "name": "Washington Examiner", "handle": "@WashingtonExaminer", "lean": "lean-right", "verify": true }
+  ]
+}

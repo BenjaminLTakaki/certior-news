@@ -1,0 +1,49 @@
+[
+ {"id":"mockA01","story":"A","channel":"CNN","lean":"lean-left","minutes_ago":300,"title":"Senate passes stopgap funding bill hours before shutdown deadline","desc":"The Senate voted 71-28 on a continuing resolution that keeps the government funded through January."},
+ {"id":"mockA02","story":"A","channel":"MS NOW","lean":"left","minutes_ago":280,"title":"Shutdown averted: what's in the Senate's stopgap spending deal","desc":"Democrats secured disaster aid in the short-term funding bill."},
+ {"id":"mockA03","story":"A","channel":"NBC News","lean":"lean-left","minutes_ago":260,"title":"Government shutdown avoided after Senate approves stopgap","desc":"The continuing resolution now heads to the president's desk."},
+ {"id":"mockA04","story":"A","channel":"Reuters","lean":"center","minutes_ago":290,"title":"US Senate approves stopgap bill, averting government shutdown","desc":"Lawmakers passed a continuing resolution funding federal agencies until January."},
+ {"id":"mockA05","story":"A","channel":"The Hill","lean":"center","minutes_ago":240,"title":"Stopgap funding bill clears Senate 71-28","desc":"Twelve Republicans joined Democrats to pass the continuing resolution."},
+ {"id":"mockA06","story":"A","channel":"Fox News","lean":"right","minutes_ago":250,"title":"Conservatives fume as Senate passes 'clean' stopgap funding bill","desc":"Fiscal hawks say the continuing resolution does nothing to cut spending."},
+ {"id":"mockA07","story":"A","channel":"Newsmax","lean":"right","minutes_ago":200,"title":"Senate punts on spending again with another stopgap bill","desc":"Critics say the continuing resolution sets up another shutdown fight in January."},
+
+ {"id":"mockB01","story":"B","channel":"ABC News","lean":"lean-left","minutes_ago":120,"title":"Hurricane Mara makes landfall in Florida Panhandle as Category 3","desc":"Storm surge flooding reported in Panama City as Mara comes ashore."},
+ {"id":"mockB02","story":"B","channel":"CBS News","lean":"lean-left","minutes_ago":110,"title":"Hurricane Mara slams Panhandle with 120 mph winds","desc":"Hundreds of thousands without power after landfall near Panama City."},
+ {"id":"mockB03","story":"B","channel":"Associated Press","lean":"lean-left","minutes_ago":115,"title":"Mara roars ashore in Florida, flooding coastal towns","desc":"Category 3 hurricane brings storm surge to the Panhandle."},
+ {"id":"mockB04","story":"B","channel":"NewsNation","lean":"center","minutes_ago":100,"title":"Our crew rides out Hurricane Mara in Panama City","desc":"Reporter shows storm surge and wind damage as Mara makes landfall."},
+ {"id":"mockB05","story":"B","channel":"Reuters","lean":"center","minutes_ago":105,"title":"Hurricane Mara hits Florida Panhandle, knocking out power","desc":"Utilities report outages across the Panhandle after landfall."},
+ {"id":"mockB06","story":"B","channel":"Fox News","lean":"right","minutes_ago":95,"title":"Hurricane Mara: Florida governor warns residents to stay off flooded roads","desc":"Storm surge and power outages across the Panhandle after Category 3 landfall."},
+ {"id":"mockB07","story":"B","channel":"New York Post","lean":"right","minutes_ago":90,"title":"Wild video shows Hurricane Mara's storm surge swallowing Panama City streets","desc":"The Category 3 storm made landfall Tuesday afternoon."},
+
+ {"id":"mockC01","story":"C","channel":"NPR","lean":"lean-left","minutes_ago":600,"title":"Supreme Court weighs state law requiring age verification for social media","desc":"Justices heard arguments over a Texas law that requires platforms to verify users' ages."},
+ {"id":"mockC02","story":"C","channel":"PBS NewsHour","lean":"lean-left","minutes_ago":560,"title":"Justices skeptical of social media age verification law","desc":"The Supreme Court heard oral arguments in the free speech challenge."},
+ {"id":"mockC03","story":"C","channel":"CNN","lean":"lean-left","minutes_ago":580,"title":"Supreme Court hears challenge to social media age verification","desc":"Tech companies argue the Texas law violates the First Amendment."},
+ {"id":"mockC04","story":"C","channel":"Wall Street Journal","lean":"center","minutes_ago":570,"title":"What the Supreme Court's age-verification case means for social media","desc":"Platforms could be forced to verify the age of every user."},
+ {"id":"mockC05","story":"C","channel":"The Daily Wire","lean":"right","minutes_ago":500,"title":"Big Tech tells Supreme Court it shouldn't have to verify kids' ages on social media","desc":"Texas defends its age verification law protecting minors."},
+
+ {"id":"mockD01","story":"D","channel":"Wall Street Journal","lean":"center","minutes_ago":1500,"title":"Fed holds interest rates steady, signals patience on cuts","desc":"The Federal Reserve left its benchmark rate unchanged at its November meeting."},
+ {"id":"mockD02","story":"D","channel":"Reuters","lean":"center","minutes_ago":1480,"title":"Federal Reserve keeps rates unchanged as inflation cools","desc":"Fed chair says policymakers need more data before cutting interest rates."},
+ {"id":"mockD03","story":"D","channel":"NBC News","lean":"lean-left","minutes_ago":1450,"title":"Fed leaves interest rates unchanged: what it means for your mortgage","desc":"The Federal Reserve held rates steady on Wednesday."},
+ {"id":"mockD04","story":"D","channel":"Fox News","lean":"right","minutes_ago":1440,"title":"Fed holds rates as Americans struggle with high borrowing costs","desc":"The Federal Reserve kept its benchmark interest rate unchanged."},
+
+ {"id":"mockE01","story":"E","channel":"Fox News","lean":"right","minutes_ago":420,"title":"Border agents report surge in crossings at Arizona sector","desc":"Tucson sector apprehensions jumped 40% last month, new CBP data shows."},
+ {"id":"mockE02","story":"E","channel":"Newsmax","lean":"right","minutes_ago":400,"title":"New CBP numbers show Tucson sector crossings spiking","desc":"Arizona border agents say they are overwhelmed by apprehensions."},
+ {"id":"mockE03","story":"E","channel":"New York Post","lean":"right","minutes_ago":380,"title":"Arizona border crossings surge 40% in Tucson sector, CBP data shows","desc":"Border Patrol apprehensions in the sector climbed sharply."},
+ {"id":"mockE04","story":"E","channel":"Daily Caller","lean":"right","minutes_ago":360,"title":"Tucson sector border agents: 'We are overwhelmed'","desc":"CBP apprehensions data shows a surge in crossings in Arizona."},
+
+ {"id":"mockF01","story":"F","channel":"CNN","lean":"lean-left","minutes_ago":700,"title":"Study: climate change made October heat wave 10 times more likely","desc":"Scientists at World Weather Attribution analyzed the record temperatures."},
+ {"id":"mockF02","story":"F","channel":"MS NOW","lean":"left","minutes_ago":690,"title":"Record October heat wave linked to climate change, scientists say","desc":"World Weather Attribution study finds warming fueled the extreme temperatures."},
+ {"id":"mockF03","story":"F","channel":"NBC News","lean":"lean-left","minutes_ago":650,"title":"Scientists say climate change supercharged record heat wave","desc":"The attribution study looked at the October temperatures across the Southwest."},
+ {"id":"mockF04","story":"F","channel":"NPR","lean":"lean-left","minutes_ago":640,"title":"How scientists linked the October heat wave to climate change","desc":"World Weather Attribution explains its rapid analysis of record temperatures."},
+
+ {"id":"mockG01","story":"G1","channel":"ABC News","lean":"lean-left","minutes_ago":180,"title":"Shooting at Denver mall leaves 3 injured, suspect in custody","desc":"Police say the gunman opened fire near the food court at Cherry Creek mall."},
+ {"id":"mockG02","story":"G1","channel":"NewsNation","lean":"center","minutes_ago":170,"title":"Denver police: suspect arrested after mall shooting","desc":"Three people were hurt in the shooting at Cherry Creek mall."},
+ {"id":"mockG03","story":"G2","channel":"CBS News","lean":"lean-left","minutes_ago":160,"title":"Police respond to shooting near Atlanta high school","desc":"One student was injured; the school is on lockdown, Atlanta police say."},
+ {"id":"mockG04","story":"G2","channel":"Fox News","lean":"right","minutes_ago":150,"title":"Atlanta high school locked down after shooting nearby","desc":"Atlanta police say one student was hurt outside the school."},
+
+ {"id":"mockN01","story":"N1","channel":"CBS News","lean":"lean-left","minutes_ago":800,"title":"NASA launches new lunar rover on SpaceX rocket","desc":"The robotic rover will search for ice near the moon's south pole."},
+ {"id":"mockN02","story":"N2","channel":"Newsmax","lean":"right","minutes_ago":900,"title":"Veterans honored at Arlington ceremony","desc":"Families gathered at Arlington National Cemetery."},
+ {"id":"mockN03","story":"N3","channel":"Washington Examiner","lean":"lean-right","minutes_ago":350,"title":"House committee subpoenas former agency officials","desc":"The Oversight Committee wants testimony on contracting decisions."},
+ {"id":"mockN04","story":"N4","channel":"Straight Arrow News","lean":"center","minutes_ago":330,"title":"Egg prices fall for third straight month","desc":"Wholesale egg prices dropped as bird flu outbreaks eased."},
+ {"id":"mockN05","story":"N4","channel":"Associated Press","lean":"lean-left","minutes_ago":320,"title":"Egg prices drop again as bird flu outbreaks ease","desc":"Wholesale prices are down for a third straight month."}
+]

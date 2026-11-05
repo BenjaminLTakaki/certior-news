@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <!-- YouTube embeds fail with "Error 153" when no Referer is sent; this is the policy YouTube recommends -->
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <title>Swipe News</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Swipe News">
+  <meta name="theme-color" content="#000000">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main id="feed" aria-label="Stories"></main>
+
+  <!-- the ONE YouTube player, laid over the active clip's video area -->
+  <div id="player-wrap" hidden><div id="player"></div></div>
+  <!-- catches swipes and taps on top of the video so the feed still scrolls -->
+  <div id="gesture" hidden aria-hidden="true"></div>
+
+  <div id="hint" hidden></div>
+  <button id="new-pill" hidden>New stories ↻</button>
+  <div id="status" class="status">Loading stories…</div>
+
+  <script src="app.js" type="module"></script>
+</body>
+</html>
