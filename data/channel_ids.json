@@ -93,5 +93,115 @@
   "channel_id": "UC8BxSGcBKriJvoeyKOnJ6tA",
   "uploads": "UU8BxSGcBKriJvoeyKOnJ6tA",
   "title": "The Washington Examiner"
+ },
+ "@aljazeeraenglish": {
+  "channel_id": "UCNye-wNBqNL5ZzHSJj3l8Bg",
+  "uploads": "UUNye-wNBqNL5ZzHSJj3l8Bg",
+  "title": "Al Jazeera English"
+ },
+ "@TRTWorld": {
+  "channel_id": "UC7fWeaHhqgM4Ry-RMpM2YYw",
+  "uploads": "UU7fWeaHhqgM4Ry-RMpM2YYw",
+  "title": "TRT World"
+ },
+ "@AlArabiyaEnglish": {
+  "channel_id": "UCIZJ9a6P_nxCFJTmL0gh_IQ",
+  "uploads": "UUIZJ9a6P_nxCFJTmL0gh_IQ",
+  "title": "Al Arabiya English"
+ },
+ "@i24NEWS_EN": {
+  "channel_id": "UCvHDpsWKADrDia0c99X37vg",
+  "uploads": "UUvHDpsWKADrDia0c99X37vg",
+  "title": "i24NEWS English"
+ },
+ "@africanews": {
+  "channel_id": "UC1_E8NeF5QHY2dtdLRBCCLA",
+  "uploads": "UU1_E8NeF5QHY2dtdLRBCCLA",
+  "title": "africanews"
+ },
+ "@SABCDigitalNews": {
+  "channel_id": "UC8yH-uI81UUtEMDsowQyx1g",
+  "uploads": "UU8yH-uI81UUtEMDsowQyx1g",
+  "title": "SABC News"
+ },
+ "@channelstelevision": {
+  "channel_id": "UCEXGDNclvmg6RW0vipJYsTQ",
+  "uploads": "UUEXGDNclvmg6RW0vipJYsTQ",
+  "title": "Channels Television"
+ },
+ "@NTVKenyaOnline": {
+  "channel_id": "UCqBJ47FjJcl61fmSbcadAVg",
+  "uploads": "UUqBJ47FjJcl61fmSbcadAVg",
+  "title": "NTV Kenya"
+ },
+ "@CBCNews": {
+  "channel_id": "UCuFFtHWoLl5fauMMD5Ww2jA",
+  "uploads": "UUuFFtHWoLl5fauMMD5Ww2jA",
+  "title": "CBC News"
+ },
+ "@teleSUREnglish": {
+  "channel_id": "UCmuTmpLY35O3csvhyA6vrkg",
+  "uploads": "UUmuTmpLY35O3csvhyA6vrkg",
+  "title": "TeleSUR English"
+ },
+ "@channelnewsasia": {
+  "channel_id": "UC83jt4dlz1Gjl58fzQrrKZg",
+  "uploads": "UU83jt4dlz1Gjl58fzQrrKZg",
+  "title": "CNA"
+ },
+ "@NHKWORLDJAPAN": {
+  "channel_id": "UCSPEjw8F2nQDtmUKPFNF7_A",
+  "uploads": "UUSPEjw8F2nQDtmUKPFNF7_A",
+  "title": "NHK WORLD-JAPAN"
+ },
+ "@WION": {
+  "channel_id": "UC_gUM8rL-Lrg6O3adPW9K1g",
+  "uploads": "UU_gUM8rL-Lrg6O3adPW9K1g",
+  "title": "WION"
+ },
+ "@NDTV": {
+  "channel_id": "UCZFMm1mMw0F81Z37aaEzTUA",
+  "uploads": "UUZFMm1mMw0F81Z37aaEzTUA",
+  "title": "NDTV"
+ },
+ "@SouthChinaMorningPost": {
+  "channel_id": "UC4SUWizzKc1tptprBkWjX2Q",
+  "uploads": "UU4SUWizzKc1tptprBkWjX2Q",
+  "title": "South China Morning Post"
+ },
+ "@abcnewsaustralia": {
+  "channel_id": "UCVgO39Bk5sMo66-6o6Spn6Q",
+  "uploads": "UUVgO39Bk5sMo66-6o6Spn6Q",
+  "title": "ABC News (Australia)"
+ },
+ "@ArirangCoKrArirangNEWS": {
+  "channel_id": "UCzznO4xSV8BKnUBPyswtCUw",
+  "uploads": "UUzznO4xSV8BKnUBPyswtCUw",
+  "title": "Arirang News"
+ },
+ "@BBCNews": {
+  "channel_id": "UC16niRr50-MSBwiO3YDb3RA",
+  "uploads": "UU16niRr50-MSBwiO3YDb3RA",
+  "title": "BBC News"
+ },
+ "@SkyNews": {
+  "channel_id": "UCoMdktPbSTixAyNGwb-UYkQ",
+  "uploads": "UUoMdktPbSTixAyNGwb-UYkQ",
+  "title": "Sky News"
+ },
+ "@guardiannews": {
+  "channel_id": "UCIRYBXDze5krPDzAEOxFGVA",
+  "uploads": "UUIRYBXDze5krPDzAEOxFGVA",
+  "title": "Guardian News"
+ },
+ "@dwnews": {
+  "channel_id": "UCknLrEdhRCp1aegoMqRaCZg",
+  "uploads": "UUknLrEdhRCp1aegoMqRaCZg",
+  "title": "DW News"
+ },
+ "@France24_en": {
+  "channel_id": "UCQfwfsi5VrQ8yKZ-UWmAEFg",
+  "uploads": "UUQfwfsi5VrQ8yKZ-UWmAEFg",
+  "title": "FRANCE 24 English"
  }
 }
