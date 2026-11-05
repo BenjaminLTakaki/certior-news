@@ -208,6 +208,11 @@ def test_tags_can_overlap_and_avoid_known_traps():
     assert tags("Liverpool stun Real Madrid in the Champions League") == ["sports"]
 
 
+def test_specialist_outlet_always_tags_its_subject():
+    assert "culture" in grouping.tags_of([{"title": "The looks everyone is talking about", "tags": ["culture"]}], "other")
+    assert grouping.tags_of([{"title": "Parliament votes on the budget", "tags": ["business"]}], "politics")[:1] == ["politics"]
+
+
 def test_sports_outlet_makes_a_sports_story_without_left_right_labels():
     clips = [{**clip(i, f"S{i}", "europe", "Big transfer agreed", column="unrated"), "topic": "sports"} for i in range(3)]
     story = grouping.build_stories(clips, [[0, 1, 2]], np.eye(3), NOW)[0]

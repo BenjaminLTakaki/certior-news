@@ -64,6 +64,7 @@ def to_clip(item: dict, channel: dict, now: datetime | None = None) -> tuple[dic
         "desc": clean_description(sn.get("description", "")),
         "channel": channel["name"],
         "topic": channel.get("topic", ""),
+        "tags": channel.get("tags", []),
         "lean": channel["lean"],
         "column": config.LEAN_TO_COLUMN[channel["lean"]],
         "region": channel["region"],

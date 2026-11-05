@@ -483,6 +483,18 @@ function showEnd() {
 }
 
 const sourceList = () => (place ? placeList(everything, place) : everything.filter(inTopic));
+// Inside a tab, don't let one outlet lead story after story: small tabs were mostly one Indian outlet.
+const SPREAD_GAP = 3;
+function spread(list) {
+  if (topic === 'all' || place || query) return list;
+  const lead = (s) => s.clips[0].channel, rest = [...list], out = [];
+  while (rest.length) {
+    const recent = out.slice(-SPREAD_GAP).map(lead);
+    const i = rest.findIndex((s) => !recent.includes(lead(s)));
+    out.push(...rest.splice(Math.max(0, i), 1));
+  }
+  return out;
+}
 const inTopic = (s) => (topic === 'all' ? settings.sportsInAll || s.topic !== 'sports' : (s.tags || []).includes(topic));
 
 async function loadMore() {
@@ -494,7 +506,7 @@ async function loadMore() {
   if (run !== startRun) return;
   if (!reserve) {
     const shown = new Set(stories.flatMap((s) => s.clips.map((c) => c.id)));
-    reserve = orderStories(sourceList()).filter((s) => !s.clips.some((c) => shown.has(c.id)));
+    reserve = spread(orderStories(sourceList()).filter((s) => !s.clips.some((c) => shown.has(c.id))));
   }
   for (const s of reserve.splice(0, MORE_STORIES)) {
     stories.push(s);
@@ -920,7 +932,7 @@ function start() {
       fresh = all.filter((s) => !s._seen).slice(0, MORE_STORIES);
       if (!fresh.length) fresh = settings.hideWatched ? [] : all;
     }
-    stories = fresh;
+    stories = spread(fresh);
   }
   currentId = null;
   activeS = -1;

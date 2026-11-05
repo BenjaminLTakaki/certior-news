@@ -162,7 +162,10 @@ def tags_of(clips: list[dict], topic: str) -> list[str]:
     if topic == "sports":
         return ["sports"]       # "Fenerbahce stun Liverpool" isn't a business story because of "shares" in a description
     tags = ["politics"] if topic == "politics" else []
-    return tags + [tag for tag, rx in _TAGS_RX.items() if _share_matches(rx, titles)]
+    tags += [tag for tag, rx in _TAGS_RX.items() if _share_matches(rx, titles)]
+    for c in clips:         # a specialist outlet (Vogue, WIRED...) always puts its story in its subject's tab
+        tags += [t for t in c.get("tags", []) if t not in tags]
+    return tags
 
 
 def topic_of(clips: list[dict]) -> str:

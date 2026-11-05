@@ -1,5 +1,5 @@
 {
-  "_readme": "Outlets the feed pulls from, all publishing in English. region = where the outlet is based. lean = Media Bias/Fact Check rating of the outlet (mediabiasfactcheck.com), checked Nov 2026: left, lean-left (their left-center), center (their least biased), lean-right (their right-center), right, or unrated when they have no rating. In the app: left + lean-left = Left, center = Center, lean-right + right = Right. note = YouTube's own funding notice for that outlet, read from its embedded player in Nov 2026; the app shows it in full because the player cuts it off. topic = sports puts every clip from that outlet under Sports, where left and right do not apply. The pipeline logs any handle it cannot find.",
+  "_readme": "Outlets the feed pulls from, all publishing in English. region = where the outlet is based. lean = Media Bias/Fact Check rating of the outlet (mediabiasfactcheck.com), checked Nov 2026: left, lean-left (their left-center), center (their least biased), lean-right (their right-center), right, or unrated when they have no rating. In the app: left + lean-left = Left, center = Center, lean-right + right = Right. note = YouTube's own funding notice for that outlet, read from its embedded player in Nov 2026; the app shows it in full because the player cuts it off. tags = tabs every clip from that outlet always appears under (for outlets that only cover one subject). topic = sports puts every clip from that outlet under Sports, where left and right do not apply. The pipeline logs any handle it cannot find.",
   "channels": [
     { "name": "Al Jazeera English",       "handle": "@aljazeeraenglish",       "region": "mideast_africa", "country": "Qatar", "lean": "lean-left", "note": "Al Jazeera is funded in whole or in part by the Qatari government." },
     { "name": "TRT World",                "handle": "@TRTWorld",               "region": "mideast_africa", "country": "Turkey", "lean": "right", "note": "TRT is a Turkish public broadcast service." },
@@ -44,6 +44,19 @@
     { "name": "BBC Sport",                "handle": "@BBCSport",               "region": "europe", "country": "UK", "lean": "unrated", "topic": "sports" },
     { "name": "Sky Sports News",          "handle": "@SkySportsNews",          "region": "europe", "country": "UK", "lean": "unrated", "topic": "sports" },
     { "name": "ESPN",                     "handle": "@espn",                   "region": "americas", "country": "US", "lean": "unrated", "topic": "sports" },
-    { "name": "beIN SPORTS",              "handle": "@beINSPORTS",             "region": "mideast_africa", "country": "Qatar", "lean": "unrated", "topic": "sports" }
+    { "name": "beIN SPORTS",              "handle": "@beINSPORTS",             "region": "mideast_africa", "country": "Qatar", "lean": "unrated", "topic": "sports" },
+
+    { "name": "Variety", "handle": "@Variety", "region": "americas", "country": "US", "lean": "lean-left", "tags": ["culture"] },
+    { "name": "The Hollywood Reporter", "handle": "@HollywoodReporter", "region": "americas", "country": "US", "lean": "lean-left", "tags": ["culture"] },
+    { "name": "Rolling Stone", "handle": "@RollingStone", "region": "americas", "country": "US", "lean": "left", "tags": ["culture"] },
+    { "name": "Billboard", "handle": "@billboard", "region": "americas", "country": "US", "lean": "unrated", "tags": ["culture"] },
+    { "name": "Vogue", "handle": "@Vogue", "region": "americas", "country": "US", "lean": "unrated", "tags": ["culture"] },
+    { "name": "WIRED", "handle": "@WIRED", "region": "americas", "country": "US", "lean": "unrated", "tags": ["tech"] },
+    { "name": "The Verge", "handle": "@TheVerge", "region": "americas", "country": "US", "lean": "lean-left", "tags": ["tech"] },
+    { "name": "Nature", "handle": "@NatureVideoChannel", "region": "europe", "country": "UK", "lean": "unrated", "tags": ["tech"] },
+    { "name": "CNBC International", "handle": "@CNBCi", "region": "europe", "country": "UK", "lean": "center", "tags": ["business"] },
+    { "name": "Bloomberg Television", "handle": "@markets", "region": "americas", "country": "US", "lean": "lean-left", "tags": ["business"] },
+    { "name": "Financial Times", "handle": "@FinancialTimes", "region": "europe", "country": "UK", "lean": "center" },
+    { "name": "The Economist", "handle": "@TheEconomist", "region": "europe", "country": "UK", "lean": "center" }
   ]
 }
