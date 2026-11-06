@@ -198,10 +198,14 @@ function show(next, opts = {}) {
     if (next === 'settings') syncSettings();
     return;
   }
-  if (settingsChanged && feed) {
-    settingsChanged = false;
+  if (settingsChanged && feed) {      // which stories you see may have changed
+    settingsChanged = redraw = false;
     onScrollStart();
-    start();
+    start(here());
+  } else if (redraw && feed) {        // only how they're drawn
+    redraw = false;
+    onScrollStart();
+    draw(here());
   } else {
     settle();
   }
@@ -410,7 +414,7 @@ function renderStory(s, si) {
         const off = el('div', 'off');
         const on = el('button', 'filled', 'Turn On Videos');
         on.type = 'button';
-        on.onclick = () => { chooseVideos(true); onScrollStart(); start(); };
+        on.onclick = () => { chooseVideos(true); onScrollStart(); draw({ story: s.id, clip: c.id }); };    // same stories, now with video
         const open = el('a', '', 'Watch on YouTube');
         open.href = `https://www.youtube.com/watch?v=${c.id}`; open.target = '_blank'; open.rel = 'noopener';
         off.append(el('b', '', 'Videos Are Off'), el('span', '', 'YouTube can set cookies on this device when they\u2019re on.'), on, open);
@@ -784,7 +788,7 @@ $('#consent-text').onclick = () => finishWelcome(false);
 welcomeEl.addEventListener('cancel', (e) => e.preventDefault());      // a real choice, either way
 
 // ---------------------------------------------------------------- settings
-let settingsChanged = false;
+let settingsChanged = false, redraw = false;
 const toggles = ['auto', 'hideWatched', 'sportsInAll', 'notes'];
 function saveSettings() {
   store.set('settings', settings);
@@ -803,7 +807,7 @@ for (const t of toggles) {
 $('#set-side').onchange = (e) => { settings.side = e.target.value; side = settings.side || null; saveSettings(); };
 $('#set-videos').onchange = (e) => {
   chooseVideos(e.target.checked);
-  if (e.target.checked) settingsChanged = true;
+  if (e.target.checked) redraw = true;
   else location.reload();     // the only way to fully take the YouTube player back out of the page
 };
 $('#set-clear').onclick = (e) => {
@@ -879,7 +883,11 @@ function openCompare(si, currentClip) {
   compareEl.showModal();
 }
 
-function start() {
+// Where you are, by id, so a rebuilt feed can put you back on the same clip.
+const here = () => (stories[activeS] ? { story: stories[activeS].id, clip: stories[activeS].clips[activeC]?.id } : null);
+
+// at: { story, clip } ids to stay on (here()), if that story is still in the rebuilt feed.
+function start(at) {
   startRun++;
   reserve = null;
   ended = false;
@@ -897,7 +905,7 @@ function start() {
       if (!everything) {
         const run = startRun;
         setStatus('Loading\u2026');
-        loadEverything().then((all) => { everything = all; if (run === startRun) start(); });
+        loadEverything().then((all) => { everything = all; if (run === startRun) start(at); });
         return;
       }
       const all = orderStories(everything.filter(inTopic));
@@ -906,6 +914,11 @@ function start() {
     }
     stories = spread(fresh);
   }
+  draw(at);
+}
+
+// Draws `stories` and opens on `at` if it's there, else on the first story.
+function draw(at) {
   currentId = null;
   activeS = -1;
   if (!stories.length) {
@@ -919,11 +932,17 @@ function start() {
   }
   setStatus('');
   render();
-  if (query) showEnd();
-  feedEl.scrollTop = 0;
+  if (query || ended) showEnd();
+  const si = at ? stories.findIndex((s) => s.id === at.story) : -1;
+  const ci = si < 0 ? 0 : Math.max(0, stories[si].clips.findIndex((c) => c.id === at.clip));
+  feedEl.scrollTop = Math.max(si, 0) * feedEl.clientHeight;
+  if (si >= 0) {
+    clipsEl(si).scrollLeft = ci * clipsEl(si).clientWidth;
+    activeS = si; activeC = ci;     // the same story, not a new one: settle mustn't turn it to your usual side
+  }
   if (playerStarted || !videosOn()) { settle(); return; }
   playerStarted = true;
-  createPlayer(stories[0].clips[0].id);
+  createPlayer(stories[Math.max(si, 0)].clips[ci].id);
 }
 
 (async function boot() {
