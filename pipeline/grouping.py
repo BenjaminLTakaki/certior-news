@@ -55,15 +55,20 @@ def tokens(text: str) -> list[str]:
 
 _TAGS = re.compile(r"(\s*#\w+)+\s*$")
 _TAIL = re.compile(r"^(.*?\S(?:\s+\S+){3,})\s*\|\s*(?:\S+(?:\s+\S+){0,3})\s*$")
+_BULLET = re.compile(r"\s*[•·]\s*$")
 
 
-def clean_title(title: str, channel: str = "") -> str:
-    """Drop what outlets bolt onto titles ("| DW News", "#BBCNews", "FRANCE 24 English"): it is noise to read and to compare."""
+def clean_title(title: str, channel: str = "", aliases=()) -> str:
+    """Drop what outlets bolt onto titles ("| DW News", "#BBCNews", "• FRANCE 24 English", "• FRANCE 24"): it is noise to read
+    and to compare. aliases = other names the outlet signs with (channels.json)."""
     t = title.strip()
+    names = [n for n in (channel, *aliases) if n]
     for _ in range(3):      # "... | AJ #shorts" needs the hashtag gone before the tail can go
         before = t
         t = _TAGS.sub("", t)
-        t = re.sub(rf"[\s|:\-]*{re.escape(channel)}\s*$", "", t, flags=re.I) if channel else t
+        for name in names:
+            t = re.sub(rf"[\s|:\-•·]*{re.escape(name)}\s*$", "", t, flags=re.I)
+        t = _BULLET.sub("", t)
         m = _TAIL.match(t)
         t = m[1].rstrip() if m else t
         if t == before:
@@ -72,7 +77,7 @@ def clean_title(title: str, channel: str = "") -> str:
 
 
 def clip_text(c: dict) -> str:
-    return clean_title(c["title"], c["channel"])       # descriptions are mostly about the outlet, and pulled unrelated clips together
+    return clean_title(c["title"], c["channel"], c.get("aliases", ()))       # descriptions are mostly about the outlet, and pulled unrelated clips together
 
 
 # --------------------------------------------------------------------------- embedders
@@ -186,6 +191,31 @@ COL_ORDER = {c: i for i, c in enumerate(config.COLUMNS)}
 _US_DOMESTIC = re.compile(config.US_DOMESTIC, re.I)
 
 
+_KICKER = re.compile(config.HEADLINE_KICKERS, re.I)
+_LABEL = re.compile(r"^([^:|]{2,40}?)\s*[:|]\s+\S")     # "US Midterm Elections: Vance blames..." -> "US Midterm Elections"
+_CAPS = re.compile(r"\b[A-Z]{4,}\b")
+
+
+def headline(c: dict) -> str:
+    return _KICKER.sub("", clip_text(c))       # "BREAKING:" goes; a clip's own title stays as the outlet wrote it
+
+
+def headline_judge(clips: list[dict]):
+    """Returns penalty(clip) for choosing a story's headline, worked out from the whole window. 1 for a series label: one an
+    outlet opens many titles with ("US Midterm Elections:", "LGE 2026 |"). Counted per outlet, because "South Africa:" from
+    several outlets is a dateline. A label is only avoided, never cut: "Ramayana Review:" is the subject. 1 for shouting: an
+    all-caps word ("DIVERTED", "THREATS") that other titles have in normal case. Acronyms (NDTV, SCOTUS) never are."""
+    labels = Counter((c["channel"], m[1].casefold()) for c in clips if (m := _LABEL.match(headline(c))))
+    normal = {w.casefold() for c in clips for w in re.findall(r"\b[A-Za-z][a-z]{3,}\b", c["title"])}
+
+    def penalty(c: dict) -> int:
+        t = headline(c)
+        m = _LABEL.match(t)
+        series = bool(m) and labels[(c["channel"], m[1].casefold())] >= config.SERIES_LABEL_MIN
+        return series + any(w.casefold() in normal for w in _CAPS.findall(t))
+    return penalty
+
+
 _SPORTS = re.compile(config.SPORTS_WORDS, re.I)
 _POLITICS = re.compile(config.POLITICS_WORDS, re.I)
 
@@ -222,6 +252,7 @@ def topic_of(clips: list[dict]) -> str:
 
 
 def build_stories(clips: list[dict], groups: list[list[int]], X: np.ndarray, now: datetime, capped: bool = True) -> list[dict]:
+    judge = headline_judge(clips)
     out = []
     for members in groups:
         ms = [clips[i] for i in members]
@@ -237,8 +268,8 @@ def build_stories(clips: list[dict], groups: list[list[int]], X: np.ndarray, now
 
         centroid = X[members].sum(axis=0)
         centroid = centroid / (np.linalg.norm(centroid) or 1)
-        centre_pool = [i for i in kept if clips[i]["column"] == "center"] or kept
-        head = max(centre_pool, key=lambda i: float(X[i] @ centroid))
+        # a calm, plain title first, then one from a Center outlet, then the one closest to the story as a whole
+        head = max(kept, key=lambda i: (-judge(clips[i]), clips[i]["column"] == "center", float(X[i] @ centroid)))
 
         cov = {r: set() for r in config.REGIONS}
         for c in ms:
@@ -276,7 +307,7 @@ def build_stories(clips: list[dict], groups: list[list[int]], X: np.ndarray, now
         first = min(ms, key=lambda c: c["published"])
         out.append({
             "id": "s_" + first["id"],
-            "headline": clip_text(clips[head]),
+            "headline": headline(clips[head]),
             "updated": latest,
             "coverage": coverage,
             "sides": sides,

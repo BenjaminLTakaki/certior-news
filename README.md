@@ -66,7 +66,7 @@ Copy the suggested number into `THRESHOLDS` in `pipeline/config.py`, commit, pus
 Other knobs in `pipeline/config.py`: the title blocklist (promos, "full episode"…), max clip length, how long stories stay in the feed.
 
 ## Changing outlets
-Edit `channels.json`. `lean` is the outlet's [Media Bias/Fact Check](https://mediabiasfactcheck.com) rating and sets the side it appears under (`left` + `lean-left` = Left, `center` = Center, `lean-right` + `right` = Right, `unrated` = Not rated). `region` (`mideast_africa`, `americas`, `asia`, `europe`) is where the outlet is based and is used for ranking. `country` is shown next to the outlet name. `"topic": "sports"` puts all of an outlet's clips under Sports, and `"tags"` always puts a specialist outlet's clips under those tabs (Vogue under Culture, WIRED under Tech). Changes apply on the next run, including to clips already collected.
+Edit `channels.json`. `lean` is the outlet's [Media Bias/Fact Check](https://mediabiasfactcheck.com) rating and sets the side it appears under (`left` + `lean-left` = Left, `center` = Center, `lean-right` + `right` = Right, `unrated` = Not rated). `region` (`mideast_africa`, `americas`, `asia`, `europe`) is where the outlet is based and is used for ranking. `country` is shown next to the outlet name. `"topic": "sports"` puts all of an outlet's clips under Sports, and `"tags"` always puts a specialist outlet's clips under those tabs (Vogue under Culture, WIRED under Tech). `"aliases"` lists other names an outlet signs its titles with (`"FRANCE 24"` for FRANCE 24 English), so they're cut from the end of its titles. Changes apply on the next run, including to clips already collected.
 
 ## Running it on your PC (Windows)
 ```bash

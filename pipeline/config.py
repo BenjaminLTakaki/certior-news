@@ -60,6 +60,10 @@ MAX_CLIPS_PER_OUTLET = 1        # per story, the newest: swiping sideways always
 MAX_STORIES_IN_FEED = 80
 RECENCY_HALF_LIFE_H = 12        # ranking: a story's score halves every N hours
 
+# Story headlines: no kicker, no series label ("US Midterm Elections:") and no shouting when a calmer title exists.
+HEADLINE_KICKERS = r"^\s*(breaking( news)?|watch|see it|just in|exclusive)\s*[:|]\s*"     # also cut from the headline
+SERIES_LABEL_MIN = 3            # a "Label:" prefix one outlet opens at least this many titles with is a series label
+
 BLINDSPOT_MIN_CLIPS = 3         # a story needs at least this many outlets to get a blindspot label
 
 LEAN_TO_COLUMN = {

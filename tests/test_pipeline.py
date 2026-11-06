@@ -162,9 +162,42 @@ def test_clean_title_drops_outlet_tags_but_keeps_the_story():
         ("How Trump's promises handed Democrats the midterms FRANCE 24 English", "FRANCE 24 English"): "How Trump's promises handed Democrats the midterms",
         ("United States | Democrats lead elections", "TeleSUR English"): "United States | Democrats lead elections",
         ("#shorts", "X"): "#shorts",
+        ("Bomb threats cause major flight disruptions across Europe • FRANCE 24 English", "FRANCE 24 English"): "Bomb threats cause major flight disruptions across Europe",
+        ("Students blockade schools, universities as France braces for mass rallies •", "FRANCE 24 English"): "Students blockade schools, universities as France braces for mass rallies",
+        ("France • Germany • Italy", "X"): "France • Germany • Italy",
     }
     for (title, channel), want in cases.items():
         assert grouping.clean_title(title, channel) == want, title
+    # the short form an outlet also signs with, from channels.json
+    f24 = next(c for c in json.loads((config.CHANNELS_FILE).read_text(encoding="utf-8"))["channels"] if c["name"] == "FRANCE 24 English")
+    assert grouping.clean_title("US midterms bring surge of historic firsts • FRANCE 24", f24["name"], f24["aliases"]) == "US midterms bring surge of historic firsts"
+    assert grouping.clean_title("Inside FRANCE 24's newsroom", f24["name"], f24["aliases"]) == "Inside FRANCE 24's newsroom"
+
+
+def test_story_headline_is_calm_and_plain():
+    def headline(story, others=()):
+        """story: (channel, title, column) for each clip of the story, which is the first. others: (channel, title) one-clip stories
+        elsewhere in the window. Every clip is as close to the story as the next, so ties go to the first."""
+        window = [clip(i, ch, "europe", t, column=col) for i, (ch, t, col) in enumerate(story)]
+        window += [clip(len(window) + i, ch, "europe", t) for i, (ch, t) in enumerate(others)]
+        groups = [list(range(len(story)))] + [[len(story) + i] for i in range(len(others))]
+        stories = grouping.build_stories(window, groups, np.eye(len(window)), NOW, capped=False)
+        return next(s["headline"] for s in stories if s["id"] == "s_c0")
+
+    # shouting loses to a calm title, even from another side, when the window has "diverted" and "threats" in normal case
+    assert headline([("Fox", "Multiple EU flights DIVERTED after bomb THREATS", "center"), ("CBC", "Bomb threats force flights to land", "left")],
+                    others=[("W", "Flight diverted to Rome"), ("W", "Wave of threats")]) == "Bomb threats force flights to land"
+    # an acronym isn't shouting
+    assert headline([("NDTV", "NDTV reports record turnout", "center"), ("CNN", "Record turnout reported in Bihar", "left")]) == "NDTV reports record turnout"
+    # a kicker is cut
+    assert headline([("GB", "BREAKING: Russell Brand found guilty", "center")]) == "Russell Brand found guilty"
+    assert headline([("Fox", "SEE IT: Tornado hits airport", "center")]) == "Tornado hits airport"
+    # a label an outlet opens many titles with loses; once, or a dateline several outlets use, it's just a title
+    vance = [("WION", "US Midterm Elections: Vance blames Iran war for losses", "center"), ("AP", "Vance blames Iran war for midterm losses", "left")]
+    assert headline(vance, others=[("WION", "US Midterm Elections: Senate flips"), ("WION", "US Midterm Elections: Texas turns blue")]) == "Vance blames Iran war for midterm losses"
+    assert headline(vance) == "US Midterm Elections: Vance blames Iran war for losses"
+    anc = [("WION", "South Africa: ANC loses ground in local polls", "center"), ("SABC", "Voters queue in Soweto", "unrated")]
+    assert headline(anc, others=[("DW", "South Africa: Ramaphosa votes"), ("AJ", "South Africa: Counting begins")]) == "South Africa: ANC loses ground in local polls"
 
 
 def test_an_outlet_keeps_only_its_newest_clip_in_a_story():
