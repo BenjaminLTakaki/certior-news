@@ -424,3 +424,12 @@ def test_framing_state_is_rebuilt_for_new_clips_and_kept_a_week():
     state = framing.observe({"old": {"day": "2026-10-01", "side": "left", "channel": "X", "story": "o", "words": ["a"]}}, clips, groups)
     assert framing.observe(state, clips, groups) == state       # the same window twice counts once
     assert set(framing.prune(state, NOW)) == {"k0", "k1"}
+
+
+def test_each_clip_says_when_its_outlet_first_covered_the_story():
+    early = {**clip(0, "A", "europe"), "published": "2026-11-05T08:00:00Z"}
+    clips = [early, clip(1, "A", "europe"), clip(2, "B", "asia")]
+    s = grouping.build_stories(clips, [[0, 1, 2]], np.eye(3), NOW)[0]
+    since = {c["channel"]: c["since"] for c in s["clips"]}
+    assert since == {"A": "2026-11-05T08:00:00Z", "B": clips[2]["published"]}
+    assert [c["id"] for c in s["clips"] if c["channel"] == "A"] == ["c1"]      # the feed still shows A's newest clip

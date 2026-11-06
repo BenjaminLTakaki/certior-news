@@ -1011,6 +1011,28 @@ const endDrag = (e) => {
 sheetHead.addEventListener('pointerup', endDrag);
 sheetHead.addEventListener('pointercancel', endDrag);
 
+function gap(ms) {
+  const m = Math.round(ms / 60000), h = Math.floor(m / 60);
+  return m < 60 ? `${m}m` : `${h}h${h < 10 && m % 60 ? ` ${m % 60}m` : ''}`;
+}
+// Outlets in the order they first posted about the story, and how fast it crossed regions.
+function timeline(s) {
+  const at = (c) => Date.parse(c.since || c.published);
+  const order = [...s.clips].sort((a, b) => at(a) - at(b)), t0 = at(order[0]);
+  const group = el('div', 'group');
+  order.forEach((c, i) => {
+    const row = el('div', 'cell');
+    row.append(el('span', '', `${COUNTRY[c.country]?.[1] ?? ''} ${c.channel}`.trim()),
+      el('span', 'count', i ? `+${gap(at(c) - t0)}` : `First, ${ago(c.since || c.published)}`));
+    group.append(row);
+  });
+  const reached = new Map();
+  for (const c of order) if (!reached.has(c.region)) reached.set(c.region, at(c));
+  const spread = reached.size > 1 ? `It reached ${reached.size} regions within ${gap(Math.max(...reached.values()) - t0)}. ` : '';
+  return [el('h2', 'group-title', 'Who Covered It First'), group,
+    el('p', 'group-note', `${spread}Times are when each outlet first posted a clip about it on YouTube, which can trail its other reporting.`)];
+}
+
 function openCompare(si, currentClip) {
   const s = stories[si], box = $('#compare-body');
   box.textContent = '';
@@ -1038,6 +1060,7 @@ function openCompare(si, currentClip) {
     }
     box.append(group);
   }
+  if (s.clips.length > 1) box.append(...timeline(s));
   const yt = el('a', 'watch-link', 'Watch This Clip on YouTube');
   yt.href = `https://www.youtube.com/watch?v=${currentClip}`; yt.target = '_blank'; yt.rel = 'noopener';
   box.append(yt, el('p', 'group-note', 'Headlines from YouTube videos. Sides are outlet ratings from Media Bias/Fact Check, not judgements of these headlines.'));
