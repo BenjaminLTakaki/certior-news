@@ -63,6 +63,7 @@ for (const old of ['blind', 'dailyGame']) { try { localStorage.removeItem(old); 
 const settings = { ...SETTINGS_DEFAULTS, ...store.get('settings', {}) };
 let consent = store.get('consent', null);    // 'videos' or 'text'. Nothing from YouTube loads until it is 'videos'.
 const videosOn = () => consent === 'videos';
+document.documentElement.classList.toggle('videos', videosOn());     // style.css gives the video more room
 let watched = new Set(store.get('watched', []));
 function markWatched(id) {
   if (watched.has(id)) return;
@@ -404,7 +405,7 @@ function renderStory(s, si) {
     seg.setAttribute('role', 'group');
     seg.setAttribute('aria-label', 'Rating of the outlets covering this story');
     for (const [col, label] of Object.entries(COLUMNS)) {
-      if (col === 'unrated' && !s.sides.unrated) continue;
+      if (col === 'unrated') continue;      // not rated clips still come last, with their rating on the clip: a fourth segment crowded the row
       const b = el('button', '', label);      // a side with no outlets stays visible but off: that gap is information
       b.type = 'button';
       b.dataset.column = col;
@@ -453,7 +454,8 @@ function renderStory(s, si) {
       yt.href = `https://www.youtube.com/watch?v=${c.id}`; yt.target = '_blank'; yt.rel = 'noopener';
       row.append(src, ...(videosOn() ? [snd] : []), s.clips.length > 1 ? compare : yt);
       meta.append(el('h2', 'ctitle', c.title));
-      if (c.note && settings.notes) meta.append(el('p', 'note', c.note));    // YouTube's box in the player cuts this off, and we can't change it
+      // With videos on, YouTube's player shows the notice itself (sometimes cut off; Compare has it in full), so the line under the title only repeated it
+      if (c.note && settings.notes && !videosOn()) meta.append(el('p', 'note', c.note));
       meta.append(row);
       clip.append(slot, meta);
       clips.append(clip);
@@ -812,6 +814,7 @@ setInterval(checkForNewStories, CHECK_FEED_MS);
 function chooseVideos(on) {
   consent = on ? 'videos' : 'text';
   store.set('consent', consent);
+  document.documentElement.classList.toggle('videos', on);
 }
 $('#welcome-next').onclick = () => {
   $('#welcome-1').hidden = true;
@@ -907,6 +910,7 @@ function openCompare(si, currentClip) {
       b.type = 'button';
       if (c.id === currentClip) b.setAttribute('aria-current', 'true');
       b.append(el('span', 'headline-title', c.title), el('span', 'headline-sub', `${c.channel} \u00b7 ${byline(c, s)}`));
+      if (c.note && settings.notes) b.append(el('span', 'headline-sub', c.note));     // in full: the player's box can cut it off
       b.onclick = () => {
         const ci = s.clips.indexOf(c), sc = clipsEl(si);
         closeSheet(compareEl);

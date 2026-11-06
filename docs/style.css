@@ -14,7 +14,7 @@
   --danger: oklch(66% .22 25);
   --bar-h: calc(44px + env(safe-area-inset-top));
   --tab-h: calc(50px + env(safe-area-inset-bottom));
-  --seg-h: 44px;
+  --seg-h: 36px;
   --meta-h: 118px;
   --ease: cubic-bezier(.32, .72, 0, 1);
 }
@@ -222,6 +222,8 @@ dialog::backdrop { background: oklch(0% 0 0 / .6); }
   .sheet[open], .sheet.closing { animation: none; }
   * { transition-duration: 0ms !important; }
 }
+:root.videos { --meta-h: 100px; }     /* no funding line under the title when the player shows it */
+
 @media (max-width: 340px) {
   .welcome-step { padding-left: 20px; padding-right: 20px; padding-top: calc(28px + env(safe-area-inset-top)); }
   .welcome-step h1 { font-size: 28px; line-height: 34px; }
