@@ -37,6 +37,7 @@ Open the app in **Safari → Share → Add to Home Screen**. Open it from the Ho
 | Swipe up / down on the video | Next / previous story |
 | Swipe left / right on the video | Same story, next outlet (Left → Center → Right) |
 | Tap the video | Pause / play |
+| Double-tap the left / right of the video | Back / forward 10 seconds (keep tapping to skip more) |
 | Tap the title at the top | Choose a topic |
 | Tap **World** | Pick a country, or Take Me Somewhere, to see what its outlets are covering |
 | Tap **Compare** | Every outlet's headline for the story, by side |

@@ -29,6 +29,7 @@ const SOUND_ON = icon('<path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11"/>')
 const SOUND_OFF = icon('<path d="m16 9.5 5 5m0-5-5 5"/>');
 const PLAY_CHECK_MS = 1800;   // if a clip isn't playing after this, ask for a tap
 const WATCHED_AFTER_MS = 3000;
+const DOUBLE_TAP_MS = 250, SKIP_S = 10;
 const SIDEWAYS_HINT = 'Swipe sideways for other outlets';
 const SIDEWAYS_HINT_MS = 5000, SIDEWAYS_HINTS = 3;
 const SETTINGS_DEFAULTS = { side: '', auto: true, hideWatched: false, sportsInAll: true, notes: true };
@@ -750,8 +751,29 @@ gesture.addEventListener('pointerup', (e) => {
   g0 = null;
   if (Math.abs(dy) > 50 && Math.abs(dy) > Math.abs(dx)) return goStory(dy < 0 ? 1 : -1);
   if (Math.abs(dx) > 40) return goClip(dx < 0 ? 1 : -1);
-  if (dt < 400 && playerReady) playing ? player.pauseVideo() : player.playVideo();
+  if (dt >= 400 || !playerReady) return;
+  // Double-tap the left or right half to go back or forward, as on YouTube; keep tapping to skip more.
+  // So a single tap (pause/play) waits DOUBLE_TAP_MS to be sure it isn't the first of two.
+  const now = Date.now(), r = gesture.getBoundingClientRect();
+  clearTimeout(tapTimer);
+  if (now - lastTap < DOUBLE_TAP_MS) {
+    lastTap = now;
+    skip(e.clientX < r.left + r.width / 2 ? -SKIP_S : SKIP_S);
+    return;
+  }
+  lastTap = now;
+  tapTimer = setTimeout(() => { lastTap = 0; playing ? player.pauseVideo() : player.playVideo(); }, DOUBLE_TAP_MS);
 });
+let lastTap = 0, tapTimer = 0, skipTimer = 0;
+function skip(d) {
+  const end = player.getDuration() || 0;
+  player.seekTo(Math.max(0, Math.min(end ? end - 1 : Infinity, player.getCurrentTime() + d)), true);
+  const f = $('#skip');
+  f.textContent = d < 0 ? `−${-d} s` : `+${d} s`;
+  f.className = d < 0 ? 'back on' : 'on';
+  clearTimeout(skipTimer);
+  skipTimer = setTimeout(() => f.classList.remove('on'), 600);
+}
 gesture.addEventListener('pointercancel', () => { g0 = null; });
 // Without this, Chromium treats a flick here as a fling and swallows the next tap anywhere on the page.
 gesture.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
