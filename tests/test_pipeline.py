@@ -82,10 +82,8 @@ def test_feed_shape(tmp_path):
     for s in feed["stories"]:
         cols = [order[c["column"]] for c in s["clips"]]
         assert cols == sorted(cols), "clips must run left, center, right, unrated"
-        per_outlet = {}
-        for c in s["clips"]:
-            per_outlet[c["channel"]] = per_outlet.get(c["channel"], 0) + 1
-        assert max(per_outlet.values()) <= config.MAX_CLIPS_PER_OUTLET
+        outlets = [c["channel"] for c in s["clips"]]
+        assert len(outlets) == len(set(outlets)), "swiping sideways must always show another outlet"
 
 
 def test_fetch_with_fake_api(monkeypatch):
@@ -167,6 +165,13 @@ def test_clean_title_drops_outlet_tags_but_keeps_the_story():
     }
     for (title, channel), want in cases.items():
         assert grouping.clean_title(title, channel) == want, title
+
+
+def test_an_outlet_keeps_only_its_newest_clip_in_a_story():
+    old, new = clip(0, "CBC", "americas", "Brand trial begins"), clip(1, "CBC", "americas", "Brand found guilty")
+    old["published"] = "2026-11-05T08:00:00Z"
+    story = grouping.build_stories([old, new, clip(2, "Fox", "americas")], [[0, 1, 2]], np.eye(3), NOW)[0]
+    assert [c["title"] for c in story["clips"] if c["channel"] == "CBC"] == ["Brand found guilty"]
 
 
 def test_same_clip_reposted_by_an_outlet_appears_once():

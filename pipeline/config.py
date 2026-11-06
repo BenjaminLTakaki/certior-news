@@ -56,7 +56,7 @@ MERGE_MIN_WORDS_SMALL = 0.25    # ...when both stories have fewer than MERGE_SMA
 MERGE_SMALL_STORY = 3           # text to trust ("Roy Cooper" and "Brett Cooper", Santiago Peña and Santiago de Chile)
 MERGE_COMMON_SHARE = 0.05       # words in more than this share of stories ("midterms", "Trump") don't count as shared
 MIN_SHARED_KEYWORDS = 1         # distinctive words (title + description) two clips must share to be in one story
-MAX_CLIPS_PER_OUTLET = 2        # per story
+MAX_CLIPS_PER_OUTLET = 1        # per story, the newest: swiping sideways always shows another outlet
 MAX_STORIES_IN_FEED = 80
 RECENCY_HALF_LIFE_H = 12        # ranking: a story's score halves every N hours
 

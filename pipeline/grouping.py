@@ -225,7 +225,7 @@ def build_stories(clips: list[dict], groups: list[list[int]], X: np.ndarray, now
     out = []
     for members in groups:
         ms = [clips[i] for i in members]
-        # cap clips per outlet (keep newest)
+        # cap clips per outlet, keeping the newest: a 20-clip story had eight outlets twice each
         per_outlet: dict[str, list[int]] = {}
         seen_titles = set()
         for i in sorted(members, key=lambda i: clips[i]["published"], reverse=True):
