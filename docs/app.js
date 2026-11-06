@@ -123,7 +123,7 @@ let feed = null, stories = [];
 let activeS = -1, activeC = -1, currentId = null;
 let player = null, playerReady = false, unlocked = false, playing = false, playerStarted = false;
 let topic = TOPICS[store.get('topic', 'all')] ? store.get('topic', 'all') : 'all';
-let query = '', place = '', everything = null;
+let query = '', place = '', everything = null, searchFrom = 'search';     // searchFrom: the tab Back returns to
 let tab = 'news', pageOpen = false, lastPlace = '';   // pageOpen: a full page covers the feed, so the player stays out of the way
 let reserve = null, loadingMore = false, ended = false, startRun = 0, flashTimer = 0, refreshing = false;
 let side = settings.side || null, autoAdvance = false, hintTimer = 0;     // side: the one you last chose, kept from story to story
@@ -162,7 +162,7 @@ const inFeedView = () => !pageOpen;
 function renderBar() {
   const back = $('#back'), action = $('#bar-action'), select = $('#topic'), pushed = place || query;
   back.hidden = !pushed;
-  back.textContent = place ? 'World' : 'Search';
+  back.textContent = place ? 'World' : searchFrom === 'recap' ? 'Recap' : 'Search';
   select.hidden = !!pushed;
   $('#bar-chevron').toggleAttribute('hidden', !!pushed);      // an svg has no .hidden property
   $('#bar-title').textContent = place ? `${COUNTRY[place]?.[1] ?? ''} ${COUNTRY[place]?.[0] ?? place}`.trim() : query ? `\u201C${query}\u201D` : TOPICS[topic];
@@ -180,7 +180,7 @@ $('#topic').onchange = (e) => {
   if (feed) { onScrollStart(); start(); }
 };
 $('#back').onclick = () => {
-  const from = place ? 'world' : 'search';
+  const from = place ? 'world' : searchFrom;
   place = ''; query = '';
   renderBar();
   onScrollStart();
@@ -316,9 +316,36 @@ async function renderRecap() {
   for (const day of [...new Set(digest.map((e) => e.day))]) {
     section(dayLabel(day), digest.filter((e) => e.day === day).map((e) => recapRow(e, find(e.clips))));
   }
+  renderFraming(box, src.framing);
   box.append(el('p', 'group-note', digest.length
     ? 'Each day’s biggest stories, ranked like the feed: more outlets, regions and sides first. Each summary is one sentence from an outlet’s own video description, picked by matching words, not written by AI.'
     : 'Recap fills in as the day’s stories come in.'));
+}
+
+// Words one side used more than the other for the same stories this week; only differences too big to be chance.
+function renderFraming(box, f) {
+  if (!f?.headlines) return;
+  const base = `${f.headlines} headlines from ${f.stories} stories both Left and Right covered this week`;
+  if (!f.left.length && !f.right.length) {
+    box.append(el('h2', 'group-title', 'Words Each Side Used More'),
+      el('p', 'group-note', `No word separates the sides yet. Across ${base}, every difference in wording could be chance.`));
+    return;
+  }
+  for (const [side, label] of [['left', 'Left'], ['right', 'Right']]) {
+    if (!f[side].length) continue;
+    const group = el('div', 'group');
+    for (const w of f[side]) {
+      const row = el('button', 'cell nav');
+      row.type = 'button';
+      const tail = el('span', 'tail');
+      tail.append(el('span', 'count', `${w.outlets} outlets`));
+      row.append(el('span', '', w.word), tail);
+      row.onclick = () => runSearch(w.word, 'recap');
+      group.append(row);
+    }
+    box.append(el('h2', 'group-title', `Words ${label} Outlets Used More`), group);
+  }
+  box.append(el('p', 'group-note', `From ${base}, each outlet counted once per story. Only differences too big to be chance are shown. Tap a word to see its stories.`));
 }
 
 function openStory(s) {
@@ -422,17 +449,18 @@ function renderRecent() {
   box.append(group);
 }
 
-async function runSearch(q) {
+async function runSearch(q, from = 'search') {
   query = q;
   place = '';
-  store.set('recentSearches', [q, ...store.get('recentSearches', []).filter((r) => r !== q)].slice(0, RECENT_MAX));
+  searchFrom = from;
+  if (from === 'search') store.set('recentSearches', [q, ...store.get('recentSearches', []).filter((r) => r !== q)].slice(0, RECENT_MAX));
   $('#search-input').blur();
   renderBar();
   onScrollStart();
   feedEl.textContent = '';
   setStatus('Searching\u2026');
   stories = [];
-  show('search', { pushed: true });
+  show(from, { pushed: true });
   everything = everything || await loadEverything();
   start();
 }

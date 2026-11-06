@@ -380,3 +380,47 @@ def test_digest_keeps_a_week_and_the_top_stories_of_each_day(monkeypatch):
     old = [{**story("old", ["o"], 50), "day": "2026-10-29", "outlets": 2, "clips": ["o"]}]
     d = run.update_digest(old, [story(f"s{i}", [f"c{i}"], i, first=f"2026-11-0{4 + i % 2}T08:00:00Z") for i in range(6)], NOW)
     assert [(e["day"], e["headline"]) for e in d] == [("2026-11-05", "s5"), ("2026-11-05", "s3"), ("2026-11-04", "s4"), ("2026-11-04", "s2")]
+
+
+# --------------------------------------------------------------------------- framing words
+from pipeline import framing  # noqa: E402
+
+
+def framed(stories):
+    """stories: list of [(channel, column, title), ...] -> (clips, groups)."""
+    clips, groups = [], []
+    for s in stories:
+        groups.append([])
+        for ch, col, title in s:
+            groups[-1].append(len(clips))
+            clips.append({**clip(len(clips), ch, "europe", title=title, column=col), "id": f"k{len(clips)}"})
+    return clips, groups
+
+
+L = [f"Left{i}" for i in range(6)]
+R = [f"Right{i}" for i in range(6)]
+
+
+def test_a_word_many_left_outlets_use_for_shared_stories_is_framing(monkeypatch):
+    monkeypatch.setattr(config, "FRAMING_MIN_Z", 2.0)
+    stories = [[(ch, "left", f"Protesters march in city{k} over cuts") for ch in L] +
+               [(ch, "right", f"Rioters march in city{k} over cuts") for ch in R] for k in range(8)]
+    top = framing.top_words(framing.observe({}, *framed(stories)))
+    assert [w["word"] for w in top["left"]][:1] == ["protester"] and [w["word"] for w in top["right"]][:1] == ["rioter"]
+    assert top["stories"] == 8 and top["headlines"] == 8 * 12
+
+
+def test_one_prolific_outlet_or_one_sided_stories_are_not_framing():
+    # one outlet's habit gets past z = 3 here (20 stories), but it isn't its side's
+    one_outlet = [[("Left0", "left", f"Shocking scenes in town{k}"), ("Left1", "left", f"Scenes in town{k}")] +
+                  [(ch, "right", f"Scenes in town{k}") for ch in R] for k in range(20)]
+    one_side = [[(ch, "left", f"Heatwave grips region{k}") for ch in L] for k in range(8)]
+    top = framing.top_words(framing.observe({}, *framed(one_outlet + one_side)))
+    assert top["left"] == [] and top["stories"] == 20
+
+
+def test_framing_state_is_rebuilt_for_new_clips_and_kept_a_week():
+    clips, groups = framed([[("Left0", "left", "Strike shuts ports"), ("Right0", "right", "Strike shuts ports")]])
+    state = framing.observe({"old": {"day": "2026-10-01", "side": "left", "channel": "X", "story": "o", "words": ["a"]}}, clips, groups)
+    assert framing.observe(state, clips, groups) == state       # the same window twice counts once
+    assert set(framing.prune(state, NOW)) == {"k0", "k1"}

@@ -12,7 +12,7 @@ from collections import Counter
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from . import config, youtube
+from . import config, framing, youtube
 from .filters import parse_time, to_clip
 from .grouping import build_stories, cap_feed, group
 
@@ -153,8 +153,10 @@ def main(argv=None) -> int:
     stories = cap_feed(everything)
 
     digest = update_digest([] if args.mock else load_json(config.DIGEST_FILE, []), everything, now)
+    words = framing.prune(framing.observe({} if args.mock else load_json(config.FRAMING_FILE, {}), window, groups), now)
     if not args.mock:
         save_json(config.DIGEST_FILE, digest)
+        save_json(config.FRAMING_FILE, words, compact=True)
 
     feed = {
         "generated": iso(now),
@@ -162,6 +164,7 @@ def main(argv=None) -> int:
         "clips": len(window),
         "stories": stories,
         "digest": digest,
+        "framing": framing.top_words(words),
     }
     save_json(args.out, feed, compact=True)
     if not args.mock:

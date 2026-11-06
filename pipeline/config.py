@@ -72,6 +72,13 @@ DIGEST_FILE = DATA_DIR / "digest.json"
 DIGEST_DAYS = 7
 DIGEST_PER_DAY = 10
 
+# Framing words (pipeline/framing.py): words one side uses more for the same stories, over the Recap week
+FRAMING_FILE = DATA_DIR / "framing.json"
+FRAMING_PRIOR = 500             # Dirichlet prior size: bigger shrinks rare words harder
+FRAMING_MIN_Z = 3.0             # ~1,000 words are tested, so 1.96 would pass dozens by chance alone
+FRAMING_MIN_OUTLETS = 3         # outlets on that side that used the word
+FRAMING_TOP = 10
+
 BLINDSPOT_MIN_CLIPS = 3         # a story needs at least this many outlets to get a blindspot label
 
 LEAN_TO_COLUMN = {
