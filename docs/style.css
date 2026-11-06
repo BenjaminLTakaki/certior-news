@@ -204,12 +204,17 @@ dialog::backdrop { background: oklch(0% 0 0 / .6); }
 #welcome-2 .group-note { margin: 14px 0 0; text-align: center; }
 
 /* ---- tab bar ---- */
-#tabbar { position: fixed; z-index: 10; inset: auto 0 0; height: var(--tab-h); padding-bottom: env(safe-area-inset-bottom); display: grid; grid-template-columns: repeat(4, 1fr); background: var(--bg); border-top: .5px solid var(--hair); }
+#tabbar { position: fixed; z-index: 10; inset: auto 0 0; height: var(--tab-h); padding-bottom: env(safe-area-inset-bottom); display: grid; grid-template-columns: repeat(5, 1fr); background: var(--bg); border-top: .5px solid var(--hair); }
 #tabbar button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 10px; font-weight: 500; color: var(--faint); }
 #tabbar button:active { opacity: 1; }
 #tabbar svg { width: 25px; height: 25px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 #tabbar button.on { color: var(--tint); }
 #tabbar button.on svg { stroke-width: 2.2; }
+#tabbar button { position: relative; }
+.badge { position: absolute; top: 3px; left: calc(50% + 7px); min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
+  background: var(--danger); color: var(--ink); font-size: 12px; font-weight: 600; line-height: 18px; font-style: normal; text-align: center; }
+.badge[hidden] { display: none; }
+.recap-summary { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; color: var(--ink); opacity: .85; }
 
 /* iPhones can't lock orientation from a web page, so a sideways phone gets this instead. Must match LANDSCAPE in app.js. */
 #rotate { display: none; }

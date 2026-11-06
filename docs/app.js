@@ -41,6 +41,7 @@ const MORE_AT = 8, MORE_STORIES = 40;      // the feed is the top stories only: 
 const FLASH_MS = 3000;
 const SHUFFLE_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.500 7.500h3.300c1.500 0 2.800.7 3.700 1.900l3 4.200c.9 1.200 2.200 1.900 3.700 1.900h3.300M3.500 16.500h3.300c1.500 0 2.800-.7 3.700-1.900M14.500 10.400c.9-1.200 1.200-2.900 3.700-2.900h2.300M18 5l2.500 2.500L18 10M18 14l2.500 2.500L18 19"/></svg>';
 const CHECK_FEED_MS = 2 * 60000;
+const AWAY_MS = 60 * 60000, RECAP_NEW_MAX = 10;     // Recap: away this long and the stories that began since get a badge
 
 const $ = (s, el = document) => el.querySelector(s);
 const feedEl = $('#feed'), wrap = $('#player-wrap'), gesture = $('#gesture');
@@ -127,6 +128,7 @@ let tab = 'news', pageOpen = false, lastPlace = '';   // pageOpen: a full page c
 let reserve = null, loadingMore = false, ended = false, startRun = 0, flashTimer = 0, refreshing = false;
 let side = settings.side || null, autoAdvance = false, hintTimer = 0;     // side: the one you last chose, kept from story to story
 let playCheck = 0, watchTimer = 0;
+let latest = null;      // the newest feed fetched, even while you're still watching the one before it
 
 // ---------------------------------------------------------------- helpers
 function ago(iso) {
@@ -196,10 +198,11 @@ function show(next, opts = {}) {
     b.classList.toggle('on', on);
     if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
   }
-  for (const name of ['world', 'search', 'settings']) $(`#page-${name}`).hidden = !(pageOpen && name === next);
+  for (const name of ['recap', 'world', 'search', 'settings']) $(`#page-${name}`).hidden = !(pageOpen && name === next);
   if (pageOpen) {
     onScrollStart();
     showHint('');
+    if (next === 'recap') renderRecap();
     if (next === 'world') renderWorld();
     if (next === 'search') { renderRecent(); $('#search-input').focus(); }    // inside the tap, so iOS opens the keyboard
     if (next === 'settings') syncSettings();
@@ -240,6 +243,91 @@ for (const b of document.querySelectorAll('#tabbar button')) {
     }
     show(next);
   };
+}
+
+// ---------------------------------------------------------------- recap
+// "Since your last visit" starts when you left the app, if you were gone at least AWAY_MS.
+let since = 0, leftAt = store.get('lastSeen', 0), recapSeen = false;
+function cameBack() {
+  if (leftAt && Date.now() - leftAt >= AWAY_MS) { since = leftAt; recapSeen = false; }
+  leftAt = 0;
+}
+cameBack();
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') { leftAt = Date.now(); store.set('lastSeen', leftAt); return; }
+  cameBack();
+  updateBadge();
+});
+window.addEventListener('pagehide', () => store.set('lastSeen', Date.now()));
+
+const recapTopic = (s) => settings.sportsInAll || s.topic !== 'sports';
+const newSince = (list) => (since ? list.filter((s) => !s.single && recapTopic(s) && Date.parse(s.first) > since) : []).slice(0, RECAP_NEW_MAX);
+function updateBadge() {
+  const n = recapSeen || !latest ? 0 : newSince(latest.stories).length, badge = $('#recap-badge');
+  badge.hidden = !n;
+  badge.textContent = n;
+  $('#tabbar [data-tab="recap"]').setAttribute('aria-label', n ? `Recap, ${n} new ${n === 1 ? 'story' : 'stories'}` : 'Recap');
+}
+
+function dayLabel(day) {
+  if (day === dayKey()) return 'Today';
+  if (day === dayKey(Date.now() - 864e5)) return 'Yesterday';
+  return new Date(`${day}T12:00:00Z`).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+}
+
+// A row opens the story in the feed while it's still in the last two days, and its clip on YouTube after that.
+function recapRow(e, live, when) {
+  const b = el(live ? 'button' : 'a', 'cell headline');
+  b.append(el('span', 'headline-title', e.headline));
+  if (e.summary) b.append(el('span', 'headline-sub recap-summary', `${e.summary_by}: ${e.summary}`));
+  b.append(el('span', 'headline-sub', [`${e.outlets} outlets`, when, !live && 'Watch on YouTube'].filter(Boolean).join(' · ')));
+  if (live) {
+    b.type = 'button';
+    b.onclick = () => openStory(live);
+  } else {
+    b.href = `https://www.youtube.com/watch?v=${e.clips[0]}`; b.target = '_blank'; b.rel = 'noopener';
+  }
+  return b;
+}
+
+async function renderRecap() {
+  recapSeen = true;
+  updateBadge();
+  const box = $('#recap-list'), src = latest || feed;
+  if (!src) return;
+  if (!everything) {
+    box.textContent = '';
+    box.append(el('p', 'group-note', 'Loading…'));
+    everything = await loadEverything();
+  }
+  const byClip = new Map([...everything, ...src.stories].flatMap((s) => s.clips.map((c) => [c.id, s])));
+  const find = (ids) => byClip.get(ids.find((id) => byClip.has(id)));
+  const outlets = (s) => Object.values(s.coverage).reduce((a, b) => a + b, 0);
+  box.textContent = '';
+  const section = (title, rows) => {
+    if (!rows.length) return;
+    const group = el('div', 'group');
+    group.append(...rows);
+    box.append(el('h2', 'group-title', title), group);
+  };
+  section('Since Your Last Visit', newSince(src.stories).map((s) =>
+    recapRow({ ...s, outlets: outlets(s), clips: s.clips.map((c) => c.id) }, s, `began ${ago(s.first)}`)));
+  const digest = (src.digest || []).filter(recapTopic);
+  for (const day of [...new Set(digest.map((e) => e.day))]) {
+    section(dayLabel(day), digest.filter((e) => e.day === day).map((e) => recapRow(e, find(e.clips))));
+  }
+  box.append(el('p', 'group-note', digest.length
+    ? 'Each day’s biggest stories, ranked like the feed: more outlets, regions and sides first. Each summary is one sentence from an outlet’s own video description, picked by matching words, not written by AI.'
+    : 'Recap fills in as the day’s stories come in.'));
+}
+
+function openStory(s) {
+  place = ''; query = '';
+  renderBar();
+  onScrollStart();
+  pageOpen = false;
+  start({ story: s.id }, s);
+  show('news');
 }
 
 // ---------------------------------------------------------------- world
@@ -526,7 +614,7 @@ async function refreshFeed() {
     const fresh = await loadFeed();
     const known = new Set(feed.stories.flatMap((s) => s.clips.map((c) => c.id)));
     const added = fresh.stories.some((s) => s.clips.some((c) => !known.has(c.id)));
-    feed = fresh;
+    feed = latest = fresh;
     newPill.hidden = true;
     if (added) {
       everything = null;
@@ -805,6 +893,8 @@ async function checkForNewStories() {
       newPill.hidden = false;
       newPill.onclick = () => { newPill.hidden = true; feed = fresh; start(); };
     }
+    latest = fresh;
+    updateBadge();
   } catch { /* offline: keep what we have */ }
 }
 document.addEventListener('visibilitychange', checkForNewStories);
@@ -931,7 +1021,8 @@ function openCompare(si, currentClip) {
 const here = () => (stories[activeS] ? { story: stories[activeS].id, clip: stories[activeS].clips[activeC]?.id } : null);
 
 // at: { story, clip } ids to stay on (here()), if that story is still in the rebuilt feed.
-function start(at) {
+// extra: a story to open that this list doesn't have (from Recap), put first.
+function start(at, extra) {
   startRun++;
   reserve = null;
   ended = false;
@@ -949,7 +1040,7 @@ function start(at) {
       if (!everything) {
         const run = startRun;
         setStatus('Loading\u2026');
-        loadEverything().then((all) => { everything = all; if (run === startRun) start(at); });
+        loadEverything().then((all) => { everything = all; if (run === startRun) start(at, extra); });
         return;
       }
       const all = orderStories(everything.filter(inTopic));
@@ -958,6 +1049,7 @@ function start(at) {
     }
     stories = spread(fresh);
   }
+  if (extra && !stories.some((s) => s.id === extra.id)) stories.unshift(extra);
   draw(at);
 }
 
@@ -994,10 +1086,11 @@ function draw(at) {
   show('news');
   if (!consent) welcomeEl.showModal();
   try {
-    feed = await loadFeed();
+    feed = latest = await loadFeed();
   } catch (e) {
     setStatus('Couldn’t load the feed. Check your connection.', true);
     return;
   }
   start();
+  updateBadge();
 })();
