@@ -235,3 +235,62 @@ def test_blindspot_when_one_side_skips_a_story():
     assert grouping.build_stories(clips, [[0, 1, 2]], np.eye(3), NOW)[0]["blindspot"] == "right"
     clips[2] = clip(2, "C", "asia", column="right")
     assert grouping.build_stories(clips, [[0, 1, 2]], np.eye(3), NOW)[0]["blindspot"] is None
+
+
+# ---- second pass (merge_split). Embeddings are given, so these check the rules; `python -m pipeline.tune merges`
+# scores the real model on a real window (tests/fixtures/real_window.json.gz).
+BACKGROUND = ["Trump touts ballroom after midterm loss", "Republicans react to midterm loss as Trump blames turnout",
+              "Trump says midterm loss was the way the ball bounces", "Iran mocks Trump over midterm loss",
+              "Tornado strikes Brazil airport", "Cyberattack hits French blood bank fridges"]
+
+
+def merge(stories, vecs, hours_ago=None, background=BACKGROUND):
+    """stories: list of lists of titles. vecs: one embedding per story (all its clips get it). Background stories are far
+    from everything, so they only make their words common."""
+    clips, groups, X = [], [], []
+    for s, (titles, v) in enumerate(zip(stories + [[t] for t in background], vecs + [None] * len(background))):
+        groups.append([])
+        for t in titles:
+            groups[-1].append(len(clips))
+            clips.append({"title": t, "channel": f"O{len(clips)}", "desc": ""})
+            X.append(v if v is not None else np.eye(16)[4 + len(X) % 12])
+    X = np.array(X, dtype=np.float32)
+    X /= np.linalg.norm(X, axis=1, keepdims=True)
+    ago = (hours_ago or [0] * len(stories)) + [0] * len(background)
+    hours = np.array([-ago[s] for s, g in enumerate(groups) for _ in g], dtype=float)
+    owner = {c: s for s, g in enumerate(groups) for c in g}
+    return [sorted({owner[c] for c in o}) for o in grouping.merge_split(clips, groups, X, "bge-base", hours)]
+
+
+def vec(*xs):
+    return np.array(list(xs) + [0] * (16 - len(xs)), dtype=np.float32)
+
+
+def test_second_pass_joins_a_story_the_first_pass_split():
+    ronaldo = [["Cristiano Ronaldo retires from international football"] * 2,
+               ["'Portugal will always be a part of me': Cristiano Ronaldo retires from international football"]]
+    assert [0, 1] in merge(ronaldo, [vec(1, 0), vec(.75, .66)])
+
+
+def test_second_pass_ignores_words_every_story_has():
+    # close embeddings, but "Trump", "midterm" and "loss" are in many stories: these are two different events
+    banner = [["Tehran crowds torch Trump banner after midterm loss"] * 3, ["Trump touts ballroom after midterm loss"] * 3]
+    assert [0, 1] not in merge(banner, [vec(1, 0), vec(.75, .66)])
+
+
+def test_second_pass_does_not_snowball():
+    # every story shares the same specific words, and each is close to the next, but the two ends are not
+    chain = [["Hegseth impeachment articles filed in Congress"] * 3] * 3
+    out = merge(chain, [vec(1, 0), vec(.8, .6), vec(.3, .95)])
+    assert [0, 1, 2] not in out
+
+
+def test_two_small_stories_need_more_in_common():
+    coopers = [["Democrat Roy Cooper celebrates victory in North Carolina"] * 2, ["This is a common-sense win for Republicans: Brett Cooper"]]
+    assert [0, 1] not in merge(coopers, [vec(1, 0), vec(.9, .43)])
+
+
+def test_second_pass_keeps_stories_days_apart():
+    same = [["Paraguay president resigns after Ueno bank collapse"] * 3] * 2
+    assert [0, 1] in merge(same, [vec(1, 0), vec(1, 0)])
+    assert [0, 1] not in merge(same, [vec(1, 0), vec(1, 0)], hours_ago=[0, config.STORY_GAP_HOURS + 1])

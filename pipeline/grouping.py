@@ -6,6 +6,10 @@ Two clips can share a story only if BOTH:
      window), which stops "two different shootings" from merging.
 Complete-linkage clustering holds EVERY pair in a story to that bar. Comparing clips to a story's
 running average instead let one big event snowball: all the midterm clips became a single story.
+
+That bar also splits one event into several stories when outlets word it differently, so a second
+pass (merge_split) joins whole stories that are close AND share specific words across their titles
+and descriptions. It is complete-linkage too, between stories, for the same reason.
 """
 from __future__ import annotations
 
@@ -18,6 +22,7 @@ from datetime import datetime
 
 import numpy as np
 from sklearn.cluster import AgglomerativeClustering
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 from . import config
 
@@ -72,7 +77,6 @@ def clip_text(c: dict) -> str:
 
 # --------------------------------------------------------------------------- embedders
 def _tfidf(texts: list[str]) -> np.ndarray:
-    from sklearn.feature_extraction.text import TfidfVectorizer
     vec = TfidfVectorizer(ngram_range=(1, 2), sublinear_tf=True, tokenizer=tokens,
                           token_pattern=None, lowercase=False)
     m = vec.fit_transform(texts).toarray().astype(np.float32)
@@ -102,9 +106,9 @@ def embed(clips: list[dict]) -> tuple[str, np.ndarray]:
 
 # --------------------------------------------------------------------------- grouping
 def group(clips: list[dict], threshold: float | None = None,
-          embedded: tuple[str, np.ndarray] | None = None) -> tuple[str, list[list[int]], np.ndarray]:
+          embedded: tuple[str, np.ndarray] | None = None, merge: bool = True) -> tuple[str, list[list[int]], np.ndarray]:
     """Returns (embedder name, list of stories as lists of clip indexes, embedding matrix).
-    Pass `embedded` to reuse embeddings (tuning)."""
+    Pass `embedded` to reuse embeddings and `merge=False` to skip the second pass (tuning)."""
     if len(clips) < 2:
         name, X = embedded or embed(clips) if clips else ("none", np.zeros((0, 1)))
         return name, [[i] for i in range(len(clips))], X
@@ -131,10 +135,50 @@ def group(clips: list[dict], threshold: float | None = None,
 
     labels = AgglomerativeClustering(n_clusters=None, metric="precomputed", linkage="complete",
                                      distance_threshold=1 - th).fit_predict(D)
-    stories: dict[int, list[int]] = {}
-    for i, label in enumerate(labels):
-        stories.setdefault(int(label), []).append(i)
-    return name, list(stories.values()), X
+    stories = _join(labels, [[i] for i in range(len(clips))])
+    return name, merge_split(clips, stories, X, name, hours) if merge else stories, X
+
+
+def _join(labels, parts: list[list[int]]) -> list[list[int]]:
+    out: dict[int, list[int]] = {}
+    for label, part in zip(labels, parts):
+        out.setdefault(int(label), []).extend(part)
+    return list(out.values())
+
+
+def merge_split(clips: list[dict], stories: list[list[int]], X: np.ndarray, name: str, hours: np.ndarray) -> list[list[int]]:
+    """Join stories the first pass split: "France braces for nationwide strike" and "Students blockade schools as France braces
+    for mass rallies". Two stories join only if ALL of these hold, and complete linkage holds every pair of stories in the result
+    to them, so the midterms can't snowball into one story:
+      - their average title embeddings are close (MERGE_SIMILARITY),
+      - no clip in one is far from any clip in the other (MERGE_FLOOR),
+      - their titles + descriptions share specific words (MERGE_MIN_WORDS; stricter for two small stories), with words that
+        appear in many stories left out, so "midterms" and "Trump" alone don't count,
+      - they had clips within STORY_GAP_HOURS of each other."""
+    if len(stories) < 2 or name not in config.MERGE_SIMILARITY:
+        return stories
+    C = _normalize(np.stack([X[s].sum(axis=0) for s in stories]))
+    docs = [" ".join(f"{clip_text(clips[i])}. {clips[i].get('desc', '')}" for i in s) for s in stories]
+    cap = max(3, int(config.MERGE_COMMON_SHARE * len(stories)))
+    vec = TfidfVectorizer(tokenizer=tokens, token_pattern=None, lowercase=False, sublinear_tf=True, max_df=cap)
+    try:
+        M = vec.fit_transform(docs)
+    except ValueError:      # no word survives: nothing to go on
+        return stories
+    words = (M @ M.T).toarray()
+    size = np.array([len(s) for s in stories])
+    need = np.where(np.maximum(size[:, None], size[None, :]) < config.MERGE_SMALL_STORY, config.MERGE_MIN_WORDS_SMALL, config.MERGE_MIN_WORDS)
+    lo, hi = np.array([hours[s].min() for s in stories]), np.array([hours[s].max() for s in stories])
+    apart = np.maximum(lo[:, None] - hi[None, :], lo[None, :] - hi[:, None]) > config.STORY_GAP_HOURS
+    nearest = np.stack([(X[s] @ X.T).min(axis=0) for s in stories])          # story x clip: least similar clip of the story
+    floor = np.stack([nearest[:, s].min(axis=1) for s in stories], axis=1)    # story x story
+
+    D = np.clip(1 - C @ C.T, 0, 2)
+    D[(words < need) | apart | (floor < config.MERGE_FLOOR[name])] = 2.0
+    np.fill_diagonal(D, 0)
+    labels = AgglomerativeClustering(n_clusters=None, metric="precomputed", linkage="complete",
+                                     distance_threshold=1 - config.MERGE_SIMILARITY[name]).fit_predict(D)
+    return _join(labels, stories)
 
 
 # --------------------------------------------------------------------------- feed building

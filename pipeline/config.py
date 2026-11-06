@@ -41,6 +41,20 @@ THRESHOLDS = {
     "tfidf": 0.06,          # tuned on tests/fixtures/sample_clips.json
 }
 STORY_GAP_HOURS = 36            # a clip can only join a story that had a clip within this many hours
+# Second pass: join stories the first pass split ("Ronaldo retires..." and "'Portugal will always be a part of me': Ronaldo
+# retires..."). Tune with `python -m pipeline.tune merges`.
+MERGE_SIMILARITY = {            # lowest similarity of two stories' average title embeddings
+    "bge-base": 0.65,
+    "tfidf": 0.2,
+}
+MERGE_FLOOR = {                 # lowest similarity of any clip in one story to any clip in the other: stops a chain of stories
+    "bge-base": 0.4,            # that each look like the next from merging two ends that don't. Costs no merges on the real window.
+    "tfidf": 0.0,
+}
+MERGE_MIN_WORDS = 0.1           # lowest TF-IDF similarity of two stories' titles + descriptions
+MERGE_MIN_WORDS_SMALL = 0.25    # ...when both stories have fewer than MERGE_SMALL_STORY clips: one or two clips are too little
+MERGE_SMALL_STORY = 3           # text to trust ("Roy Cooper" and "Brett Cooper", Santiago Peña and Santiago de Chile)
+MERGE_COMMON_SHARE = 0.05       # words in more than this share of stories ("midterms", "Trump") don't count as shared
 MIN_SHARED_KEYWORDS = 1         # distinctive words (title + description) two clips must share to be in one story
 MAX_CLIPS_PER_OUTLET = 2        # per story
 MAX_STORIES_IN_FEED = 80

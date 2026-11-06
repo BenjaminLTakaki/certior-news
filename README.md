@@ -61,6 +61,8 @@ python -m pipeline.tune evaluate           # tries many thresholds, prints the b
 ```
 Copy the suggested number into `THRESHOLDS` in `pipeline/config.py`, commit, push. The setting it picks keeps wrong merges near zero, because an unrelated clip when you swipe sideways is worse than a missed one.
 
+`python -m pipeline.tune merges` scores the second pass, which joins stories the first one split, on `tests/fixtures/real_window.json.gz` (every clip of one real 48 h window, with the split events and the stories that must stay apart labelled by Claude). It prints stories before and after, how many stories each event is still in, and every wrong merge, for the `MERGE_*` settings in `config.py` and a few around them.
+
 Other knobs in `pipeline/config.py`: the title blocklist (promos, "full episode"…), max clip length, how long stories stay in the feed.
 
 ## Changing outlets
@@ -79,7 +81,7 @@ To test on the iPhone over Wi-Fi, open `http://<your-PC-IP>:8000/` and add `?deb
 
 ## How it works
 - **`pipeline/run.py`**: for each channel, lists the newest 25 uploads (1 quota unit), fetches details only for IDs it hasn't seen (1 unit per 50), and keeps embeddable, public, non-live clips of 8 s – 5 min from the last 48 h that don't match the blocklist. Roughly 8,000 to 9,000 of the 10,000 free daily units at one run every 10 minutes with 52 outlets. Adding many more outlets means building less often.
-- **`pipeline/grouping.py`**: embeds each cleaned title with `bge-base-en-v1.5` (via fastembed, CPU). Two clips can share a story only if they are close *and* share a distinctive word, which keeps "two different shootings" apart. Complete-linkage clustering holds every pair in a story to that bar, so one big event doesn't snowball into a single story. If the model can't load, it falls back to TF-IDF so the feed never breaks.
+- **`pipeline/grouping.py`**: embeds each cleaned title with `bge-base-en-v1.5` (via fastembed, CPU). Two clips can share a story only if they are close *and* share a distinctive word, which keeps "two different shootings" apart. Complete-linkage clustering holds every pair in a story to that bar, so one big event doesn't snowball into a single story. That splits an event when outlets word it differently, so a second pass joins whole stories that are close and share specific words across their titles and descriptions, again with complete linkage. If the model can't load, it falls back to TF-IDF so the feed never breaks.
 - **`docs/`**: plain HTML/CSS/JS, no build step. One YouTube IFrame player is reused for every clip and laid over the active clip, with a transparent layer on top that turns swipes into navigation.
 - State lives in `data/` (clips from the last 72 h, rejected IDs, resolved channel IDs) and is published with the feed on the `feed` branch, which GitHub Pages serves. Each build replaces that branch with one commit, so it never grows.
 
