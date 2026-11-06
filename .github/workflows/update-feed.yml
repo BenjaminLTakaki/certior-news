@@ -20,7 +20,7 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: ${{ inputs.backfill_days != '' && 30 || 15 }}     # a week's backfill alone took 11.5 min
     steps:
       - uses: actions/checkout@v4
         with:
