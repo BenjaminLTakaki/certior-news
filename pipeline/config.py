@@ -64,6 +64,14 @@ RECENCY_HALF_LIFE_H = 12        # ranking: a story's score halves every N hours
 HEADLINE_KICKERS = r"^\s*(breaking( news)?|watch|see it|just in|exclusive)\s*[:|]\s*"     # also cut from the headline
 SERIES_LABEL_MIN = 3            # a "Label:" prefix one outlet opens at least this many titles with is a series label
 
+# Summary: one sentence from the outlets' own descriptions (no AI service: free, and nothing made up)
+SUMMARY_MIN = 0.2               # lowest TF-IDF similarity of that sentence to the story's titles
+
+# Recap: each day's biggest stories, kept for a week in data/digest.json and sent in feed.json
+DIGEST_FILE = DATA_DIR / "digest.json"
+DIGEST_DAYS = 7
+DIGEST_PER_DAY = 10
+
 BLINDSPOT_MIN_CLIPS = 3         # a story needs at least this many outlets to get a blindspot label
 
 LEAN_TO_COLUMN = {

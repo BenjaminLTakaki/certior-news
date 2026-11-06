@@ -94,6 +94,33 @@ def load_mock(path: Path, now: datetime) -> dict:
     return store
 
 
+def update_digest(digest: list[dict], stories: list[dict], now: datetime) -> list[dict]:
+    """Recap: each day's biggest stories for the past week. A story is filed under the day it began, at the highest
+    score it ever reached, and is recognised across builds by sharing a clip (its id can change when stories merge)."""
+    digest = [dict(e) for e in digest]
+    for s in stories:
+        if s["single"]:
+            continue
+        ids = {c["id"] for c in s["clips"]}
+        old = next((e for e in digest if ids & set(e["clips"])), None)
+        entry = {
+            "day": min(s["first"][:10], old["day"]) if old else s["first"][:10],
+            "headline": s["headline"], "summary": s["summary"], "summary_by": s["summary_by"],
+            "topic": s["topic"], "outlets": sum(s["coverage"].values()), "sides": s["sides"],
+            "score": max(s["score"], old["score"]) if old else s["score"],
+            # ponytail: only the clips the feed keeps (newest per outlet); add all member ids if repeats show up
+            "clips": sorted(ids | set(old["clips"])) if old else sorted(ids),
+        }
+        if old:
+            digest.remove(old)
+        digest.append(entry)
+    since = (now - timedelta(days=config.DIGEST_DAYS - 1)).strftime("%Y-%m-%d")
+    out = []
+    for day in sorted({e["day"] for e in digest if e["day"] >= since}, reverse=True):
+        out += sorted((e for e in digest if e["day"] == day), key=lambda e: e["score"], reverse=True)[:config.DIGEST_PER_DAY]
+    return out
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--mock", type=Path, help="use a fixture file instead of the YouTube API")
@@ -125,11 +152,16 @@ def main(argv=None) -> int:
     everything = build_stories(window, groups, X, now, capped=False)
     stories = cap_feed(everything)
 
+    digest = update_digest([] if args.mock else load_json(config.DIGEST_FILE, []), everything, now)
+    if not args.mock:
+        save_json(config.DIGEST_FILE, digest)
+
     feed = {
         "generated": iso(now),
         "embedder": embedder,
         "clips": len(window),
         "stories": stories,
+        "digest": digest,
     }
     save_json(args.out, feed, compact=True)
     if not args.mock:
