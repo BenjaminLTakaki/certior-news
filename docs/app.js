@@ -199,7 +199,7 @@ function show(next, opts = {}) {
     onScrollStart();
     showHint('');
     if (next === 'world') renderWorld();
-    if (next === 'search') renderRecent();
+    if (next === 'search') { renderRecent(); $('#search-input').focus(); }    // inside the tap, so iOS opens the keyboard
     if (next === 'settings') syncSettings();
     return;
   }
@@ -351,6 +351,15 @@ $('#search-form').onsubmit = (e) => {
   const q = $('#search-input').value.trim();
   if (q && feed) runSearch(q);
 };
+// How many stories match as you type, and that Search on the keyboard opens them.
+$('#search-input').oninput = async (e) => {
+  const q = e.target.value.trim(), hint = $('#search-hint');
+  if (!q || !feed) { hint.textContent = ''; return; }
+  everything = everything || await loadEverything();
+  if (e.target.value.trim() !== q) return;      // you typed on while it loaded
+  const n = matches(everything, q).length;
+  hint.textContent = n ? `${n} ${n === 1 ? 'story matches' : 'stories match'}. Press Search to watch ${n === 1 ? 'it' : 'them'}.` : 'No stories match.';
+};
 
 async function loadEverything() {
   try {
@@ -403,7 +412,12 @@ function renderStory(s, si) {
       b.onclick = () => jumpToColumn(si, col);
       seg.append(b);
     }
-    segRow.append(seg);
+    if (s.topic === 'sports') {     // left and right mean nothing for sport, but an empty row looked broken
+      const n = new Set(s.clips.map((c) => c.channel)).size;
+      segRow.append(el('span', 'seg-note', `Sports · ${n} ${n === 1 ? 'outlet' : 'outlets'}`));
+    } else {
+      segRow.append(seg);
+    }
 
     const clips = el('div', 'clips');
     const ticks = el('div', 'ticks');
@@ -446,8 +460,7 @@ function renderStory(s, si) {
     });
     let t = 0;
     clips.addEventListener('scroll', () => { onScrollStart(); clearTimeout(t); t = setTimeout(settle, 140); }, { passive: true });
-    if (s.topic !== 'sports') sec.append(segRow);
-    sec.append(ticks, clips);
+    sec.append(segRow, ticks, clips);
     feedEl.append(sec);
     markPosition(si, 0);
 }

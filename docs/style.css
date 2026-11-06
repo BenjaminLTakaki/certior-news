@@ -49,7 +49,6 @@ button:active, a:active { opacity: .6; }
 #feed::-webkit-scrollbar, .clips::-webkit-scrollbar { display: none; }
 .story { height: 100%; scroll-snap-align: start; scroll-snap-stop: always;
   display: grid; grid-template-rows: var(--seg-h) 2px 1fr; }
-.story.sports { grid-template-rows: 2px 1fr; }
 .story.end { display: grid; grid-template-rows: none; place-content: center; justify-items: center; gap: 16px; padding: 32px; text-align: center; color: var(--muted); }
 .story.end .filled { width: auto; padding: 0 24px; }
 
@@ -60,6 +59,7 @@ button:active, a:active { opacity: .6; }
 .seg button.on { background: var(--surface-2); font-weight: 600; }
 .seg button:disabled { color: var(--faint); opacity: .55; cursor: default; }
 .seg button:active { opacity: 1; }
+.seg-note { flex: 1; text-align: center; font-size: 13px; color: var(--muted); }      /* sport: no sides, so a plain label */
 
 /* ---- position inside the story ---- */
 .ticks { display: flex; gap: 3px; padding: 0 16px; }
@@ -154,6 +154,7 @@ button:active, a:active { opacity: .6; }
   font: inherit; font-size: 17px; -webkit-user-select: text; user-select: text; -webkit-appearance: none; appearance: none; }
 #search-input::placeholder { color: var(--muted); }
 #search-input:focus { outline: 0; }
+#search-hint:empty { display: none; }
 
 /* ---- your mix ---- */
 #settings-mix { padding: 10px 16px; }
