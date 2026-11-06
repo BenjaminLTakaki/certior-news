@@ -17,6 +17,11 @@ const SOMEWHERE_MIN = 5;      // "Take Me Somewhere" skips countries with too li
 const RECENT_MAX = 6;
 const MIX_DAYS = 7;
 const COLUMNS = { left: 'Left', center: 'Center', right: 'Right', unrated: 'Not rated' };
+// The outlet's own rating. Lean Left swipes under Left and Lean Right under Right, so this tells them apart.
+const LEAN = { left: 'Left', 'lean-left': 'Lean Left', center: 'Center', 'lean-right': 'Lean Right', right: 'Right', unrated: 'Not rated' };
+// After the outlet: "Lean Left · 3h ago · Canada". On a narrow phone with videos on the row runs out of room, so the
+// country, which the Compare sheet and World tab also show, comes last. Sport has no sides, so no rating.
+const byline = (c, s) => [s.topic !== 'sports' && LEAN[c.lean], ago(c.published), c.country].filter(Boolean).join(' · ');
 const LANDSCAPE = matchMedia('(orientation: landscape) and (max-height: 500px) and (pointer: coarse)');   // a sideways phone: see #rotate
 const SMOOTH = matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
 const icon = (path) => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5H4Z"/>${path}</svg>`;
@@ -424,7 +429,7 @@ function renderStory(s, si) {
       const meta = el('div', 'meta');
       const row = el('div', 'row');
       const src = el('span', 'src');
-      src.append(el('b', '', c.channel), ` · ${c.country ? `${c.country} · ` : ''}${ago(c.published)}`);
+      src.append(el('b', '', c.channel), ` · ${byline(c, s)}`);
       const snd = el('button', 'snd');
       snd.innerHTML = SOUND_ON; snd.setAttribute('aria-label', 'Sound on or off'); snd.onclick = toggleMute;
       const compare = el('button', 'compare-btn', 'Compare');
@@ -866,7 +871,7 @@ function openCompare(si, currentClip) {
       const b = el('button', 'cell headline' + (c.id === currentClip ? ' now' : ''));
       b.type = 'button';
       if (c.id === currentClip) b.setAttribute('aria-current', 'true');
-      b.append(el('span', 'headline-title', c.title), el('span', 'headline-sub', `${c.channel} \u00b7 ${c.country ? `${c.country} \u00b7 ` : ''}${ago(c.published)}`));
+      b.append(el('span', 'headline-title', c.title), el('span', 'headline-sub', `${c.channel} \u00b7 ${byline(c, s)}`));
       b.onclick = () => {
         const ci = s.clips.indexOf(c), sc = clipsEl(si);
         closeSheet(compareEl);
