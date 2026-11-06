@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: "7,37 * * * *"     # backup only: GitHub ran this once in 12 hours when it was all we had
   workflow_dispatch:           # the portfolio's server calls this every 10 min; also the "Run workflow" button
+    inputs:
+      backfill_days:
+        description: "Fill Recap's week now: replay this many past days first (about 70 quota units a day; leave empty normally)"
+        required: false
+        default: ""
 
 permissions:
   contents: write              # to commit docs/feed.json and data/
@@ -37,6 +42,14 @@ jobs:
 
       - name: Load state from the last published feed
         run: git fetch -q --depth=1 origin feed && git checkout FETCH_HEAD -- data || echo "No feed branch yet"
+
+      - name: Backfill Recap
+        if: ${{ inputs.backfill_days != '' }}
+        env:
+          YT_API_KEY: ${{ secrets.YT_API_KEY }}
+          FASTEMBED_CACHE_PATH: .cache/fastembed
+          DAYS: ${{ inputs.backfill_days }}      # through env, never pasted into the script
+        run: python -m pipeline.backfill --days "$DAYS"
 
       - name: Fetch, filter, group
         env:

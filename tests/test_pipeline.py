@@ -433,3 +433,42 @@ def test_each_clip_says_when_its_outlet_first_covered_the_story():
     since = {c["channel"]: c["since"] for c in s["clips"]}
     assert since == {"A": "2026-11-05T08:00:00Z", "B": clips[2]["published"]}
     assert [c["id"] for c in s["clips"] if c["channel"] == "A"] == ["c1"]      # the feed still shows A's newest clip
+
+
+# --------------------------------------------------------------------------- backfill: fill Recap's week at once
+from pipeline import backfill  # noqa: E402
+
+
+def test_uploads_since_pages_back_and_stops_at_the_cutoff(monkeypatch):
+    pages = {None: (["2026-11-05", "2026-11-04"], "p2"), "p2": (["2026-11-03", "2026-10-20"], "p3"), "p3": (["2026-10-01"], None)}
+    calls = []
+    def get(endpoint, **params):
+        calls.append(params.get("pageToken"))
+        days, nxt = pages[params.get("pageToken")]
+        return {"items": [{"contentDetails": {"videoId": d, "videoPublishedAt": d + "T10:00:00Z"}} for d in days], "nextPageToken": nxt}
+    monkeypatch.setattr(youtube, "_get", get)
+    assert youtube.uploads_since("UU1", "2026-10-30T00:00:00Z") == ["2026-11-05", "2026-11-04", "2026-11-03"]
+    assert calls == [None, "p2"]        # never pays for the page past the cutoff
+
+
+def test_backfill_fills_past_days_without_keeping_old_clips(monkeypatch, tmp_path):
+    for name in ("CLIPS_FILE", "REJECTED_FILE", "CHANNEL_CACHE_FILE", "DIGEST_FILE", "FRAMING_FILE"):
+        monkeypatch.setattr(config, name, tmp_path / f"{name}.json")
+    chans = json.loads(config.CHANNELS_FILE.read_text(encoding="utf-8"))["channels"]
+    pick = [next(c for c in chans if config.LEAN_TO_COLUMN[c["lean"]] == col) for col in ("left", "left", "right")]
+    pick[1] = [c for c in chans if config.LEAN_TO_COLUMN[c["lean"]] == "left"][1]
+    run.save_json(config.CHANNEL_CACHE_FILE, {c["handle"]: {"uploads": c["handle"]} for c in pick})
+    today = datetime.now(timezone.utc).replace(hour=12, minute=0, second=0, microsecond=0)
+    items = {}
+    for d in (3, 2):
+        for k, c in enumerate(pick):
+            when = (today - timedelta(days=d, minutes=10 * k)).isoformat().replace("+00:00", "Z")
+            items[f"v{d}{k}"] = (c["handle"], {**raw(snippet__publishedAt=when, snippet__title={3: "Volcano erupts in Iceland forcing evacuations", 2: "Ferry sinks off Greek coast with dozens missing"}[d]), "id": f"v{d}{k}"})
+    monkeypatch.setattr(youtube, "uploads_since", lambda pl, since: [v for v, (h, _) in items.items() if h == pl])
+    monkeypatch.setattr(youtube, "video_details", lambda ids: [items[v][1] for v in ids])
+    assert backfill.main(["--days", "5"]) == 0
+    digest = run.load_json(config.DIGEST_FILE, [])
+    assert {e["day"] for e in digest} == {(today - timedelta(days=d)).strftime("%Y-%m-%d") for d in (3, 2)}
+    assert all(e["outlets"] == 3 for e in digest)
+    assert len(run.load_json(config.FRAMING_FILE, {})) == 6       # each outlet once per story, both days
+    assert not config.CLIPS_FILE.exists()

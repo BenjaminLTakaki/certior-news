@@ -50,6 +50,21 @@ def latest_upload_ids(uploads_playlist: str, n: int) -> list[str]:
     return [it["contentDetails"]["videoId"] for it in data.get("items", [])]
 
 
+def uploads_since(uploads_playlist: str, since: str) -> list[str]:
+    """Every upload published at or after `since` (ISO time), newest first: 1 unit per 50. For pipeline.backfill."""
+    ids, token = [], None
+    while True:
+        data = _get("playlistItems", part="contentDetails", playlistId=uploads_playlist, maxResults=50,
+                    **({"pageToken": token} if token else {}))
+        for it in data.get("items", []):
+            if it["contentDetails"].get("videoPublishedAt", "") < since:
+                return ids
+            ids.append(it["contentDetails"]["videoId"])
+        token = data.get("nextPageToken")
+        if not token:
+            return ids
+
+
 def video_details(ids: list[str]) -> list[dict]:
     out = []
     for i in range(0, len(ids), 50):
