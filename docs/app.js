@@ -1191,6 +1191,8 @@ function draw(at) {
   createPlayer(stories[Math.max(si, 0)].clips[ci].id);
 }
 
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => { /* offline just won't work */ });
+
 (async function boot() {
   renderBar();
   show('news');
@@ -1211,5 +1213,6 @@ function draw(at) {
     flash('That story is more than two days old, so it’s no longer here.');
   }
   start();
+  if (!navigator.onLine) flash(`You’re offline. These are the stories from ${ago(feed.generated)}.`);
   updateBadge();
 })();
