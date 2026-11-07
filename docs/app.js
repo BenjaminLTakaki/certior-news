@@ -737,7 +737,7 @@ function onScrollStart() {
   scrolling = true;
   clearTimeout(watchTimer);
   if (playerReady) player.pauseVideo();
-  wrap.classList.add('off');
+  wrap.classList.add('away');
   gesture.hidden = true;
 }
 
@@ -797,12 +797,13 @@ function activate(s, c) {
 }
 
 function placePlayer(s, c) {
+  if (!videosOn()) { wrap.hidden = gesture.hidden = true; return; }     // rotating (a resize) put a black box over Text Only
   const slot = storyEl(s).querySelectorAll('.slot')[c];
   const r = slot.getBoundingClientRect();
   Object.assign(wrap.style, { left: `${r.left}px`, top: `${r.top}px`, width: `${r.width}px`, height: `${r.height}px` });
   Object.assign(gesture.style, { left: `${r.left}px`, top: `${r.top + r.height * GESTURE_TOP}px`, width: `${r.width}px`, height: `${r.height * GESTURE_HEIGHT}px` });
   wrap.hidden = false;
-  wrap.classList.remove('off');
+  wrap.classList.remove('away');
   gesture.hidden = !unlocked;     // before the first real tap, taps must reach the YouTube player itself
 }
 
@@ -847,7 +848,7 @@ function onError() {
     const a = el('a', '', 'Open in YouTube'); a.href = `https://www.youtube.com/watch?v=${id}`; a.target = '_blank';
     msg.append('This clip can’t play inside the app. ', a);
   }
-  wrap.classList.add('off');
+  wrap.classList.add('away');
   gesture.hidden = false;
   setTimeout(() => { if (currentId === id) advance(); }, 2500);
 }

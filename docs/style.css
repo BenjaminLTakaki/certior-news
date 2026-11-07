@@ -121,7 +121,7 @@ button:active, a:active { opacity: .6; }
   background: rgb(0 0 0 / .6); color: #fff; font-size: 15px; font-weight: 600; opacity: 0; transition: opacity 200ms ease-out; pointer-events: none; }
 #skip.back { right: auto; left: 24px; }
 #skip.on { opacity: 1; }
-#player-wrap.off { visibility: hidden; }
+#player-wrap.away { visibility: hidden; }      /* between clips; not .off, the Videos Are Off card */
 
 /* ---- small messages ---- */
 /* over the Left/Center/Right band above the video: not on the captions Shorts burn in at the bottom, not on YouTube's own bar */
