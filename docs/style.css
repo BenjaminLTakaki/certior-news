@@ -253,7 +253,7 @@ button.watch-link { color: var(--tint); font-size: 17px; }
 
 /* iPhones can't lock orientation from a web page, so a sideways phone gets this instead. Must match LANDSCAPE in app.js. */
 #rotate { display: none; }
-@media (orientation: landscape) and (max-height: 500px) and (pointer: coarse) {
+@media (orientation: landscape) and (max-height: 500px) {     /* the app is portrait-only: the video got a 140 px strip */
   #rotate { display: grid; place-items: center; position: fixed; inset: 0; z-index: 20; padding: 32px; text-align: center;
     background: var(--bg); font-size: 17px; font-weight: 600; }
 }

@@ -24,7 +24,7 @@ const LEAN = { left: 'Left', 'lean-left': 'Lean Left', center: 'Center', 'lean-r
 // country, which the Compare sheet and World tab also show, comes last. Sport has no sides, so no rating.
 // The clip row leaves the country out (it cut off as "5h ago…", and World has it); Compare has room for it.
 const byline = (c, s, country = false) => [s.topic !== 'sports' && LEAN[c.lean], ago(c.published), country && c.country].filter(Boolean).join(' · ');
-const LANDSCAPE = matchMedia('(orientation: landscape) and (max-height: 500px) and (pointer: coarse)');   // a sideways phone: see #rotate
+const LANDSCAPE = matchMedia('(orientation: landscape) and (max-height: 500px)');   // a sideways phone, or any screen too short for the video: see #rotate
 const SMOOTH = matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
 const icon = (path) => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5H4Z"/>${path}</svg>`;
 const SOUND_ON = icon('<path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11"/>');
