@@ -37,8 +37,8 @@ const DOUBLE_TAP_MS = 250, SKIP_S = 10;
 // Swipes over the video follow your finger: past DRAG_COMMIT of the screen, or a flick faster than FLICK_PX_MS, goes on
 // to the next story or outlet when you let go; anything less springs back. DRAG_START tells a drag from a tap.
 const DRAG_START = 8, DRAG_COMMIT = 0.25, FLICK_PX_MS = 0.4;
-const SIDEWAYS_HINT = 'Swipe sideways for other outlets';
-const SETTINGS_DEFAULTS = { side: 'center', auto: true, hideWatched: false, sportsInAll: true, notes: true };
+const SIDEWAYS_HINT = 'Swipe sideways for more outlets, or slide along the dots';
+const SETTINGS_DEFAULTS = { side: 'center', hideWatched: false, sportsInAll: true, notes: true };
 // YouTube forbids disabling the links inside its player, and they sit along its top and bottom edges.
 // So swipes are only caught in the middle band; everything above and below reaches YouTube.
 const GESTURE_TOP = 0.25, GESTURE_HEIGHT = 0.5;
@@ -202,7 +202,19 @@ async function loadFeed() {
   // a request that never answers would leave "Loading stories…" up for good: give up, and offer Try Again
   const r = await fetch(`${FEED_URL}?t=${Date.now()}`, { cache: 'no-store', signal: AbortSignal.timeout?.(FEED_TIMEOUT_MS) });
   if (!r.ok) throw new Error(`feed ${r.status}`);
-  return r.json();
+  const f = await r.json();
+  bySide(f.stories);
+  return f;
+}
+
+// Clips in the order of the dots: all of Left, then Center, then Right, then the rest. A swipe sideways is then the
+// next outlet on the same side, and a change of side shows on the control up top. Within a side the feed's order
+// stays (the take least like the others first).
+// ponytail: the pipeline still interleaves L, C, R (swipe_order); sorting here needs no feed rebuild
+const SIDE_RANK = { left: 0, center: 1, right: 2, state: 3 };
+function bySide(list) {
+  for (const s of list) if (s.topic !== 'sports') s.clips.sort((a, b) => (SIDE_RANK[a.column] ?? 4) - (SIDE_RANK[b.column] ?? 4));
+  return list;
 }
 
 const inFeedView = () => !pageOpen;
@@ -582,7 +594,7 @@ async function loadEverything() {
   try {
     const r = await fetch(`${FEED_URL.replace('feed.json', 'search.json')}?t=${Date.now()}`, { cache: 'no-store' });
     if (!r.ok) throw new Error(`search ${r.status}`);
-    return (await r.json()).stories;
+    return bySide((await r.json()).stories);
   } catch {
     return feed.stories;      // better a smaller search than none
   }
@@ -698,9 +710,40 @@ function renderStory(s, si) {
     if (groups.rest) { sec.classList.add('has-rest'); sec.style.setProperty('--rest-w', `${groups.rest.children.length * 8}px`); }
     let t = 0;
     clips.addEventListener('scroll', () => { onScrollStart(); clearTimeout(t); t = setTimeout(settle, 140); }, { passive: true });
+    holdToPick(ticks, clips, si);
     sec.append(segRow, ticks, clips);
     feedEl.append(sec);
     markPosition(si, 0);
+}
+
+// Hold the dots (or slide along them): they grow, and the clip under your finger comes up. A tap jumps to that clip.
+const HOLD_MS = 250;
+function holdToPick(ticks, clips, si) {
+  let hold = 0, scrub = false, x0 = null;
+  const pick = (x, behavior) => {
+    let best = 0, bestD = Infinity;
+    for (const t of ticks.querySelectorAll('i')) {
+      const r = t.getBoundingClientRect(), d = Math.abs(x - r.left - r.width / 2);
+      if (d < bestD) { bestD = d; best = +t.dataset.i; }
+    }
+    if (Math.round(clips.scrollLeft / (clips.clientWidth || 1)) === best) return;
+    markPosition(si, best);
+    clips.scrollTo({ left: best * clips.clientWidth, behavior });
+  };
+  const grow = () => { scrub = true; ticks.classList.add('scrub'); };
+  const stop = () => { clearTimeout(hold); scrub = false; x0 = null; ticks.classList.remove('scrub'); };
+  ticks.addEventListener('pointerdown', (e) => {
+    x0 = e.clientX;
+    try { ticks.setPointerCapture(e.pointerId); } catch { /* not supported */ }
+    hold = setTimeout(() => { grow(); pick(x0, 'auto'); }, HOLD_MS);
+  });
+  ticks.addEventListener('pointermove', (e) => {
+    if (x0 === null) return;
+    if (!scrub && Math.abs(e.clientX - x0) > DRAG_START) { clearTimeout(hold); grow(); }
+    if (scrub) pick(e.clientX, 'auto');
+  });
+  ticks.addEventListener('pointerup', (e) => { if (x0 !== null && !scrub) pick(e.clientX, SMOOTH); stop(); });
+  ticks.addEventListener('pointercancel', stop);
 }
 
 function showEnd() {
@@ -813,19 +856,14 @@ function goStory(d) {
   const t = Math.max(0, Math.min(feedEl.children.length - 1, s + d));
   feedEl.scrollTo({ top: t * feedEl.clientHeight, behavior: SMOOTH });
 }
-// When a clip ends: one clip from each side, then the next story. The first clips are one per side (the pipeline
-// mixes them), so that's the first k, visited in order from where you are: Center, Right, then back to Left.
-let played = new Set();
+// A clip that can't play: on to the next outlet, or the next story. (A clip that ends just plays again.)
 function advance() {
   const s = stories[activeS];
   if (!s) return;
-  played.add(activeC);
-  const k = Math.min(s.clips.length, s.topic === 'sports' ? 3 : new Set(s.clips.map((c) => c.column).filter((c) => SIDES.includes(c))).size || 1);
-  const next = activeC < k ? [...Array(k).keys()].map((j) => (activeC + 1 + j) % k).find((i) => !played.has(i)) : undefined;
   autoAdvance = true;
-  if (next === undefined) return goStory(1);
+  if (activeC + 1 >= s.clips.length) return goStory(1);
   const sc = clipsEl(activeS);
-  sc.scrollTo({ left: next * sc.clientWidth, behavior: SMOOTH });
+  sc.scrollTo({ left: (activeC + 1) * sc.clientWidth, behavior: SMOOTH });
 }
 function jumpToColumn(si, column) {
   const ci = stories[si].clips.findIndex((c) => c.column === column);
@@ -860,9 +898,8 @@ function settle() {
       feedTimer = setTimeout(settle, 140);
       return;
     }
-    played = new Set();
     count('story');
-  } else if (c !== activeC && !autoAdvance) {   // you moved sideways yourself; a clip ending doesn't change your side
+  } else if (c !== activeC && !autoAdvance) {   // you moved sideways yourself; skipping a broken clip doesn't change your side
     if (stories[s].topic !== 'sports') side = stories[s].clips[c].column;
     store.set('knowsSideways', true);
     if (hintEl.textContent === SIDEWAYS_HINT) showHint('');
@@ -937,7 +974,8 @@ function onState(e) {
   }
   if (e.data === S.ENDED) {
     markWatched(currentId);
-    if (settings.auto) advance();
+    player.seekTo(0, true);       // plays again until you swipe
+    player.playVideo();
   }
 }
 
@@ -1104,7 +1142,7 @@ welcomeEl.addEventListener('cancel', (e) => e.preventDefault());      // a real 
 
 // ---------------------------------------------------------------- settings
 let settingsChanged = false, redraw = false;
-const toggles = ['auto', 'hideWatched', 'sportsInAll', 'notes'];
+const toggles = ['hideWatched', 'sportsInAll', 'notes'];
 function saveSettings() {
   store.set('settings', settings);
   settingsChanged = true;
@@ -1301,7 +1339,6 @@ function start(at, extra) {
 
 // Draws `stories` and opens on `at` if it's there, else on the first story.
 function draw(at) {
-  played = new Set();
   currentId = null;
   activeS = -1;
   $('#bar-share').hidden = !stories.length;
