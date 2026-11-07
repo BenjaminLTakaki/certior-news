@@ -2,7 +2,9 @@
 // the app and by the daily post on the portfolio's stats page. Drawn from the app's own look (the icon's blue, grey and
 // red, how many outlets each side had): no outlet's thumbnail, which would republish their images on your account.
 const W = 1080, H = 1350, PAD = 80;
-const FONT = '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif';
+// Inter is last: phones and browsers use their system font; the portfolio server, drawing the daily Instagram post,
+// has none of those and registers Inter.
+const FONT = '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Inter, sans-serif';
 const C = { bg: '#0b0c0f', ink: '#f6f7f9', muted: '#a9aeb7', faint: '#6f747d', tint: '#4a90ff', none: '#3a3d44' };
 const SIDES = [
   { key: 'left', label: 'LEFT', name: 'Left', color: '#4a90ff' },
@@ -40,9 +42,20 @@ function blocks(s, currentClip) {
   });
 }
 
+// In a browser by default. The portfolio server passes its own canvas, image loader, icon file and date.
+const BROWSER = {
+  canvas: (w, h) => Object.assign(document.createElement('canvas'), { width: w, height: h }),
+  loadImage, icon: ICON, now: () => new Date(),
+};
+
+// The card as a PNG, for Share and the stats page.
 export async function storyCard(s, currentClip) {
-  const c = document.createElement('canvas'), ctx = c.getContext('2d');
-  c.width = W; c.height = H;
+  const c = await drawCard(s, currentClip);
+  return new Promise((resolve) => c.toBlob(resolve, 'image/png'));
+}
+
+export async function drawCard(s, currentClip, env = BROWSER) {
+  const c = env.canvas(W, H), ctx = c.getContext('2d');
   ctx.textBaseline = 'top';
   const font = (weight, size) => { ctx.font = `${weight} ${size}px ${FONT}`; };
 
@@ -55,10 +68,10 @@ export async function storyCard(s, currentClip) {
   }
 
   // header: icon, name, date and topic
-  const icon = await loadImage(ICON);
+  const icon = await env.loadImage(env.icon);
   if (icon) { ctx.save(); rounded(ctx, PAD, PAD, 64, 64, 16); ctx.clip(); ctx.drawImage(icon, PAD, PAD, 64, 64); ctx.restore(); }
   font(700, 32); ctx.fillStyle = C.ink; ctx.fillText('Certior', PAD + (icon ? 84 : 0), PAD + 15);
-  const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  const date = env.now().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
   const topic = s.topic && s.topic !== 'other' ? ` · ${s.topic[0].toUpperCase()}${s.topic.slice(1)}` : '';
   font(500, 26); ctx.fillStyle = C.muted; ctx.textAlign = 'right'; ctx.fillText(date + topic, W - PAD, PAD + 19); ctx.textAlign = 'left';
 
@@ -135,5 +148,5 @@ export async function storyCard(s, currentClip) {
   ctx.fillText(`See all ${total} outlets in Certior`, PAD, footerTop);
   font(500, 24); ctx.fillStyle = C.faint;
   ctx.fillText(sport ? 'Headlines from the outlets’ YouTube videos.' : 'Headlines from the outlets’ YouTube videos. Sides: Media Bias/Fact Check.', PAD, footerTop + 44);
-  return new Promise((resolve) => c.toBlob(resolve, 'image/png'));
+  return c;
 }
