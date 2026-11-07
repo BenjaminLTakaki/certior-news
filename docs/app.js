@@ -33,7 +33,7 @@ const WATCHED_AFTER_MS = 3000;
 const DOUBLE_TAP_MS = 250, SKIP_S = 10;
 const SIDEWAYS_HINT = 'Swipe sideways for other outlets';
 const SIDEWAYS_HINT_MS = 5000, SIDEWAYS_HINTS = 3;
-const SETTINGS_DEFAULTS = { side: '', auto: true, hideWatched: false, sportsInAll: true, notes: true };
+const SETTINGS_DEFAULTS = { side: 'center', auto: true, hideWatched: false, sportsInAll: true, notes: true };
 // YouTube forbids disabling the links inside its player, and they sit along its top and bottom edges.
 // So swipes are only caught in the middle band; everything above and below reaches YouTube.
 const GESTURE_TOP = 0.25, GESTURE_HEIGHT = 0.5;
@@ -63,6 +63,7 @@ const store = {
 };
 for (const old of ['blind', 'dailyGame']) { try { localStorage.removeItem(old); } catch { /* private mode etc. */ } }     // from a game that no longer exists
 const settings = { ...SETTINGS_DEFAULTS, ...store.get('settings', {}) };
+if (!settings.side) settings.side = 'center';     // '' was the old default, Last Side I Picked: it left everyone on Left
 let consent = store.get('consent', null);    // 'videos' or 'text'. Nothing from YouTube loads until it is 'videos'.
 const videosOn = () => consent === 'videos';
 document.documentElement.classList.toggle('videos', videosOn());     // style.css gives the video more room
@@ -110,7 +111,6 @@ function renderMix(box) {
     const b = el('button', 'mix-try', `Open Stories on ${COLUMNS[least]} for a While`);
     b.onclick = () => {
       settings.side = least;
-      side = least;
       store.set('settings', settings);
       $('#set-side').value = least;
       b.replaceWith(el('p', '', `Stories will open on ${COLUMNS[least]} when they have it.`));
@@ -127,7 +127,8 @@ let topic = TOPICS[store.get('topic', 'all')] ? store.get('topic', 'all') : 'all
 let query = '', place = '', everything = null, searchFrom = 'search';     // searchFrom: the tab Back returns to
 let tab = 'news', pageOpen = false, lastPlace = '';   // pageOpen: a full page covers the feed, so the player stays out of the way
 let reserve = null, loadingMore = false, ended = false, startRun = 0, flashTimer = 0, refreshing = false;
-let side = settings.side || null, autoAdvance = false, hintTimer = 0;     // side: the one you last chose, kept from story to story
+let side = null, autoAdvance = false, hintTimer = 0;     // side: the one you last swiped to, for Open Stories On: Last Side I Picked
+const openSide = () => (settings.side === 'last' ? side || 'center' : settings.side);
 let playCheck = 0, watchTimer = 0;
 let latest = null;      // the newest feed fetched, even while you're still watching the one before it
 
@@ -743,7 +744,7 @@ function settle() {
   const [s, c] = current();
   if (s !== activeS) played = new Set();
   if (s !== activeS) {          // a new story opens on the side you were watching, if it has that side
-    const ci = stories[s].clips.findIndex((k) => (place ? k.country === place : k.column === side));
+    const ci = stories[s].clips.findIndex((k) => (place ? k.country === place : k.column === openSide()));
     if (ci > 0 && ci !== c) {
       clipsEl(s).scrollLeft = ci * clipsEl(s).clientWidth;
       clearTimeout(feedTimer);
@@ -990,7 +991,7 @@ function syncSettings() {
 for (const t of toggles) {
   $(`#set-${t}`).onchange = (e) => { settings[t] = e.target.checked; saveSettings(); };
 }
-$('#set-side').onchange = (e) => { settings.side = e.target.value; side = settings.side || null; saveSettings(); };
+$('#set-side').onchange = (e) => { settings.side = e.target.value; saveSettings(); };
 $('#set-videos').onchange = (e) => {
   chooseVideos(e.target.checked);
   if (e.target.checked) redraw = true;
