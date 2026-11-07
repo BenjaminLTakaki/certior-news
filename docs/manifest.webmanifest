@@ -1,6 +1,6 @@
 {
-  "name": "Swipe News",
-  "short_name": "Swipe News",
+  "name": "Certior",
+  "short_name": "Certior",
   "description": "Short news clips from outlets around the world, grouped by story.",
   "start_url": "./",
   "scope": "./",

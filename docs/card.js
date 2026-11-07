@@ -57,7 +57,7 @@ export async function storyCard(s, currentClip) {
   // header: icon, name, date and topic
   const icon = await loadImage(ICON);
   if (icon) { ctx.save(); rounded(ctx, PAD, PAD, 64, 64, 16); ctx.clip(); ctx.drawImage(icon, PAD, PAD, 64, 64); ctx.restore(); }
-  font(700, 32); ctx.fillStyle = C.ink; ctx.fillText('Swipe News', PAD + (icon ? 84 : 0), PAD + 15);
+  font(700, 32); ctx.fillStyle = C.ink; ctx.fillText('Certior', PAD + (icon ? 84 : 0), PAD + 15);
   const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
   const topic = s.topic && s.topic !== 'other' ? ` · ${s.topic[0].toUpperCase()}${s.topic.slice(1)}` : '';
   font(500, 26); ctx.fillStyle = C.muted; ctx.textAlign = 'right'; ctx.fillText(date + topic, W - PAD, PAD + 19); ctx.textAlign = 'left';
@@ -132,7 +132,7 @@ export async function storyCard(s, currentClip) {
 
   // footer: where to see the rest, and where this comes from
   font(700, 30); ctx.fillStyle = C.ink;
-  ctx.fillText(`See all ${total} outlets in Swipe News`, PAD, footerTop);
+  ctx.fillText(`See all ${total} outlets in Certior`, PAD, footerTop);
   font(500, 24); ctx.fillStyle = C.faint;
   ctx.fillText(sport ? 'Headlines from the outlets’ YouTube videos.' : 'Headlines from the outlets’ YouTube videos. Sides: Media Bias/Fact Check.', PAD, footerTop + 44);
   return new Promise((resolve) => c.toBlob(resolve, 'image/png'));

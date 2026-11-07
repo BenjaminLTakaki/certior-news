@@ -1,4 +1,4 @@
-// Swipe News — one story per screen. Swipe up/down = next/previous story,
+// Certior (built in the swipe-news repo) — one story per screen. Swipe up/down = next/previous story,
 // swipe left/right = the same story from another outlet.
 // One YouTube player is reused for every clip and laid over the active clip's video area.
 

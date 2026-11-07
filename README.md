@@ -1,6 +1,8 @@
-# Swipe News
+# Certior
 
-Short news clips from 52 outlets around the world, grouped by story. **Swipe up** for the next story, **swipe sideways** to see the same story from Left, Center and Right outlets. It runs as a Home Screen web app on iPhone and costs €0.
+*Certiorem facere*: to make someone better informed. (This repo is still called swipe-news, the app's old name.)
+
+Short news clips from 51 outlets around the world, grouped by story. **Swipe up** for the next story, **swipe sideways** to see the same story from Left, Center and Right outlets. It runs as a Home Screen web app on iPhone and costs €0.
 
 ```
 YouTube Data API ──► GitHub Actions (every 10 min) ──► GitHub Pages ──► portfolio site ──► iPhone
