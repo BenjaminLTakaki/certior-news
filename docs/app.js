@@ -579,7 +579,7 @@ function renderStory(s, si) {
     seg.setAttribute('role', 'group');
     seg.setAttribute('aria-label', 'Rating of the outlets covering this story');
     for (const [col, label] of Object.entries(COLUMNS)) {
-      if (col === 'unrated') continue;      // not rated clips still come last, with their rating on the clip: a fourth segment crowded the row
+      if (!SIDES.includes(col)) continue;      // State-funded and Not rated come last with their own ticks and byline: a fourth segment crowded the row
       const b = el('button', '', label);      // a side with no outlets stays visible but off: that gap is information
       b.type = 'button';
       b.dataset.column = col;
