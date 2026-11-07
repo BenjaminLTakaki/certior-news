@@ -325,9 +325,6 @@ def build_stories(clips: list[dict], groups: list[list[int]], X: np.ndarray, now
 
         ordered = swipe_order(kept, clips, X, head, topic)
         first = min(ms, key=lambda c: c["published"])
-        since = {}      # each outlet's first clip in the story: the feed keeps its newest, Compare shows who was first
-        for c in ms:
-            since[c["channel"]] = min(since.get(c["channel"], c["published"]), c["published"])
         out.append({
             "id": "s_" + first["id"],
             "headline": headline(clips[head]),
@@ -342,7 +339,7 @@ def build_stories(clips: list[dict], groups: list[list[int]], X: np.ndarray, now
             "tags": tags_of(ms, topic),
             "us_domestic": topic != "sports" and is_us_domestic([c["title"] for c in ms]),
             "clips": [{**{k: clips[i][k] for k in ("id", "channel", "country", "region", "lean", "column", "published", "duration")},
-                       "title": clip_text(clips[i]), "note": clips[i].get("note", ""), "since": since[clips[i]["channel"]]} for i in ordered],
+                       "title": clip_text(clips[i]), "note": clips[i].get("note", "")} for i in ordered],
         })
     out.sort(key=lambda s: s["score"], reverse=True)
     out = space_out_us(out)

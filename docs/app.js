@@ -1100,21 +1100,26 @@ function gap(ms) {
   return m < 60 ? `${m}m` : `${h}h${h < 10 && m % 60 ? ` ${m % 60}m` : ''}`;
 }
 // Outlets in the order they first posted about the story, and how fast it crossed regions.
+// Only for a story under FIRST_MAX_H old, and from the same clips as the list above it. On a story that ran for days,
+// "first" only meant "oldest clip still in the two-day window", and contradicted the list.
+const FIRST_MAX_H = 12, FIRST_ROWS = 6;
 function timeline(s) {
-  const at = (c) => Date.parse(c.since || c.published);
+  const at = (c) => Date.parse(c.published);
   const order = [...s.clips].sort((a, b) => at(a) - at(b)), t0 = at(order[0]);
+  if (Date.now() - t0 > FIRST_MAX_H * 3600e3) return [];
   const group = el('div', 'group');
-  order.forEach((c, i) => {
+  order.slice(0, FIRST_ROWS).forEach((c, i) => {
     const row = el('div', 'cell');
     row.append(el('span', '', `${COUNTRY[c.country]?.[1] ?? ''} ${c.channel}`.trim()),
-      el('span', 'count', i ? `+${gap(at(c) - t0)}` : `First, ${ago(c.since || c.published)}`));
+      el('span', 'count', i ? `+${gap(at(c) - t0)}` : `First, ${ago(c.published)}`));
     group.append(row);
   });
+  if (order.length > FIRST_ROWS) group.append(el('div', 'cell', `${order.length - FIRST_ROWS} more`));
   const reached = new Map();
   for (const c of order) if (!reached.has(c.region)) reached.set(c.region, at(c));
   const spread = reached.size > 1 ? `It reached ${reached.size} regions within ${gap(Math.max(...reached.values()) - t0)}. ` : '';
   return [el('h2', 'group-title', 'Who Covered It First'), group,
-    el('p', 'group-note', `${spread}Times are when each outlet first posted a clip about it on YouTube, which can trail its other reporting.`)];
+    el('p', 'group-note', `${spread}By when each clip above went up on YouTube, which can come after an outlet's live or written reporting.`)];
 }
 
 // ---------------------------------------------------------------- share
