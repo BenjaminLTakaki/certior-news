@@ -32,6 +32,9 @@ const SOUND_OFF = icon('<path d="m16 9.5 5 5m0-5-5 5"/>');
 const PLAY_CHECK_MS = 1800;   // if a clip isn't playing after this, ask for a tap
 const WATCHED_AFTER_MS = 3000;
 const DOUBLE_TAP_MS = 250, SKIP_S = 10;
+// Swipes over the video follow your finger: past DRAG_COMMIT of the screen, or a flick faster than FLICK_PX_MS, goes on
+// to the next story or outlet when you let go; anything less springs back. DRAG_START tells a drag from a tap.
+const DRAG_START = 8, DRAG_COMMIT = 0.25, FLICK_PX_MS = 0.4;
 const SIDEWAYS_HINT = 'Swipe sideways for other outlets';
 const SETTINGS_DEFAULTS = { side: 'center', auto: true, hideWatched: false, sportsInAll: true, notes: true };
 // YouTube forbids disabling the links inside its player, and they sit along its top and bottom edges.
@@ -769,13 +772,6 @@ function goStory(d) {
   const t = Math.max(0, Math.min(feedEl.children.length - 1, s + d));
   feedEl.scrollTo({ top: t * feedEl.clientHeight, behavior: SMOOTH });
 }
-function goClip(d) {
-  const [s, c] = current();
-  const sc = clipsEl(s);
-  const n = stories[s].clips.length;
-  if (c + d >= n && d > 0) return goStory(1);          // past the last side -> next story
-  sc.scrollTo({ left: Math.max(0, Math.min(n - 1, c + d)) * sc.clientWidth, behavior: SMOOTH });
-}
 // When a clip ends: one clip from each side, then the next story. The first clips are one per side (the pipeline
 // mixes them), so that's the first k, visited in order from where you are: Center, Right, then back to Left.
 let played = new Set();
@@ -803,7 +799,7 @@ function onScrollStart() {
   clearTimeout(watchTimer);
   if (playerReady) player.pauseVideo();
   wrap.classList.add('away');
-  gesture.hidden = true;
+  if (!g0?.axis) gesture.hidden = true;     // mid-drag, the layer holds your finger: hiding it would drop the drag
 }
 
 function settle() {
@@ -952,18 +948,43 @@ async function createPlayer(firstId) {
 }
 
 // ---------------------------------------------------------------- gestures on top of the video
+// g0: the touch in progress. axis: 'y' (stories) or 'x' (outlets) once it moved DRAG_START, else still a possible tap.
 let g0 = null;
+const dragged = (g) => (g.axis === 'y' ? feedEl : clipsEl(g.s));
 gesture.addEventListener('pointerdown', (e) => {
   document.activeElement?.blur();      // the touchstart handler below would otherwise leave the keyboard up
-  g0 = { x: e.clientX, y: e.clientY, t: Date.now() };
+  const [s] = current();
+  g0 = { x: e.clientX, y: e.clientY, t: Date.now(), axis: null, s, top: feedEl.scrollTop, left: clipsEl(s)?.scrollLeft ?? 0 };
   try { gesture.setPointerCapture(e.pointerId); } catch { /* not supported */ }
 });
+gesture.addEventListener('pointermove', (e) => {
+  if (!g0) return;
+  const dx = e.clientX - g0.x, dy = e.clientY - g0.y;
+  if (!g0.axis) {
+    if (Math.max(Math.abs(dx), Math.abs(dy)) < DRAG_START) return;
+    g0.axis = Math.abs(dy) > Math.abs(dx) ? 'y' : 'x';
+    if (!dragged(g0)) { g0 = null; return; }
+    dragged(g0).style.scrollSnapType = 'none';     // snapping would fight the finger
+  }
+  if (g0.axis === 'y') feedEl.scrollTop = g0.top - dy;
+  else dragged(g0).scrollLeft = g0.left - dx;
+});
+// Let go: glide on, or spring back, then snapping takes over again.
+function letGo(g, d, dt) {
+  const el = dragged(g), size = g.axis === 'y' ? el.clientHeight : el.clientWidth;
+  const from = g.axis === 'y' ? g.s : Math.round(g.left / size);
+  const step = Math.abs(d) > size * DRAG_COMMIT || Math.abs(d) / Math.max(dt, 1) > FLICK_PX_MS ? (d < 0 ? 1 : -1) : 0;
+  const last = g.axis === 'y' ? feedEl.children.length - 1 : stories[g.s].clips.length - 1;
+  const to = Math.max(0, Math.min(last, from + step));
+  el.scrollTo({ [g.axis === 'y' ? 'top' : 'left']: to * size, behavior: SMOOTH });
+  setTimeout(() => { el.style.scrollSnapType = ''; }, 450);
+  if (g.axis === 'x' && from + step > last) setTimeout(() => goStory(1), 200);      // past the last outlet: the next story
+}
 gesture.addEventListener('pointerup', (e) => {
   if (!g0) return;
-  const dx = e.clientX - g0.x, dy = e.clientY - g0.y, dt = Date.now() - g0.t;
+  const g = g0, dx = e.clientX - g.x, dy = e.clientY - g.y, dt = Date.now() - g.t;
   g0 = null;
-  if (Math.abs(dy) > 50 && Math.abs(dy) > Math.abs(dx)) return goStory(dy < 0 ? 1 : -1);
-  if (Math.abs(dx) > 40) return goClip(dx < 0 ? 1 : -1);
+  if (g.axis) return letGo(g, g.axis === 'y' ? dy : dx, dt);
   if (dt >= 400 || !playerReady) return;
   // Double-tap the left or right half to go back or forward, as on YouTube; keep tapping to skip more.
   // So a single tap (pause/play) waits DOUBLE_TAP_MS to be sure it isn't the first of two.
@@ -987,7 +1008,7 @@ function skip(d) {
   clearTimeout(skipTimer);
   skipTimer = setTimeout(() => f.classList.remove('on'), 600);
 }
-gesture.addEventListener('pointercancel', () => { g0 = null; });
+gesture.addEventListener('pointercancel', () => { const g = g0; g0 = null; if (g?.axis) letGo(g, 0, 1e9); });     // spring back
 // Without this, Chromium treats a flick here as a fling and swallows the next tap anywhere on the page.
 gesture.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
 
