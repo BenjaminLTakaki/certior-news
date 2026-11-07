@@ -16,14 +16,14 @@ const COUNTRY = {
 const SOMEWHERE_MIN = 5;      // "Take Me Somewhere" skips countries with too little to show
 const RECENT_MAX = 6;
 const MIX_DAYS = 7;
-const COLUMNS = { left: 'Left', center: 'Center', right: 'Right', unrated: 'Not rated' };
+const COLUMNS = { left: 'Left', center: 'Center', right: 'Right', state: 'State-funded', unrated: 'Not rated' };
 const SIDES = ['left', 'center', 'right'];      // the pipeline orders clips Left, Center, Right, Left..., then the rest
 // The outlet's own rating. Lean Left swipes under Left and Lean Right under Right, so this tells them apart.
 const LEAN = { left: 'Left', 'lean-left': 'Lean Left', center: 'Center', 'lean-right': 'Lean Right', right: 'Right', unrated: 'Not rated' };
 // After the outlet: "Lean Left · 3h ago · Canada". On a narrow phone with videos on the row runs out of room, so the
 // country, which the Compare sheet and World tab also show, comes last. Sport has no sides, so no rating.
 // The clip row leaves the country out (it cut off as "5h ago…", and World has it); Compare has room for it.
-const byline = (c, s, country = false) => [s.topic !== 'sports' && LEAN[c.lean], ago(c.published), country && c.country].filter(Boolean).join(' · ');
+const byline = (c, s, country = false) => [s.topic !== 'sports' && (c.column === 'state' ? 'State-funded' : LEAN[c.lean]), ago(c.published), country && c.country].filter(Boolean).join(' · ');
 const LANDSCAPE = matchMedia('(orientation: landscape) and (max-height: 500px)');   // a sideways phone, or any screen too short for the video: see #rotate
 const SMOOTH = matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
 const icon = (path) => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5H4Z"/>${path}</svg>`;
@@ -1195,16 +1195,17 @@ function openCompare(si, currentClip) {
   box.textContent = '';
   if (!store.get('knowsRatings', false) && s.topic !== 'sports') {      // the first Compare explains the sides, not the welcome
     store.set('knowsRatings', true);
-    box.append(el('p', 'compare-intro', 'Left, Center and Right are Media Bias/Fact Check\u2019s ratings of each outlet as a whole, not of these headlines. Each headline shows its outlet\u2019s exact rating, like Lean Left.'));
+    box.append(el('p', 'compare-intro', 'Left, Center and Right are Media Bias/Fact Check\u2019s ratings of each outlet as a whole, on a US left\u2013right scale, not of these headlines. Each headline shows its outlet\u2019s exact rating, like Lean Left. Outlets a government funds have their own group.'));
   }
   for (const [col, label] of Object.entries(COLUMNS)) {
     const clips = s.clips.filter((c) => c.column === col);
-    if (s.topic !== 'sports' && col !== 'unrated' && !clips.length) {
+    if (s.topic !== 'sports' && SIDES.includes(col) && !clips.length) {
       box.append(el('h2', 'group-title', label), el('p', 'group-note', 'No coverage among the outlets here.'));
       continue;
     }
     if (!clips.length) continue;
     if (s.topic !== 'sports') box.append(el('h2', 'group-title', label));     // left and right mean nothing for sport
+    if (s.topic !== 'sports' && col === 'state') box.append(el('p', 'group-note state-note', 'YouTube notes that a government funds these outlets, in whole or in part, so they aren\u2019t placed on the US left\u2013right scale.'));
     const group = el('div', 'group');
     for (const c of clips) {
       const b = el('button', 'cell headline' + (c.id === currentClip ? ' now' : ''));
@@ -1228,7 +1229,7 @@ function openCompare(si, currentClip) {
   box.append(share);
   const yt = el('a', 'watch-link', 'Watch This Clip on YouTube');
   yt.href = `https://www.youtube.com/watch?v=${currentClip}`; yt.target = '_blank'; yt.rel = 'noopener';
-  box.append(yt, el('p', 'group-note', 'Headlines from YouTube videos. Sides are outlet ratings from Media Bias/Fact Check, not judgements of these headlines.'));
+  box.append(yt, el('p', 'group-note', 'Headlines from YouTube videos. Left, Center and Right are Media Bias/Fact Check ratings of whole outlets on a US left\u2013right scale, not judgements of these headlines.'));
   if (playerReady) player.pauseVideo();
   compareEl.showModal();
 }

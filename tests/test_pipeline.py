@@ -436,8 +436,8 @@ def test_backfill_fills_past_days_without_keeping_old_clips(monkeypatch, tmp_pat
     for name in ("CLIPS_FILE", "REJECTED_FILE", "CHANNEL_CACHE_FILE", "DIGEST_FILE", "FRAMING_FILE"):
         monkeypatch.setattr(config, name, tmp_path / f"{name}.json")
     chans = json.loads(config.CHANNELS_FILE.read_text(encoding="utf-8"))["channels"]
-    pick = [next(c for c in chans if config.LEAN_TO_COLUMN[c["lean"]] == col) for col in ("left", "left", "right")]
-    pick[1] = [c for c in chans if config.LEAN_TO_COLUMN[c["lean"]] == "left"][1]
+    pick = [next(c for c in chans if config.column_of(c) == col) for col in ("left", "left", "right")]
+    pick[1] = [c for c in chans if config.column_of(c) == "left"][1]
     run.save_json(config.CHANNEL_CACHE_FILE, {c["handle"]: {"uploads": c["handle"]} for c in pick})
     today = datetime.now(timezone.utc).replace(hour=12, minute=0, second=0, microsecond=0)
     items = {}
@@ -478,3 +478,23 @@ def test_swipes_mix_the_sides_and_open_each_side_on_its_most_different_headline(
     assert head in ("A", "D", "G")                  # the plain [1, 0, 0] headline...
     assert order[0] == "B" and order[2] == "E"      # ...so each side opens on the clip least like it
     assert order.index("C") > order.index("B")      # and "C", close to the headline, waits
+
+
+def test_state_funded_outlets_leave_the_left_right_scale():
+    state = {"name": "AJ", "region": "mideast_africa", "country": "Qatar", "lean": "lean-left",
+             "note": "Al Jazeera is funded in whole or in part by the Qatari government."}
+    public = {"name": "DW", "region": "europe", "country": "Germany", "lean": "lean-left", "note": "DW is a German public broadcast service."}
+    out = run.apply_channels({"a": {"channel": "AJ"}, "b": {"channel": "DW"}}, [state, public])
+    assert out["a"]["column"] == "state" and out["a"]["lean"] == "lean-left" and out["b"]["column"] == "left"
+    assert filters.to_clip(raw(), state, NOW)[0]["column"] == "state"
+    chans = json.loads(config.CHANNELS_FILE.read_text(encoding="utf-8"))["channels"]
+    assert {c["name"] for c in chans if config.column_of(c) == "state"} == {
+        "Al Jazeera English", "Al Arabiya English", "Arab News", "TeleSUR English", "SABC News", "euronews", "africanews"}
+
+
+def test_state_funded_clips_come_after_the_sides_and_dont_count_as_one():
+    cols = ["state", "left", "right", "unrated", "state", "center"]
+    clips = [clip(i, f"O{i}", "europe", title=f"Ferry sinks, report {i}", column=col) for i, col in enumerate(cols)]
+    s = grouping.build_stories(clips, [list(range(6))], np.eye(6), NOW)[0]
+    assert [c["column"] for c in s["clips"]] == ["left", "center", "right", "state", "state", "unrated"]
+    assert s["sides"]["state"] == 2 and s["blindspot"] is None

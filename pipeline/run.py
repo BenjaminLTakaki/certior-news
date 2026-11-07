@@ -77,7 +77,7 @@ def apply_channels(store: dict, channels: list[dict]) -> dict:
         ch = by_name.get(v["channel"])
         if ch:
             out[k] = {**v, "region": ch["region"], "country": ch["country"], "lean": ch["lean"], "topic": ch.get("topic", ""), "note": ch.get("note", ""), "tags": ch.get("tags", []), "aliases": ch.get("aliases", []),
-                      "column": config.LEAN_TO_COLUMN[ch["lean"]]}
+                      "column": config.column_of(ch)}
     return out
 
 

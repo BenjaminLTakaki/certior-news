@@ -66,7 +66,7 @@ def to_clip(item: dict, channel: dict, now: datetime | None = None) -> tuple[dic
         "topic": channel.get("topic", ""),
         "tags": channel.get("tags", []),
         "lean": channel["lean"],
-        "column": config.LEAN_TO_COLUMN[channel["lean"]],
+        "column": config.column_of(channel),
         "region": channel["region"],
         "country": channel["country"],
         "published": sn["publishedAt"],

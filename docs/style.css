@@ -15,6 +15,7 @@
   --left: oklch(68% .15 250);     /* the sides, on ticks and the Left/Center/Right control */
   --center: oklch(84% .01 265);
   --right: oklch(66% .19 25);
+  --state: oklch(78% .13 80);      /* state-funded: off the Left/Right scale */
   --off-scale: oklch(60% .008 265);
   --bar-h: calc(44px + env(safe-area-inset-top));
   --tab-h: calc(50px + env(safe-area-inset-bottom));
@@ -66,6 +67,7 @@ button:active, a:active { opacity: .6; }
 .seg button[data-column="center"], .ticks i[data-column="center"] { --c: var(--center); }
 .seg button[data-column="right"], .ticks i[data-column="right"] { --c: var(--right); }
 .ticks i { --c: var(--off-scale); }
+.ticks i[data-column="state"] { --c: var(--state); }
 .tg.all i { --c: var(--ink); }
 .seg button { flex: 1; height: 28px; border-radius: 7px; font-size: 13px; font-weight: 500; transition: background-color 200ms var(--ease); white-space: nowrap; }
 .seg button.on { background: var(--surface-2); font-weight: 600; }
@@ -211,6 +213,7 @@ dialog::backdrop { background: oklch(0% 0 0 / .6); }
 .sheet-head h2 { font-size: 17px; font-weight: 600; outline: 0; }   /* focused on open so Done doesn't get a ring */
 .sheet-head .done { min-height: 44px; padding-left: 16px; color: var(--tint); font-weight: 600; }
 .grabber { position: absolute; top: 5px; left: 50%; width: 36px; height: 5px; margin-left: -18px; border-radius: 3px; background: var(--surface-2); }
+.state-note { margin: 0 16px 8px; }
 .compare-intro { margin: 4px 16px 0; padding: 12px 14px; border-radius: 10px; background: var(--surface); font-size: 15px; line-height: 20px; color: var(--muted); }
 .headline { flex-direction: column; align-items: flex-start; gap: 2px; padding: 11px 44px 11px 16px; }
 .headline-title { font-size: 15px; line-height: 20px; font-weight: 500; }

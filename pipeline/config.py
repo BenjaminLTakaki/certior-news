@@ -82,13 +82,24 @@ FRAMING_TOP = 10
 
 BLINDSPOT_MIN_CLIPS = 3         # a story needs at least this many outlets to get a blindspot label
 
+# Outlets YouTube labels as funded by a government (or the EU) leave the Left/Right scale for their own group: Media
+# Bias/Fact Check rates on a US scale, which put Saudi state TV next to Fox. Public broadcasters ("X is a ... public
+# broadcast service") stay on the scale. The rule reads YouTube's notice in channels.json, so it's checkable, not ours.
+STATE_FUNDED = r"\bfunded in whole or in part by\b"
+
+
+def column_of(channel: dict) -> str:
+    import re
+    return "state" if re.search(STATE_FUNDED, channel.get("note", ""), re.I) else LEAN_TO_COLUMN[channel["lean"]]
+
+
 LEAN_TO_COLUMN = {
     "left": "left", "lean-left": "left",
     "center": "center",
     "lean-right": "right", "right": "right",
     "unrated": "unrated",
 }
-COLUMNS = ["left", "center", "right", "unrated"]    # swipe order
+COLUMNS = ["left", "center", "right", "state", "unrated"]    # swipe order
 
 MAX_SPORTS_STORIES = 30         # on top of MAX_STORIES_IN_FEED, so the Sports tab survives a heavy news day
 
