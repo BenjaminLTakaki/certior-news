@@ -1029,11 +1029,6 @@ function chooseVideos(on) {
   store.set('consent', consent);
   document.documentElement.classList.toggle('videos', on);
 }
-$('#welcome-next').onclick = () => {
-  $('#welcome-1').hidden = true;
-  $('#welcome-2').hidden = false;
-  $('#welcome-2 h1').focus?.();
-};
 function finishWelcome(on) {
   chooseVideos(on);
   welcomeEl.close();
@@ -1198,6 +1193,10 @@ async function shareStory(s, currentClip) {
 function openCompare(si, currentClip) {
   const s = stories[si], box = $('#compare-body');
   box.textContent = '';
+  if (!store.get('knowsRatings', false) && s.topic !== 'sports') {      // the first Compare explains the sides, not the welcome
+    store.set('knowsRatings', true);
+    box.append(el('p', 'compare-intro', 'Left, Center and Right are Media Bias/Fact Check\u2019s ratings of each outlet as a whole, not of these headlines. Each headline shows its outlet\u2019s exact rating, like Lean Left.'));
+  }
   for (const [col, label] of Object.entries(COLUMNS)) {
     const clips = s.clips.filter((c) => c.column === col);
     if (s.topic !== 'sports' && col !== 'unrated' && !clips.length) {

@@ -128,8 +128,9 @@
     <div id="compare-body"></div>
   </dialog>
 
+  <!-- one screen: what the app does, then the video choice; the ratings are explained the first time you open Compare -->
   <dialog id="welcome" aria-labelledby="welcome-title">
-    <div id="welcome-1" class="welcome-step">
+    <div class="welcome-step">
       <h1 id="welcome-title" tabindex="-1" autofocus>Welcome to Swipe News</h1>
       <ul class="features">
         <li>
@@ -138,23 +139,15 @@
         </li>
         <li>
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h16M4 12l4.5-4.5M4 12l4.5 4.5M20 12l-4.5-4.5M20 12l-4.5 4.5"/></svg>
-          <div><b>Swipe sideways for another outlet</b><span>See who covered it. Left, Center and Right group outlets by their Media Bias/Fact Check rating. Each clip shows the exact rating, like Lean Left.</span></div>
-        </li>
-        <li>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.6 2.4 3.9 5.2 3.9 8.5s-1.3 6.1-3.9 8.5c-2.6-2.4-3.9-5.2-3.9-8.5S9.4 5.9 12 3.5Z"/></svg>
-          <div><b>Go somewhere new</b><span>Pick a country and see what its outlets are covering today.</span></div>
+          <div><b>Swipe sideways for another side</b><span>Each story goes Left, Center, Right, so you see how every side covered it.</span></div>
         </li>
       </ul>
-      <button type="button" id="welcome-next" class="filled">Continue</button>
-    </div>
-    <div id="welcome-2" class="welcome-step" hidden>
-      <h1>Play Videos from YouTube?</h1>
-      <p class="lead">Videos are played by YouTube. If you turn them on, it can set cookies on this device and may track what you watch. Without them you still get every headline, with links to YouTube.</p>
+      <p class="lead">Videos play from YouTube, which can set cookies on this device and may track what you watch. Without them you still get every headline, with links to YouTube.</p>
       <div class="welcome-actions">
         <button type="button" id="consent-videos" class="plain-filled">Turn On Videos</button>
         <button type="button" id="consent-text" class="plain-filled">Text Only</button>
       </div>
-      <p class="group-note">By continuing you agree to the <a href="https://www.youtube.com/t/terms" target="_blank" rel="noopener">YouTube Terms of Service</a> and our <a href="privacy.html">Privacy Policy</a>. You can change this any time in Settings.</p>
+      <p class="group-note">Turning on videos means agreeing to the <a href="https://www.youtube.com/t/terms" target="_blank" rel="noopener">YouTube Terms of Service</a>. See our <a href="privacy.html">Privacy Policy</a>. You can change this any time in Settings.</p>
     </div>
   </dialog>
 

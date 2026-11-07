@@ -211,6 +211,7 @@ dialog::backdrop { background: oklch(0% 0 0 / .6); }
 .sheet-head h2 { font-size: 17px; font-weight: 600; outline: 0; }   /* focused on open so Done doesn't get a ring */
 .sheet-head .done { min-height: 44px; padding-left: 16px; color: var(--tint); font-weight: 600; }
 .grabber { position: absolute; top: 5px; left: 50%; width: 36px; height: 5px; margin-left: -18px; border-radius: 3px; background: var(--surface-2); }
+.compare-intro { margin: 4px 16px 0; padding: 12px 14px; border-radius: 10px; background: var(--surface); font-size: 15px; line-height: 20px; color: var(--muted); }
 .headline { flex-direction: column; align-items: flex-start; gap: 2px; padding: 11px 44px 11px 16px; }
 .headline-title { font-size: 15px; line-height: 20px; font-weight: 500; }
 .headline-sub { font-size: 13px; line-height: 18px; color: var(--muted); }
@@ -221,18 +222,16 @@ button.watch-link { color: var(--tint); font-size: 17px; }
 
 /* ---- welcome ---- */
 #welcome { position: fixed; inset: 0; width: 100%; max-width: 100%; height: 100%; max-height: 100%; margin: 0; }
-.welcome-step { display: flex; flex-direction: column; min-height: 100%; padding: calc(56px + env(safe-area-inset-top)) 32px calc(24px + env(safe-area-inset-bottom)); }
-.welcome-step[hidden] { display: none; }
-.welcome-step h1 { font-size: 34px; line-height: 41px; font-weight: 700; text-align: center; outline: 0; }
-.features { list-style: none; margin: 40px 0 24px; padding: 0; display: grid; gap: 28px; }
+.welcome-step { display: flex; flex-direction: column; min-height: 100%; padding: calc(48px + env(safe-area-inset-top)) 32px calc(24px + env(safe-area-inset-bottom)); }
+.welcome-step h1 { font-size: 34px; line-height: 41px; font-weight: 700; text-align: center; outline: 0; text-wrap: balance; }     /* not "Welcome to Swipe / News" */
+.features { list-style: none; margin: 32px 0 0; padding: 0; display: grid; gap: 24px; }
 .features li { display: grid; grid-template-columns: 34px 1fr; gap: 16px; align-items: start; }
 .features svg { width: 34px; height: 34px; fill: none; stroke: var(--tint); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .features b { display: block; font-size: 16px; line-height: 21px; font-weight: 600; }
 .features span { display: block; margin-top: 2px; font-size: 15px; line-height: 20px; color: var(--muted); }
-#welcome-next { margin-top: auto; }
-#welcome-2 .lead { margin-top: 16px; text-align: center; font-size: 17px; line-height: 23px; }
-.welcome-actions { display: grid; gap: 10px; margin-top: auto; padding-top: 32px; }
-#welcome-2 .group-note { margin: 14px 0 0; text-align: center; }
+#welcome .lead { margin-top: auto; padding-top: 28px; font-size: 15px; line-height: 20px; }
+.welcome-actions { display: grid; gap: 10px; margin-top: 16px; }
+#welcome .group-note { margin: 14px 0 0; text-align: center; }
 
 /* ---- tab bar ---- */
 #tabbar { position: fixed; z-index: 10; inset: auto 0 0; height: var(--tab-h); padding-bottom: env(safe-area-inset-bottom); display: grid; grid-template-columns: repeat(5, 1fr); background: var(--bg); border-top: .5px solid var(--hair); }
