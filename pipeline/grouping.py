@@ -282,6 +282,27 @@ def summarize(ms: list[dict], vec, head: str) -> tuple[str, str] | None:
     return cands[best] if sims[best] >= config.SUMMARY_MIN else None
 
 
+SIDES = ("left", "center", "right")
+
+
+def swipe_order(kept: list[int], clips: list[dict], X: np.ndarray, head: int, topic: str) -> list[int]:
+    """Left, Center, Right, Left, Center, Right... so every three swipes show all three sides, then the clips off that
+    scale. Inside a side, the headline least like the story's headline and that side's earlier ones comes first, so
+    each swipe adds an angle. Sport has no sides: one run, same rule."""
+    def varied(idx: list[int]) -> list[int]:
+        out, seen, rest = [], [head], sorted(idx, key=lambda i: -_ts(clips[i]["published"]))     # ties: newest first
+        while rest:
+            j = min(rest, key=lambda i: max(float(X[i] @ X[k]) for k in seen))
+            out.append(j); seen.append(j); rest.remove(j)
+        return out
+
+    if topic == "sports":
+        return varied(kept)
+    by_col = {col: varied([i for i in kept if clips[i]["column"] == col]) for col in config.COLUMNS}
+    rounds = [i for r in range(max(len(by_col[c]) for c in SIDES)) for c in SIDES if r < len(by_col[c]) for i in [by_col[c][r]]]
+    return rounds + [i for col in config.COLUMNS if col not in SIDES for i in by_col[col]]
+
+
 def build_stories(clips: list[dict], groups: list[list[int]], X: np.ndarray, now: datetime, capped: bool = True) -> list[dict]:
     judge = headline_judge(clips)
     try:
@@ -338,8 +359,7 @@ def build_stories(clips: list[dict], groups: list[list[int]], X: np.ndarray, now
         if n_sides == 1 and topic != "sports":
             score *= config.ONE_SIDE_PENALTY
 
-        # Left -> Center -> Right -> unrated, newest first inside each
-        ordered = sorted(kept, key=lambda i: (COL_ORDER[clips[i]["column"]], -_ts(clips[i]["published"])))
+        ordered = swipe_order(kept, clips, X, head, topic)
         first = min(ms, key=lambda c: c["published"])
         summary = summarize(ms, vec, clip_text(clips[head]))
         since = {}      # each outlet's first clip in the story: the feed keeps its newest, Compare shows who was first

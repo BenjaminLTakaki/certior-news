@@ -35,7 +35,7 @@ Open the app in **Safari → Share → Add to Home Screen**. Open it from the Ho
 | Gesture | What happens |
 | --- | --- |
 | Swipe up / down on the video | Next / previous story |
-| Swipe left / right on the video | Same story, next outlet (Left → Center → Right) |
+| Swipe left / right on the video | Same story, next outlet: Left, Center, Right in turn, so every three swipes show all three sides; the ticks under each side count its clips |
 | Tap the video | Pause / play |
 | Double-tap the left / right of the video | Back / forward 10 seconds (keep tapping to skip more) |
 | Tap the title at the top | Choose a topic |
@@ -48,7 +48,7 @@ Open the app in **Safari → Share → Add to Home Screen**. Open it from the Ho
 | **YouTube ↗** | Open the clip in the YouTube app |
 
 - Stories covered in several regions rank first. Stories you can compare across sides come first; stories from one side, one region or one outlet sink. At most one story in every four is US domestic politics, however widely it is covered. Watched stories move to the end and are dimmed.
-- When a clip finishes, the app moves to the next outlet, then to the next story.
+- When a clip finishes, the app plays one clip from each side, then moves to the next story. Swiping still reaches every clip; inside a side, the headline least like the ones before it comes first.
 - A **New stories** button appears when there are new clips, or tap the refresh icon to check. The feed starts with the top stories and loads the rest as you get near the end.
 
 ## Tuning the grouping (do this after 2–3 days)

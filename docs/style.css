@@ -12,6 +12,10 @@
   --tint: oklch(66% .19 255);
   --on: oklch(76% .2 150);
   --danger: oklch(66% .22 25);
+  --left: oklch(68% .15 250);     /* the sides, on ticks and the Left/Center/Right control */
+  --center: oklch(84% .01 265);
+  --right: oklch(66% .19 25);
+  --off-scale: oklch(60% .008 265);
   --bar-h: calc(44px + env(safe-area-inset-top));
   --tab-h: calc(50px + env(safe-area-inset-bottom));
   --seg-h: 36px;
@@ -57,6 +61,12 @@ button:active, a:active { opacity: .6; }
 /* ---- segmented control: which side you're watching ---- */
 .seg-row { display: flex; align-items: center; padding: 0 16px; }
 .seg { flex: 1; display: flex; padding: 2px; border-radius: 9px; background: var(--surface); }
+.seg button::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 6px; border-radius: 50%; background: var(--c); vertical-align: 1px; }
+.seg button[data-column="left"], .ticks i[data-column="left"] { --c: var(--left); }
+.seg button[data-column="center"], .ticks i[data-column="center"] { --c: var(--center); }
+.seg button[data-column="right"], .ticks i[data-column="right"] { --c: var(--right); }
+.ticks i { --c: var(--off-scale); }
+.tg.all i { --c: var(--ink); }
 .seg button { flex: 1; height: 28px; border-radius: 7px; font-size: 13px; font-weight: 500; transition: background-color 200ms var(--ease); white-space: nowrap; }
 .seg button.on { background: var(--surface-2); font-weight: 600; }
 .seg button:disabled { color: var(--faint); opacity: .55; cursor: default; }
@@ -64,10 +74,15 @@ button:active, a:active { opacity: .6; }
 .seg-note { flex: 1; text-align: center; font-size: 13px; color: var(--muted); }      /* sport: no sides, so a plain label */
 
 /* ---- position inside the story ---- */
-.ticks { display: flex; gap: 3px; padding: 0 16px; }
-.ticks i { flex: 1; border-radius: 1px; background: var(--track); transition: background-color 200ms ease-out; }
-.ticks i.on { background: var(--ink); }
-.ticks i:only-child { visibility: hidden; }
+.ticks { display: grid; grid-template-columns: repeat(3, 1fr); column-gap: 6px; padding: 0 18px; }
+.story.has-rest .ticks { grid-template-columns: repeat(3, 1fr) var(--rest-w); padding-right: 16px; }
+.story.has-rest .seg-row { padding-right: calc(16px + var(--rest-w) + 6px); }
+.story.sports .ticks { display: flex; }
+.ticks.single { visibility: hidden; }
+.tg { display: flex; justify-content: center; gap: 2px; min-width: 0; }
+.tg.all { flex: 1; }
+.tg i { flex: 0 1 18px; min-width: 2px; border-radius: 1px; background: var(--c); opacity: .38; transition: opacity 200ms ease-out, transform 200ms ease-out; }
+.tg i.on { opacity: 1; transform: scaleY(2); }
 
 /* ---- clips: horizontal snap ---- */
 .clips { display: flex; overflow-x: scroll; scroll-snap-type: x mandatory; scrollbar-width: none;

@@ -17,6 +17,7 @@ const SOMEWHERE_MIN = 5;      // "Take Me Somewhere" skips countries with too li
 const RECENT_MAX = 6;
 const MIX_DAYS = 7;
 const COLUMNS = { left: 'Left', center: 'Center', right: 'Right', unrated: 'Not rated' };
+const SIDES = ['left', 'center', 'right'];      // the pipeline orders clips Left, Center, Right, Left..., then the rest
 // The outlet's own rating. Lean Left swipes under Left and Lean Right under Right, so this tells them apart.
 const LEAN = { left: 'Left', 'lean-left': 'Lean Left', center: 'Center', 'lean-right': 'Lean Right', right: 'Right', unrated: 'Not rated' };
 // After the outlet: "Lean Left · 3h ago · Canada". On a narrow phone with videos on the row runs out of room, so the
@@ -538,8 +539,11 @@ function renderStory(s, si) {
     }
 
     const clips = el('div', 'clips');
-    const ticks = el('div', 'ticks');
-    s.clips.forEach((c) => {
+    const ticks = el('div', 'ticks' + (s.clips.length < 2 ? ' single' : ''));
+    // Ticks sit under their side's segment, in its colour, so a story's balance shows at a glance and position
+    // tells the sides apart without colour. Clips off the Left/Right scale get a small group of their own at the end.
+    const groups = {}, groupOf = (c) => (s.topic === 'sports' ? 'all' : SIDES.includes(c.column) ? c.column : 'rest');
+    s.clips.forEach((c, ci) => {
       const clip = el('article', 'clip');
       const slot = el('div', 'slot');
       if (videosOn()) {
@@ -575,8 +579,14 @@ function renderStory(s, si) {
       meta.append(row);
       clip.append(slot, meta);
       clips.append(clip);
-      ticks.append(el('i'));
+      const t = el('i');
+      t.dataset.i = ci;
+      t.dataset.column = c.column;
+      (groups[groupOf(c)] ||= el('span', `tg ${groupOf(c)}`)).append(t);
     });
+    if (s.topic === 'sports') ticks.append(groups.all);
+    else ticks.append(...SIDES.map((k) => groups[k] || el('span', `tg ${k}`)), ...(groups.rest ? [groups.rest] : []));
+    if (groups.rest) { sec.classList.add('has-rest'); sec.style.setProperty('--rest-w', `${groups.rest.children.length * 8}px`); }
     let t = 0;
     clips.addEventListener('scroll', () => { onScrollStart(); clearTimeout(t); t = setTimeout(settle, 140); }, { passive: true });
     sec.append(segRow, ticks, clips);
@@ -666,7 +676,7 @@ function markPosition(s, c) {
     b.classList.toggle('on', on);
     if (on) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current');
   });
-  sec.querySelectorAll('.ticks i').forEach((t, i) => t.classList.toggle('on', i === c));
+  sec.querySelectorAll('.ticks i').forEach((t) => t.classList.toggle('on', +t.dataset.i === c));
 }
 
 // ---------------------------------------------------------------- navigation
@@ -691,6 +701,20 @@ function goClip(d) {
   const n = stories[s].clips.length;
   if (c + d >= n && d > 0) return goStory(1);          // past the last side -> next story
   sc.scrollTo({ left: Math.max(0, Math.min(n - 1, c + d)) * sc.clientWidth, behavior: SMOOTH });
+}
+// When a clip ends: one clip from each side, then the next story. The first clips are one per side (the pipeline
+// mixes them), so that's the first k, visited in order from where you are: Center, Right, then back to Left.
+let played = new Set();
+function advance() {
+  const s = stories[activeS];
+  if (!s) return;
+  played.add(activeC);
+  const k = Math.min(s.clips.length, s.topic === 'sports' ? 3 : new Set(s.clips.map((c) => c.column).filter((c) => SIDES.includes(c))).size || 1);
+  const next = activeC < k ? [...Array(k).keys()].map((j) => (activeC + 1 + j) % k).find((i) => !played.has(i)) : undefined;
+  autoAdvance = true;
+  if (next === undefined) return goStory(1);
+  const sc = clipsEl(activeS);
+  sc.scrollTo({ left: next * sc.clientWidth, behavior: SMOOTH });
 }
 function jumpToColumn(si, column) {
   const ci = stories[si].clips.findIndex((c) => c.column === column);
@@ -717,6 +741,7 @@ function settle() {
     return;
   }
   const [s, c] = current();
+  if (s !== activeS) played = new Set();
   if (s !== activeS) {          // a new story opens on the side you were watching, if it has that side
     const ci = stories[s].clips.findIndex((k) => (place ? k.country === place : k.column === side));
     if (ci > 0 && ci !== c) {
@@ -804,7 +829,7 @@ function onState(e) {
   }
   if (e.data === S.ENDED) {
     markWatched(currentId);
-    if (settings.auto) { autoAdvance = true; goClip(1); }
+    if (settings.auto) advance();
   }
 }
 
@@ -820,7 +845,7 @@ function onError() {
   }
   wrap.classList.add('off');
   gesture.hidden = false;
-  setTimeout(() => { if (currentId === id) { autoAdvance = true; goClip(1); } }, 2500);
+  setTimeout(() => { if (currentId === id) advance(); }, 2500);
 }
 
 function toggleMute() {
@@ -1167,6 +1192,7 @@ function start(at, extra) {
 
 // Draws `stories` and opens on `at` if it's there, else on the first story.
 function draw(at) {
+  played = new Set();
   currentId = null;
   activeS = -1;
   $('#bar-share').hidden = !stories.length;

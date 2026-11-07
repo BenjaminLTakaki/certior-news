@@ -79,10 +79,10 @@ def test_feed_shape(tmp_path):
     feed = json.loads(out.read_text())
     assert feed["stories"] and feed["clips"] == 40
     assert feed["digest"] and all(s["first"] <= s["updated"] for s in feed["stories"])
-    order = {c: i for i, c in enumerate(config.COLUMNS)}
     for s in feed["stories"]:
-        cols = [order[c["column"]] for c in s["clips"]]
-        assert cols == sorted(cols), "clips must run left, center, right, unrated"
+        cols = [c["column"] for c in s["clips"]]
+        if s["topic"] != "sports":
+            assert cols == mixed(cols), "swipes must run left, center, right, left, center, right..., then off the scale"
         outlets = [c["channel"] for c in s["clips"]]
         assert len(outlets) == len(set(outlets)), "swiping sideways must always show another outlet"
 
@@ -472,3 +472,28 @@ def test_backfill_fills_past_days_without_keeping_old_clips(monkeypatch, tmp_pat
     assert all(e["outlets"] == 3 for e in digest)
     assert len(run.load_json(config.FRAMING_FILE, {})) == 6       # each outlet once per story, both days
     assert not config.CLIPS_FILE.exists()
+
+
+def mixed(cols):
+    """The swipe order for these columns: rounds of left, center, right, then the rest in config order."""
+    sides = ("left", "center", "right")
+    n = {c: cols.count(c) for c in config.COLUMNS}
+    rounds = [c for r in range(max(n[c] for c in sides)) for c in sides if r < n[c]]
+    return rounds + [c for c in config.COLUMNS if c not in sides for _ in range(n[c])]
+
+
+def test_swipes_mix_the_sides_and_open_each_side_on_its_most_different_headline():
+    titles = {0: ("A", "left", [1, 0, 0]), 1: ("B", "left", [0, 1, 0]), 2: ("C", "left", [.9, .1, 0]),
+              3: ("D", "center", [1, 0, 0]), 4: ("E", "right", [0, 0, 1]), 5: ("F", "right", [.95, 0, .05]),
+              6: ("G", "unrated", [1, 0, 0])}
+    clips = [{**clip(i, ch, "europe", title=f"Volcano erupts, report {i}", column=col),
+              "published": (NOW - timedelta(minutes=i)).isoformat().replace("+00:00", "Z")} for i, (ch, col, _) in titles.items()]
+    X = np.array([v for _, _, v in titles.values()], dtype=float)
+    X = X / np.linalg.norm(X, axis=1, keepdims=True)
+    s = grouping.build_stories(clips, [list(range(7))], X, NOW)[0]
+    order = [c["channel"] for c in s["clips"]]
+    assert [c["column"] for c in s["clips"]] == ["left", "center", "right", "left", "right", "left", "unrated"]
+    head = next(c for c in s["clips"] if c["title"] == s["headline"])["channel"]
+    assert head in ("A", "D", "G")                  # the plain [1, 0, 0] headline...
+    assert order[0] == "B" and order[2] == "E"      # ...so each side opens on the clip least like it
+    assert order.index("C") > order.index("B")      # and "C", close to the headline, waits
