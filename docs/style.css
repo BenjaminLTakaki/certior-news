@@ -40,8 +40,10 @@ button:active, a:active { opacity: .6; }
 #bar-chevron[hidden] { display: none; }
 #topic { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; font-size: 16px; cursor: pointer; }
 #topic[hidden] { display: none; }
-#bar-action { grid-column: 3; justify-self: end; display: grid; place-items: center; width: 44px; height: 44px; color: var(--tint); }
-#bar-action svg { width: 23px; height: 23px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+#bar-end { grid-column: 3; justify-self: end; display: flex; }
+#bar-share[hidden] { display: none; }
+#bar-share, #bar-action { display: grid; place-items: center; width: 44px; height: 44px; color: var(--tint); }
+#bar-share svg, #bar-action svg { width: 23px; height: 23px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 
 /* ---- the feed ---- */
 #feed { position: fixed; inset: var(--bar-h) 0 var(--tab-h); overflow-y: scroll; scroll-snap-type: y mandatory;

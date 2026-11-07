@@ -27,7 +27,10 @@
       <!-- the real iOS menu, laid invisibly over the title -->
       <select id="topic" aria-label="Choose a topic"></select>
     </div>
-    <button type="button" id="bar-action"></button>
+    <div id="bar-end">
+      <button type="button" id="bar-share" aria-label="Share this story" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.500 9.500H7a1 1 0 0 0-1 1V19a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-8.500a1 1 0 0 0-1-1h-1.500M12 3.500V14M8.500 7 12 3.500 15.500 7"/></svg></button>
+      <button type="button" id="bar-action"></button>
+    </div>
   </header>
 
   <main id="feed" aria-label="Stories"></main>

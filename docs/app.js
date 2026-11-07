@@ -1073,6 +1073,8 @@ function storyCard(s, currentClip) {
   text(`${n} outlets covered this story. Compare them all in Swipe News.`, CARD.h - CARD.pad - 34, 26, 400, CARD.muted, 34, 1);
   return new Promise((resolve) => c.toBlob(resolve, 'image/png'));
 }
+// The bar's share button: whatever story and outlet you're on.
+$('#bar-share').onclick = () => { const s = stories[activeS]; if (s) shareStory(s, s.clips[activeC]?.id ?? s.clips[0].id); };
 async function shareStory(s, currentClip) {
   const url = `${location.origin}${location.pathname}?story=${encodeURIComponent(s.id)}&clip=${encodeURIComponent(currentClip)}`;
   const data = { title: s.headline, text: 'How different outlets covered it', url };
@@ -1167,6 +1169,7 @@ function start(at, extra) {
 function draw(at) {
   currentId = null;
   activeS = -1;
+  $('#bar-share').hidden = !stories.length;
   if (!stories.length) {
     feedEl.textContent = '';
     wrap.hidden = gesture.hidden = true;
