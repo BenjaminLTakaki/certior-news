@@ -20,7 +20,6 @@
     { "name": "TeleSUR English",          "handle": "@teleSUREnglish",         "region": "americas", "country": "Venezuela", "lean": "left", "note": "teleSUR is funded in whole or in part by multiple Latin American governments." },
 
     { "name": "CNA",                      "handle": "@channelnewsasia",        "region": "asia", "country": "Singapore", "lean": "center", "note": "Mediacorp is a Singaporean public broadcast service." },
-    { "name": "NHK WORLD-JAPAN",          "handle": "@NHKWORLDJAPAN",          "region": "asia", "country": "Japan", "lean": "lean-left" },
     { "name": "WION",                     "handle": "@WION",                   "region": "asia", "country": "India", "lean": "center" },
     { "name": "NDTV",                     "handle": "@NDTV",                   "region": "asia", "country": "India", "lean": "lean-right" },
     { "name": "South China Morning Post", "handle": "@SouthChinaMorningPost",  "region": "asia", "country": "Hong Kong", "lean": "lean-left" },
