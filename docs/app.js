@@ -606,13 +606,24 @@ function renderStory(s, si) {
         img.dataset.src = `https://i.ytimg.com/vi/${c.id}/hqdefault.jpg`;     // set by showThumbs when the story comes up
         slot.append(img, el('div', 'msg'));
       } else {
-        const off = el('div', 'off');
+        // Text Only: how each side put it, instead of the same grey box on every clip. Nothing here loads from YouTube.
+        const off = el('div', 'textcard');
+        const heads = s.topic === 'sports' ? s.clips.slice(0, 3).map((k) => [null, k]) : Object.entries(sideHeads(s));
+        off.append(el('p', 'textcard-title', s.topic === 'sports' ? 'Who Covered It' : 'How Each Side Put It'));
+        for (const [col, k] of heads) {
+          const line = el('div', 'textcard-line' + (k.id === c.id ? ' now' : ''));
+          if (col) line.dataset.column = col;
+          line.append(el('span', 'textcard-by', col ? `${COLUMNS[col]} \u00b7 ${k.channel}` : k.channel), el('span', 'textcard-head', k.title));
+          off.append(line);
+        }
         const on = el('button', 'filled', 'Turn On Videos');
         on.type = 'button';
         on.onclick = () => { chooseVideos(true); onScrollStart(); draw({ story: s.id, clip: c.id }); };    // same stories, now with video
         const open = el('a', '', 'Watch on YouTube');
         open.href = `https://www.youtube.com/watch?v=${c.id}`; open.target = '_blank'; open.rel = 'noopener';
-        off.append(el('b', '', 'Videos Are Off'), el('span', '', 'YouTube can set cookies on this device when they\u2019re on.'), on, open);
+        const actions = el('div', 'textcard-actions');
+        actions.append(on, open);
+        off.append(actions, el('p', 'textcard-note', 'Videos play from YouTube, which can set cookies on this device.'));
         slot.append(off);
       }
 
