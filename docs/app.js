@@ -2,6 +2,8 @@
 // swipe left/right = the same story from another outlet.
 // One YouTube player is reused for every clip and laid over the active clip's video area.
 
+import { storyCard } from './card.js';
+
 const params = new URLSearchParams(location.search);
 const FEED_URL = params.get('feed') || 'feed.json';
 const TOPICS = { all: 'All News', politics: 'Politics', business: 'Business', tech: 'Tech', science: 'Science & Health', crime: 'Crime', disasters: 'Disasters', culture: 'Culture', sports: 'Sports' };
@@ -77,10 +79,44 @@ function markWatched(id) {
   store.set('watched', [...watched].slice(-3000));
   const clip = stories[activeS]?.clips.find((c) => c.id === id);
   if (clip && clip.column !== 'unrated') recordMix(clip.column);
+  if (clip) count(`watched_${clip.column}`);
 }
 
 // ---------------------------------------------------------------- your mix: on this device only, never a reward
 const dayKey = (t = Date.now()) => new Date(t).toISOString().slice(0, 10);
+
+// ---------------------------------------------------------------- usage counts
+// Anonymous daily totals for the stats page: only counts like { visit: 1, watched_left: 3 }, no cookies, IDs or
+// addresses (see Privacy). Sent as one small batch when you leave the app. Where there's no endpoint (GitHub Pages,
+// a local copy) the send just fails.
+const STATS_URL = '/api/swipe-news/events';
+const tally = {};
+const count = (name, n = 1) => { tally[name] = (tally[name] || 0) + n; };
+function sendCounts() {
+  if (!Object.keys(tally).length) return;
+  try { navigator.sendBeacon?.(STATS_URL, new Blob([JSON.stringify(tally)], { type: 'application/json' })); } catch { /* no beacon: skip */ }
+  for (const k of Object.keys(tally)) delete tally[k];
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') sendCounts(); });
+window.addEventListener('pagehide', sendCounts);
+// Once per device per day: a visit, how long ago this device first came (retention), Home Screen or browser, and
+// where it came from (?ref= on links you post, else the referring site).
+function countVisit() {
+  const today = dayKey();
+  if (store.get('countedDay', null) === today) return;
+  store.set('countedDay', today);
+  let first = store.get('firstDay', null);
+  if (!first) { first = today; store.set('firstDay', today); count('new'); }
+  const age = Math.round((Date.parse(today) - Date.parse(first)) / 864e5);
+  count('visit');
+  count(`age_${age === 0 ? '0' : age === 1 ? '1' : age <= 7 ? '2_7' : age <= 30 ? '8_30' : '31_plus'}`);
+  count(matchMedia('(display-mode: standalone)').matches || navigator.standalone ? 'homescreen' : 'browser');
+  if (consent) count(`mode_${consent}`);
+  let ref = new URLSearchParams(location.search).get('ref') || '';
+  try { if (!ref && document.referrer && new URL(document.referrer).host !== location.host) ref = new URL(document.referrer).host; } catch { /* no referrer */ }
+  ref = ref.toLowerCase().replace(/^www\./, '').replace(/[^a-z0-9.-]/g, '').slice(0, 40);
+  if (ref) count(`ref:${ref}`);
+}
 function recordMix(column) {
   const cutoff = dayKey(Date.now() - MIX_DAYS * 864e5);
   const mix = Object.fromEntries(Object.entries(store.get('mix', {})).filter(([day]) => day > cutoff));
@@ -318,6 +354,7 @@ function recapRow(e, live, open, when) {
 }
 
 async function renderRecap() {
+  count('recap');
   recapSeen = true;
   updateBadge();
   const box = $('#recap-list'), src = latest || feed;
@@ -452,6 +489,7 @@ async function renderWorld() {
 }
 
 async function goTo(country) {
+  count('world');
   everything = everything || await loadEverything();
   leaveFeed();
   place = country;
@@ -494,6 +532,7 @@ function renderRecent() {
 
 // at: a story id to open on (a tapped result), else the first match.
 async function runSearch(q, from = 'search', at) {
+  count('search');
   leaveFeed();
   query = q;
   place = ''; pushedList = null;
@@ -813,7 +852,6 @@ function settle() {
     return;
   }
   const [s, c] = current();
-  if (s !== activeS) played = new Set();
   if (s !== activeS) {          // a new story opens on the side you were watching, if it has that side
     const ci = stories[s].clips.findIndex((k) => (place ? k.country === place : k.column === openSide()));
     if (ci > 0 && ci !== c) {
@@ -822,6 +860,8 @@ function settle() {
       feedTimer = setTimeout(settle, 140);
       return;
     }
+    played = new Set();
+    count('story');
   } else if (c !== activeC && !autoAdvance) {   // you moved sideways yourself; a clip ending doesn't change your side
     if (stories[s].topic !== 'sports') side = stories[s].clips[c].column;
     store.set('knowsSideways', true);
@@ -1054,6 +1094,7 @@ function chooseVideos(on) {
 }
 function finishWelcome(on) {
   chooseVideos(on);
+  count(`mode_${consent}`);      // the day's visit was counted before the choice
   welcomeEl.close();
   if (feed) start(here());      // a shared link may have opened a story behind the welcome
 }
@@ -1152,48 +1193,10 @@ function timeline(s) {
 }
 
 // ---------------------------------------------------------------- share
-// A 4:5 card: the story, then one headline from each side, so it reads the same as Compare without the app.
-const CARD = { w: 1080, h: 1350, pad: 88, bg: '#0b0c0f', ink: '#f6f7f9', muted: '#b4b9c2', tint: '#3b8cff', font: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif' };
-function lines(ctx, text, width, max) {
-  const out = [];
-  let line = '';
-  for (const w of text.split(/\s+/)) {
-    const t = line ? `${line} ${w}` : w;
-    if (line && ctx.measureText(t).width > width) { out.push(line); line = w; } else line = t;
-  }
-  if (line) out.push(line);
-  if (out.length > max) { out.length = max; out[max - 1] = `${out[max - 1].replace(/\s+\S*$/, '')}…`; }
-  return out;
-}
-function storyCard(s, currentClip) {
-  const c = document.createElement('canvas'), ctx = c.getContext('2d'), W = CARD.w - 2 * CARD.pad;
-  c.width = CARD.w; c.height = CARD.h;
-  ctx.fillStyle = CARD.bg; ctx.fillRect(0, 0, CARD.w, CARD.h);
-  ctx.textBaseline = 'top';
-  const text = (str, y, size, weight, color, lh, max) => {
-    ctx.font = `${weight} ${size}px ${CARD.font}`; ctx.fillStyle = color;
-    for (const l of lines(ctx, str, W, max)) { ctx.fillText(l, CARD.pad, y); y += lh; }
-    return y;
-  };
-  let y = text('SWIPE NEWS', CARD.pad, 28, 700, CARD.tint, 34, 1) + 36;
-  y = text(s.headline, y, 64, 700, CARD.ink, 76, 4) + 56;
-  const pick = (list) => list.find((k) => k.id === currentClip) || list[0];
-  const blocks = s.topic === 'sports'
-    ? s.clips.slice(0, 3).map((k) => [k.channel.toUpperCase(), k])
-    : ['left', 'center', 'right'].map((col) => s.clips.filter((k) => k.column === col)).filter((l) => l.length)
-      .map((l) => [`${COLUMNS[l[0].column].toUpperCase()} · ${pick(l).channel}`, pick(l)]);
-  for (const [label, k] of blocks) {
-    if (y > CARD.h - 330) break;
-    y = text(label, y, 26, 700, CARD.muted, 36, 1) + 6;
-    y = text(k.title, y, 40, 500, CARD.ink, 50, 3) + 40;
-  }
-  const n = new Set(s.clips.map((k) => k.channel)).size;
-  text(`${n} outlets covered this story. Compare them all in Swipe News.`, CARD.h - CARD.pad - 34, 26, 400, CARD.muted, 34, 1);
-  return new Promise((resolve) => c.toBlob(resolve, 'image/png'));
-}
 // The bar's share button: whatever story and outlet you're on.
 $('#bar-share').onclick = () => { const s = stories[activeS]; if (s) shareStory(s, s.clips[activeC]?.id ?? s.clips[0].id); };
 async function shareStory(s, currentClip) {
+  count('share');
   const url = `${location.origin}${location.pathname}?story=${encodeURIComponent(s.id)}&clip=${encodeURIComponent(currentClip)}`;
   const data = { title: s.headline, text: 'How different outlets covered it', url };
   try {
@@ -1214,6 +1217,7 @@ async function shareStory(s, currentClip) {
 }
 
 function openCompare(si, currentClip) {
+  count('compare');
   const s = stories[si], box = $('#compare-body');
   box.textContent = '';
   if (!store.get('knowsRatings', false) && s.topic !== 'sports') {      // the first Compare explains the sides, not the welcome
@@ -1327,6 +1331,8 @@ function draw(at) {
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => { /* offline just won't work */ });
 
+countVisit();
+
 (async function boot() {
   renderBar();
   show('news');
@@ -1340,6 +1346,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catc
   // a shared link: ?story=…&clip=…, found by the clip too in case the story's id changed since
   const linked = params.get('story'), linkedClip = params.get('clip');
   if (linked) {
+    count('shared_open');
     history.replaceState(null, '', params.get('feed') ? `?feed=${encodeURIComponent(params.get('feed'))}` : location.pathname);
     const find = (list) => list.find((s) => s.id === linked) || list.find((s) => s.clips.some((c) => c.id === linkedClip));
     const s = find(feed.stories) || find(everything = await loadEverything());

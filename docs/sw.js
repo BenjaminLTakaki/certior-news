@@ -10,7 +10,7 @@ const SLOW_MS = 3000;
 self.addEventListener('install', (e) => {
   self.skipWaiting();
   // the shell, so even a first visit opens offline next time (the feed is kept the first time it's fetched again)
-  e.waitUntil(caches.open(CACHE).then((c) => Promise.all(['./', 'app.js', 'style.css'].map((p) => c.add(p).catch(() => {})))));
+  e.waitUntil(caches.open(CACHE).then((c) => Promise.all(['./', 'app.js', 'card.js', 'style.css'].map((p) => c.add(p).catch(() => {})))));
 });
 self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
 
