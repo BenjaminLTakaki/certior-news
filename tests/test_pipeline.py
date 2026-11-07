@@ -498,3 +498,11 @@ def test_state_funded_clips_come_after_the_sides_and_dont_count_as_one():
     s = grouping.build_stories(clips, [list(range(6))], np.eye(6), NOW)[0]
     assert [c["column"] for c in s["clips"]] == ["left", "center", "right", "state", "state", "unrated"]
     assert s["sides"]["state"] == 2 and s["blindspot"] is None
+
+
+def test_one_countrys_outlets_cant_flood_the_app(monkeypatch):
+    monkeypatch.setattr(config, "ONE_COUNTRY_MAX", 2)
+    def st(i, *countries):
+        return {"id": f"s{i}", "clips": [{"country": c} for c in countries]}
+    stories = [st(0, "India"), st(1, "India", "India"), st(2, "India", "UK"), st(3, "India"), st(4, "US"), st(5, "India", "Japan")]
+    assert [s["id"] for s in grouping.cap_one_country(stories)] == ["s0", "s1", "s2", "s4", "s5"]      # s3: a third India-only story

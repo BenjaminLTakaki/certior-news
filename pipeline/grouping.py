@@ -342,8 +342,23 @@ def build_stories(clips: list[dict], groups: list[list[int]], X: np.ndarray, now
                        "title": clip_text(clips[i]), "note": clips[i].get("note", "")} for i in ordered],
         })
     out.sort(key=lambda s: s["score"], reverse=True)
-    out = space_out_us(out)
+    out = space_out_us(cap_one_country(out))
     return cap_feed(out) if capped else out
+
+
+def cap_one_country(stories: list[dict]) -> list[dict]:
+    """At most ONE_COUNTRY_MAX stories (the best-ranked; `stories` is in score order) that only one country's outlets
+    covered, per country: one country's busy outlets can't flood the app. Stories covered across countries all stay."""
+    kept, out = Counter(), []
+    for s in stories:
+        countries = {c["country"] for c in s["clips"]}
+        if len(countries) == 1:
+            (country,) = countries
+            if kept[country] >= config.ONE_COUNTRY_MAX:
+                continue
+            kept[country] += 1
+        out.append(s)
+    return out
 
 
 def cap_feed(stories: list[dict]) -> list[dict]:

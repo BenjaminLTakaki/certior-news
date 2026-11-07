@@ -61,6 +61,10 @@ MERGE_COMMON_SHARE = 0.05       # words in more than this share of stories ("mid
 MIN_SHARED_KEYWORDS = 1         # distinctive words (title + description) two clips must share to be in one story
 MAX_CLIPS_PER_OUTLET = 1        # per story, the newest: swiping sideways always shows another outlet
 MAX_STORIES_IN_FEED = 80
+# Stories only one country's outlets covered, kept per country (the best-ranked). Three Indian outlets post about a third
+# of all clips, and 350 of 1,287 stories were India-only: they filled World, Search, the tabs and everything past the
+# top stories. Stories outlets from several countries covered are never dropped.
+ONE_COUNTRY_MAX = 50
 RECENCY_HALF_LIFE_H = 12        # ranking: a story's score halves every N hours
 
 # Story headlines: no kicker, no series label ("US Midterm Elections:") and no shouting when a calmer title exists.
