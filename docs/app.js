@@ -32,14 +32,13 @@ const PLAY_CHECK_MS = 1800;   // if a clip isn't playing after this, ask for a t
 const WATCHED_AFTER_MS = 3000;
 const DOUBLE_TAP_MS = 250, SKIP_S = 10;
 const SIDEWAYS_HINT = 'Swipe sideways for other outlets';
-const SIDEWAYS_HINT_MS = 5000, SIDEWAYS_HINTS = 3;
 const SETTINGS_DEFAULTS = { side: 'center', auto: true, hideWatched: false, sportsInAll: true, notes: true };
 // YouTube forbids disabling the links inside its player, and they sit along its top and bottom edges.
 // So swipes are only caught in the middle band; everything above and below reaches YouTube.
 const GESTURE_TOP = 0.25, GESTURE_HEIGHT = 0.5;
 const REFRESH_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3L19.5 9"/><path d="M19.5 4.5V9H15"/></svg>';
 const MORE_AT = 8, MORE_STORIES = 40;      // the feed is the top stories only: fetch the rest when you get this close to its end
-const FLASH_MS = 3000;
+const FLASH_MS = 3000;      // every message and tip goes after this, so it never sits on the video
 const SHUFFLE_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.500 7.500h3.300c1.500 0 2.800.7 3.700 1.900l3 4.200c.9 1.200 2.200 1.900 3.700 1.900h3.300M3.500 16.500h3.300c1.500 0 2.800-.7 3.700-1.900M14.500 10.400c.9-1.200 1.200-2.900 3.700-2.900h2.300M18 5l2.500 2.500L18 10M18 14l2.500 2.500L18 19"/></svg>';
 const CHECK_FEED_MS = 2 * 60000;
 const AWAY_MS = 60 * 60000, RECAP_NEW_MAX = 10;     // Recap: away this long and the stories that began since get a badge
@@ -127,7 +126,7 @@ let topic = TOPICS[store.get('topic', 'all')] ? store.get('topic', 'all') : 'all
 let query = '', place = '', everything = null, searchFrom = 'search';     // searchFrom: the tab Back returns to
 let tab = 'news', pageOpen = false, lastPlace = '';   // pageOpen: a full page covers the feed, so the player stays out of the way
 let reserve = null, loadingMore = false, ended = false, startRun = 0, flashTimer = 0, refreshing = false;
-let side = null, autoAdvance = false, hintTimer = 0;     // side: the one you last swiped to, for Open Stories On: Last Side I Picked
+let side = null, autoAdvance = false;    // side: the one you last swiped to, for Open Stories On: Last Side I Picked
 const openSide = () => (settings.side === 'last' ? side || 'center' : settings.side);
 let playCheck = 0, watchTimer = 0;
 let latest = null;      // the newest feed fetched, even while you're still watching the one before it
@@ -639,6 +638,15 @@ async function loadMore() {
   if (!reserve.length) showEnd();
 }
 
+// A tip, like "Tap the video to start": shown once per visit (once ever with device), and gone after FLASH_MS.
+const hinted = new Set();
+function hint(text, device = false) {
+  const ever = store.get('hinted', []);
+  if (hinted.has(text) || (device && ever.includes(text))) return;
+  hinted.add(text);
+  if (device) store.set('hinted', [...ever, text]);
+  flash(text);
+}
 function flash(text) {
   showHint(text);
   clearTimeout(flashTimer);
@@ -772,12 +780,7 @@ function showThumbs(si, ci) {
 }
 
 function hintSideways() {
-  const shown = store.get('sidewaysHints', 0);
-  if (store.get('knowsSideways', false) || shown >= SIDEWAYS_HINTS || stories[activeS]?.clips.length < 2) return;
-  store.set('sidewaysHints', shown + 1);
-  showHint(SIDEWAYS_HINT);
-  clearTimeout(hintTimer);
-  hintTimer = setTimeout(() => { if (hintEl.textContent === SIDEWAYS_HINT) showHint(''); }, SIDEWAYS_HINT_MS);
+  if (!store.get('knowsSideways', false) && stories[activeS]?.clips.length > 1) hint(SIDEWAYS_HINT, true);
 }
 
 function activate(s, c) {
@@ -806,11 +809,11 @@ function placePlayer(s, c) {
 // ---------------------------------------------------------------- player
 function armPlayCheck() {
   clearTimeout(playCheck);
-  if (!unlocked) { showHint('Tap the video to start'); return; }
+  if (!unlocked) { hint('Tap the video to start'); return; }
   playCheck = setTimeout(() => {
     if (!playing) {               // iOS refused to start: hand the next tap to the player itself
       gesture.hidden = true;
-      showHint('Tap the video to play');
+      hint('Tap the video to play');
     }
   }, PLAY_CHECK_MS);
 }

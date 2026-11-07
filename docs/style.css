@@ -124,8 +124,10 @@ button:active, a:active { opacity: .6; }
 #player-wrap.off { visibility: hidden; }
 
 /* ---- small messages ---- */
-#hint { position: fixed; z-index: 7; left: 50%; transform: translateX(-50%); bottom: calc(var(--tab-h) + var(--meta-h) + 12px); width: max-content; max-width: calc(100% - 32px);
-  background: var(--surface-2); padding: 10px 16px; border-radius: 99px; font-size: 15px; font-weight: 500; pointer-events: none; text-align: center; }
+/* over the Left/Center/Right band above the video: not on the captions Shorts burn in at the bottom, not on YouTube's own bar */
+#hint { position: fixed; z-index: 7; left: 50%; transform: translateX(-50%); top: calc(var(--bar-h) + 2px); width: max-content; max-width: calc(100% - 32px);
+  background: var(--surface-2); padding: 7px 14px; border-radius: 99px; font-size: 14px; line-height: 18px; font-weight: 500; pointer-events: none; text-align: center;
+  box-shadow: 0 0 0 1px var(--hair); }
 #hint[hidden], #new-pill[hidden] { display: none; }
 #new-pill { position: fixed; z-index: 8; top: calc(var(--bar-h) + var(--seg-h) + 10px); left: 50%; transform: translateX(-50%);
   min-height: 36px; background: var(--tint); color: var(--ink); border-radius: 99px; padding: 0 16px; font-size: 15px; font-weight: 600; }
