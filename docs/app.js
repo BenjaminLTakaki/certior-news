@@ -434,8 +434,7 @@ async function renderWorld() {
       row.type = 'button';
       const name = el('span', 'place');
       name.append(el('i', '', COUNTRY[c.country]?.[1] ?? '\u{1F30D}'), COUNTRY[c.country]?.[0] ?? c.country);
-      const tail = el('span', 'count', String(c.stories));
-      tail.setAttribute('aria-label', `${c.stories} stories`);
+      const tail = el('span', 'count', `${c.stories} ${c.stories === 1 ? 'story' : 'stories'}`);     // a bare number read as clips or stories
       const end = el('span', 'tail');
       end.append(tail);
       row.append(name, end);
