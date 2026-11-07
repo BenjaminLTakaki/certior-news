@@ -205,7 +205,10 @@ function show(next, opts = {}) {
     showHint('');
     if (next === 'recap') renderRecap();
     if (next === 'world') renderWorld();
-    if (next === 'search') { renderRecent(); $('#search-input').focus(); }    // inside the tap, so iOS opens the keyboard
+    if (next === 'search') {
+      if ($('#search-input').value.trim()) showResults();      // back from a result: the list you left
+      else { renderRecent(); $('#search-input').focus(); }      // inside the tap, so iOS opens the keyboard
+    }
     if (next === 'settings') syncSettings();
     return;
   }
@@ -450,7 +453,8 @@ function renderRecent() {
   box.append(group);
 }
 
-async function runSearch(q, from = 'search') {
+// at: a story id to open on (a tapped result), else the first match.
+async function runSearch(q, from = 'search', at) {
   query = q;
   place = '';
   searchFrom = from;
@@ -463,22 +467,37 @@ async function runSearch(q, from = 'search') {
   stories = [];
   show(from, { pushed: true });
   everything = everything || await loadEverything();
-  start();
+  start(at && { story: at });
 }
 $('#search-form').onsubmit = (e) => {
   e.preventDefault();
   const q = $('#search-input').value.trim();
   if (q && feed) runSearch(q);
 };
-// How many stories match as you type, and that Search on the keyboard opens them.
-$('#search-input').oninput = async (e) => {
-  const q = e.target.value.trim(), hint = $('#search-hint');
-  if (!q || !feed) { hint.textContent = ''; return; }
+// The matching headlines as you type, in the order they'd play; tap one to watch from it, or Search to watch them all.
+async function showResults() {
+  const input = $('#search-input'), q = input.value.trim(), hint = $('#search-hint'), box = $('#search-results');
+  $('#search-recent').hidden = !!q;
+  box.textContent = '';
+  if (!q || !feed) { hint.textContent = ''; if (!q) renderRecent(); return; }
   everything = everything || await loadEverything();
-  if (e.target.value.trim() !== q) return;      // you typed on while it loaded
-  const n = matches(everything, q).length;
-  hint.textContent = n ? `${n} ${n === 1 ? 'story matches' : 'stories match'}. Press Search to watch ${n === 1 ? 'it' : 'them'}.` : 'No stories match.';
-};
+  if (input.value.trim() !== q) return;      // you typed on while it loaded
+  const found = orderStories(matches(everything, q));
+  box.textContent = '';
+  hint.textContent = found.length ? '' : 'No stories match.';
+  if (!found.length) return;
+  const group = el('div', 'group');
+  for (const s of found) {
+    const row = el('button', 'cell headline');
+    row.type = 'button';
+    const outlets = new Set(s.clips.map((c) => c.channel)).size;
+    row.append(el('span', 'headline-title', s.headline), el('span', 'headline-sub', `${outlets} ${outlets === 1 ? 'outlet' : 'outlets'} · ${ago(s.updated)}`));
+    row.onclick = () => runSearch(q, 'search', s.id);
+    group.append(row);
+  }
+  box.append(el('h2', 'group-title', `${found.length} ${found.length === 1 ? 'Story' : 'Stories'}`), group);
+}
+$('#search-input').oninput = showResults;
 
 async function loadEverything() {
   try {

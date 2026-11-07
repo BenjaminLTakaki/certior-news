@@ -42,7 +42,7 @@ Open the app in **Safari → Share → Add to Home Screen**. Open it from the Ho
 | Tap **Recap** | The biggest stories of each day this week, and the ones that began since your last visit (the badge counts them after you've been away an hour) |
 | Tap **World** | Pick a country, or Take Me Somewhere, to see what its outlets are covering |
 | Tap **Compare** | Every outlet's headline for the story, by side; who posted it first; **Share This Story** sends a card with a headline from each side and a link that opens the story |
-| Tap **Search** | Search every story from the last two days |
+| Tap **Search** | Search every story from the last two days: matching headlines list as you type; tap one to watch from it, or press Search to watch them all |
 | Tap **Left / Center / Right** | Jump to that side; a grayed-out side has no coverage here (not shown for sport) |
 | 🔈 | Sound on/off |
 | **YouTube ↗** | Open the clip in the YouTube app |
