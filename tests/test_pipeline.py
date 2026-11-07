@@ -335,51 +335,41 @@ def test_second_pass_keeps_stories_days_apart():
     assert [0, 1] not in merge(same, [vec(1, 0), vec(1, 0)], hours_ago=[0, config.STORY_GAP_HOURS + 1])
 
 
-# --------------------------------------------------------------------------- recap: summaries and the daily digest
-def summary_of(descs, titles=None):
-    titles = titles or ["Ronaldo retires from international football"] * len(descs)
-    clips = [{**clip(i, f"Outlet{i}", "europe", title=t), "desc": d} for i, (t, d) in enumerate(zip(titles, descs))]
-    return grouping.build_stories(clips, [list(range(len(clips)))], np.eye(len(clips)), NOW)[0]
-
-
-def test_summary_is_an_outlets_own_sentence_never_its_promo():
-    s = summary_of([
-        "Subscribe for more on Ronaldo, who retires from international football.",
-        "Cristiano Ronaldo retires from international football after 22 years with Portugal, he announced.",
-        "The Daily On Ronaldo, Who Retires From International Football.",
-        "Outlet3 has every word on Ronaldo, who retires from international football.",
-    ])
-    assert s["summary"].startswith("Cristiano Ronaldo retires") and s["summary_by"] == "Outlet1"
-
-
-def test_summary_keeps_whole_sentences_and_us_abbreviations():
-    s = summary_of(["Ronaldo's retirement from international football was praised by the U.S. Soccer Federation on Thursday. Cut off mid"])
-    assert s["summary"] == "Ronaldo's retirement from international football was praised by the U.S. Soccer Federation on Thursday."
-
-
-def test_no_summary_rather_than_one_about_another_event():
-    # a clip grouped in by mistake: its sentence is close to the story's titles on average, but not to the headline
-    s = summary_of(["", "", "", "South Africa municipal election votes are being counted."],
-                   ["Ronaldo retires from international football"] * 3 + ["South Africa municipal election votes counted"])
-    assert s["headline"].startswith("Ronaldo") and s["summary"] == ""
-
-
-def story(sid, clips, score, first="2026-11-05T08:00:00Z", single=False):
-    return {"id": sid, "headline": sid, "summary": "", "summary_by": "", "topic": "politics", "first": first, "single": single,
-            "coverage": {"europe": len(clips)}, "sides": {}, "score": score, "clips": [{"id": c} for c in clips]}
+# --------------------------------------------------------------------------- recap: the daily digest
+def story(sid, clips, score, first="2026-11-05T08:00:00Z", single=False, outlets=3):
+    cols = ["left", "center", "right"]
+    return {"id": sid, "headline": sid, "topic": "politics", "first": first, "single": single, "coverage": {"europe": outlets},
+            "sides": {}, "score": score, "clips": [{"id": c, "column": cols[k % 3], "channel": f"O{k}", "title": f"{sid} {k}"} for k, c in enumerate(clips)]}
 
 
 def test_digest_keeps_each_story_once_at_its_peak():
-    d = run.update_digest([], [story("a", ["x", "y"], 9)], NOW)
+    d = run.update_digest([], [story("a", ["x", "y"], 9, outlets=5)], NOW)
     d = run.update_digest(d, [story("a2", ["y", "z"], 4), story("one", ["q"], 99, single=True)], NOW)    # same story, new id
-    assert len(d) == 1 and d[0]["score"] == 9 and d[0]["clips"] == ["x", "y", "z"] and d[0]["headline"] == "a2"
+    assert len(d) == 1 and d[0]["score"] == 9 and d[0]["outlets"] == 5 and d[0]["clips"] == ["x", "y", "z"] and d[0]["headline"] == "a2"
 
 
-def test_digest_keeps_a_week_and_the_top_stories_of_each_day(monkeypatch):
+def test_digest_shows_one_headline_per_side_not_a_summary():
+    e = run.update_digest([], [story("a", ["x", "y", "z", "w"], 9)], NOW)[0]
+    assert e["by_side"] == {"left": {"channel": "O0", "title": "a 0"}, "center": {"channel": "O1", "title": "a 1"},
+                            "right": {"channel": "O2", "title": "a 2"}}
+    assert "summary" not in e
+
+
+def test_digest_keeps_a_week_and_each_days_biggest_stories(monkeypatch):
     monkeypatch.setattr(config, "DIGEST_PER_DAY", 2)
-    old = [{**story("old", ["o"], 50), "day": "2026-10-29", "outlets": 2, "clips": ["o"]}]
-    d = run.update_digest(old, [story(f"s{i}", [f"c{i}"], i, first=f"2026-11-0{4 + i % 2}T08:00:00Z") for i in range(6)], NOW)
-    assert [(e["day"], e["headline"]) for e in d] == [("2026-11-05", "s5"), ("2026-11-05", "s3"), ("2026-11-04", "s4"), ("2026-11-04", "s2")]
+    old = [{**story("old", ["o"], 50), "day": "2026-10-29", "outlets": 9, "clips": ["o"]}]
+    new = [story(f"s{i}", [f"c{i}"], 10 - i, first=f"2026-11-0{4 + i % 2}T08:00:00Z", outlets=3 + i) for i in range(6)]
+    new.append(story("tabloid", ["t"], 99, first="2026-11-05T08:00:00Z", outlets=2))      # top score, too few outlets
+    d = run.update_digest(old, new, NOW)
+    assert [(e["day"], e["headline"], e["outlets"]) for e in d] == [
+        ("2026-11-05", "s5", 8), ("2026-11-05", "s3", 6), ("2026-11-04", "s4", 7), ("2026-11-04", "s2", 5)]
+
+
+def test_round_ups_of_several_stories_are_not_clips():
+    for title in ("Unions Hold National Day Of Strike Across French Cities + More | Around The World In 5",
+                  "05/11 6PM GMT - 5 Top Stories", "Around the World in 120 Seconds | GRAVITAS Worldview"):
+        assert filters.to_clip(raw(snippet__title=title), CH, NOW)[0] is None, title
+    assert filters.to_clip(raw(snippet__title="Top stories of the Senate race in Ohio"), CH, NOW)[0] is not None
 
 
 # --------------------------------------------------------------------------- framing words

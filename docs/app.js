@@ -41,7 +41,7 @@ const MORE_AT = 8, MORE_STORIES = 40;      // the feed is the top stories only: 
 const FLASH_MS = 3000;      // every message and tip goes after this, so it never sits on the video
 const SHUFFLE_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.500 7.500h3.300c1.500 0 2.800.7 3.700 1.900l3 4.200c.9 1.200 2.200 1.900 3.700 1.900h3.300M3.500 16.500h3.300c1.500 0 2.800-.7 3.700-1.900M14.500 10.400c.9-1.200 1.200-2.900 3.700-2.900h2.300M18 5l2.500 2.500L18 10M18 14l2.500 2.500L18 19"/></svg>';
 const CHECK_FEED_MS = 2 * 60000;
-const AWAY_MS = 60 * 60000, RECAP_NEW_MAX = 10;     // Recap: away this long and the stories that began since get a badge
+const AWAY_MS = 60 * 60000, RECAP_NEW_MAX = 10, RECAP_MIN_OUTLETS = 3;     // Recap: away this long and the stories that began since get a badge
 
 const $ = (s, el = document) => el.querySelector(s);
 const feedEl = $('#feed'), wrap = $('#player-wrap'), gesture = $('#gesture');
@@ -124,6 +124,11 @@ let activeS = -1, activeC = -1, currentId = null;
 let player = null, playerReady = false, unlocked = false, playing = false, playerStarted = false;
 let topic = TOPICS[store.get('topic', 'all')] ? store.get('topic', 'all') : 'all';
 let query = '', place = '', everything = null, searchFrom = 'search';     // searchFrom: the tab Back returns to
+let pushedList = null, feedSpot = null;     // pushedList: { title, stories } opened from Recap; feedSpot: your place in the feed before any of these
+const pushed = () => !!(place || query || pushedList);
+// Before opening World, Search or a Recap list over the feed, remember your place; Back puts you there again.
+function leaveFeed() { if (!pushed()) feedSpot = here(); }
+function backToFeed() { place = ''; query = ''; pushedList = null; const at = feedSpot; feedSpot = null; return at; }
 let tab = 'news', pageOpen = false, lastPlace = '';   // pageOpen: a full page covers the feed, so the player stays out of the way
 let reserve = null, loadingMore = false, ended = false, startRun = 0, flashTimer = 0, refreshing = false;
 let side = null, autoAdvance = false;    // side: the one you last swiped to, for Open Stories On: Last Side I Picked
@@ -161,12 +166,13 @@ async function loadFeed() {
 const inFeedView = () => !pageOpen;
 
 function renderBar() {
-  const back = $('#back'), action = $('#bar-action'), select = $('#topic'), pushed = place || query;
-  back.hidden = !pushed;
+  const back = $('#back'), action = $('#bar-action'), select = $('#topic'), isPushed = pushed();
+  back.hidden = !isPushed;
   back.textContent = place ? 'World' : searchFrom === 'recap' ? 'Recap' : 'Search';
-  select.hidden = !!pushed;
-  $('#bar-chevron').toggleAttribute('hidden', !!pushed);      // an svg has no .hidden property
-  $('#bar-title').textContent = place ? `${COUNTRY[place]?.[1] ?? ''} ${COUNTRY[place]?.[0] ?? place}`.trim() : query ? `\u201C${query}\u201D` : TOPICS[topic];
+  select.hidden = isPushed;
+  $('#bar-chevron').toggleAttribute('hidden', isPushed);      // an svg has no .hidden property
+  $('#bar-title').textContent = place ? `${COUNTRY[place]?.[1] ?? ''} ${COUNTRY[place]?.[0] ?? place}`.trim()
+    : query ? `\u201C${query}\u201D` : pushedList ? pushedList.title : TOPICS[topic];
   select.value = topic;
   action.innerHTML = place ? SHUFFLE_ICON : REFRESH_ICON;
   action.setAttribute('aria-label', place ? 'Take me somewhere else' : 'Check for new stories');
@@ -182,11 +188,11 @@ $('#topic').onchange = (e) => {
 };
 $('#back').onclick = () => {
   const from = place ? 'world' : searchFrom;
-  place = ''; query = '';
+  const at = backToFeed();
   renderBar();
   onScrollStart();
   pageOpen = true;      // the page comes back first, so nothing plays behind it while the feed rebuilds
-  if (feed) start();
+  if (feed) start(at);
   show(from);
 };
 
@@ -228,22 +234,22 @@ for (const b of document.querySelectorAll('#tabbar button')) {
   b.onclick = () => {
     const next = b.dataset.tab;
     if (next === 'news') {
-      if (place || query) {        // tapping a tab returns to its root, as everywhere on iOS
-        place = ''; query = '';
+      if (pushed()) {        // tapping a tab returns to its root, as everywhere on iOS
+        const at = backToFeed();
         renderBar();
         pageOpen = false;
         onScrollStart();
-        if (feed) start();
+        if (feed) start(at);
       } else if (tab === 'news') {
         feedEl.scrollTo({ top: 0, behavior: SMOOTH });
       }
       return show('news');
     }
-    if (place || query) {
-      place = ''; query = '';
+    if (pushed()) {
+      const at = backToFeed();
       renderBar();
       pageOpen = true;
-      if (feed) start();
+      if (feed) start(at);
     }
     show(next);
   };
@@ -279,15 +285,26 @@ function dayLabel(day) {
   return new Date(`${day}T12:00:00Z`).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
 }
 
-// A row opens the story in the feed while it's still in the last two days, and its clip on YouTube after that.
-function recapRow(e, live, when) {
+// The first headline from each side, in swipe order: a story told by its sides, not by one outlet's summary.
+const sideHeads = (s) => Object.fromEntries(SIDES.map((k) => [k, s.clips.find((c) => c.column === k)]).filter(([, c]) => c));
+
+// A row opens the story over the feed while it's still in the last two days (Back returns here), and its clip on
+// YouTube after that. open(live) gets the story the row stands for.
+function recapRow(e, live, open, when) {
   const b = el(live ? 'button' : 'a', 'cell headline');
   b.append(el('span', 'headline-title', e.headline));
-  if (e.summary) b.append(el('span', 'headline-sub recap-summary', `${e.summary_by}: ${e.summary}`));
+  for (const k of SIDES) {
+    const h = e.by_side?.[k];
+    if (!h) continue;
+    const line = el('span', 'headline-sub side-line');
+    line.dataset.column = k;
+    line.append(el('b', '', h.channel), ` ${h.title}`);
+    b.append(line);
+  }
   b.append(el('span', 'headline-sub', [`${e.outlets} outlets`, when, !live && 'Watch on YouTube'].filter(Boolean).join(' · ')));
   if (live) {
     b.type = 'button';
-    b.onclick = () => openStory(live);
+    b.onclick = () => open(live);
   } else {
     b.href = `https://www.youtube.com/watch?v=${e.clips[0]}`; b.target = '_blank'; b.rel = 'noopener';
   }
@@ -314,15 +331,23 @@ async function renderRecap() {
     group.append(...rows);
     box.append(el('h2', 'group-title', title), group);
   };
-  section('Since Your Last Visit', newSince(src.stories).map((s) =>
-    recapRow({ ...s, outlets: outlets(s), clips: s.clips.map((c) => c.id) }, s, `began ${ago(s.first)}`)));
-  const digest = (src.digest || []).filter(recapTopic);
+  // Each section opens as a list you can swipe through, starting at the story you tapped.
+  const rows = (title, items) => {
+    const live = items.map((x) => x.live).filter(Boolean);
+    return items.map((x) => recapRow(x.e, x.live, (s) => openRecapList(title, live, s), x.when));
+  };
+  const fresh = newSince(src.stories).sort((a, b) => outlets(b) - outlets(a));
+  section('Since Your Last Visit', rows('Since Your Last Visit', fresh.map((s) =>
+    ({ e: { ...s, outlets: outlets(s), clips: s.clips.map((c) => c.id), by_side: sideHeads(s) }, live: s, when: `began ${ago(s.first)}` }))));
+  const digest = (src.digest || []).filter((e) => recapTopic(e) && e.outlets >= RECAP_MIN_OUTLETS);
   for (const day of [...new Set(digest.map((e) => e.day))]) {
-    section(dayLabel(day), digest.filter((e) => e.day === day).map((e) => recapRow(e, find(e.clips))));
+    const items = digest.filter((e) => e.day === day).sort((a, b) => b.outlets - a.outlets || b.score - a.score)
+      .map((e) => ({ e, live: find(e.clips) }));
+    section(dayLabel(day), rows(dayLabel(day), items));
   }
   renderFraming(box, src.framing);
   box.append(el('p', 'group-note', digest.length
-    ? 'Each day’s biggest stories, ranked like the feed: more outlets, regions and sides first. Each summary is one sentence from an outlet’s own video description, picked by matching words, not written by AI.'
+    ? 'Each day\u2019s biggest stories: the ones the most outlets covered. Under each, the first headline from each side.'
     : 'Recap fills in as the day’s stories come in.'));
 }
 
@@ -330,11 +355,7 @@ async function renderRecap() {
 function renderFraming(box, f) {
   if (!f?.headlines) return;
   const base = `${f.headlines} headlines from ${f.stories} stories both Left and Right covered this week`;
-  if (!f.left.length && !f.right.length) {
-    box.append(el('h2', 'group-title', 'Words Each Side Used More'),
-      el('p', 'group-note', `No word separates the sides yet. Across ${base}, every difference in wording could be chance.`));
-    return;
-  }
+  if (!f.left.length && !f.right.length) return;      // nothing to show yet: an empty section read as broken
   for (const [side, label] of [['left', 'Left'], ['right', 'Right']]) {
     if (!f[side].length) continue;
     const group = el('div', 'group');
@@ -350,6 +371,18 @@ function renderFraming(box, f) {
     box.append(el('h2', 'group-title', `Words ${label} Outlets Used More`), group);
   }
   box.append(el('p', 'group-note', `From ${base}, each outlet counted once per story. Only differences too big to be chance are shown. Tap a word to see its stories.`));
+}
+
+function openRecapList(title, list, s) {
+  leaveFeed();
+  place = ''; query = '';
+  pushedList = { title, stories: list };
+  searchFrom = 'recap';
+  renderBar();
+  onScrollStart();
+  pageOpen = false;
+  start({ story: s.id });
+  show('recap', { pushed: true });
 }
 
 function openStory(s, clip) {
@@ -415,9 +448,10 @@ async function renderWorld() {
 
 async function goTo(country) {
   everything = everything || await loadEverything();
+  leaveFeed();
   place = country;
   lastPlace = country;
-  query = '';
+  query = ''; pushedList = null;
   renderBar();
   onScrollStart();
   pageOpen = false;
@@ -455,8 +489,9 @@ function renderRecent() {
 
 // at: a story id to open on (a tapped result), else the first match.
 async function runSearch(q, from = 'search', at) {
+  leaveFeed();
   query = q;
-  place = '';
+  place = ''; pushedList = null;
   searchFrom = from;
   if (from === 'search') store.set('recentSearches', [q, ...store.get('recentSearches', []).filter((r) => r !== q)].slice(0, RECENT_MAX));
   $('#search-input').blur();
@@ -616,10 +651,10 @@ function renderStory(s, si) {
 function showEnd() {
   ended = true;
   const sec = el('section', 'story end');
-  sec.append(el('p', '', query ? 'That\u2019s every match from the last two days.' : place ? `That\u2019s everything from ${COUNTRY[place]?.[0] ?? place} in the last two days.` : 'That\u2019s everything from the last two days.'));
-  const b = el('button', 'filled', place ? 'Take Me Somewhere Else' : 'Check for New Stories');
+  sec.append(el('p', '', pushedList ? 'That’s every story in this list.' : query ? 'That\u2019s every match from the last two days.' : place ? `That\u2019s everything from ${COUNTRY[place]?.[0] ?? place} in the last two days.` : 'That\u2019s everything from the last two days.'));
+  const b = el('button', 'filled', place ? 'Take Me Somewhere Else' : pushedList ? 'Back to Recap' : 'Check for New Stories');
   b.type = 'button';
-  b.onclick = place ? takeMeSomewhere : refreshFeed;
+  b.onclick = place ? takeMeSomewhere : pushedList ? () => $('#back').click() : refreshFeed;
   sec.append(b);
   feedEl.append(sec);
 }
@@ -640,7 +675,7 @@ function spread(list) {
 const inTopic = (s) => (topic === 'all' ? settings.sportsInAll || s.topic !== 'sports' : (s.tags || []).includes(topic));
 
 async function loadMore() {
-  if (query || ended || loadingMore || !stories.length) return;   // a search already shows every match
+  if (query || pushedList || ended || loadingMore || !stories.length) return;   // a search or a Recap list already shows all of itself
   loadingMore = true;
   const run = startRun;
   everything = everything || await loadEverything();
@@ -1187,7 +1222,9 @@ function start(at, extra) {
   startRun++;
   reserve = null;
   ended = false;
-  if (query) {
+  if (pushedList) {
+    stories = pushedList.stories;
+  } else if (query) {
     stories = orderStories(matches(everything || feed.stories || [], query));
   } else if (place) {
     const all = orderStories(placeList(everything || [], place));
@@ -1231,7 +1268,7 @@ function draw(at) {
   }
   setStatus('');
   render();
-  if (query || ended) showEnd();
+  if (query || pushedList || ended) showEnd();
   const si = at ? stories.findIndex((s) => s.id === at.story) : -1;
   const ci = si < 0 ? 0 : Math.max(0, stories[si].clips.findIndex((c) => c.id === at.clip));
   feedEl.scrollTop = Math.max(si, 0) * feedEl.clientHeight;

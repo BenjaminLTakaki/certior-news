@@ -94,9 +94,19 @@ def load_mock(path: Path, now: datetime) -> dict:
     return store
 
 
+def by_side(s: dict) -> dict:
+    """The first headline from each side, in swipe order: Recap shows these instead of one outlet's summary."""
+    out = {}
+    for c in s["clips"]:
+        if c["column"] in ("left", "center", "right"):
+            out.setdefault(c["column"], {"channel": c["channel"], "title": c["title"]})
+    return out
+
+
 def update_digest(digest: list[dict], stories: list[dict], now: datetime) -> list[dict]:
-    """Recap: each day's biggest stories for the past week. A story is filed under the day it began, at the highest
-    score it ever reached, and is recognised across builds by sharing a clip (its id can change when stories merge)."""
+    """Recap: each day's biggest stories for the past week: the most outlets they ever reached (DIGEST_MIN_OUTLETS or
+    more), then the highest score. A story is filed under the day it began, and is recognised across builds by sharing
+    a clip (its id can change when stories merge)."""
     digest = [dict(e) for e in digest]
     for s in stories:
         if s["single"]:
@@ -105,8 +115,8 @@ def update_digest(digest: list[dict], stories: list[dict], now: datetime) -> lis
         old = next((e for e in digest if ids & set(e["clips"])), None)
         entry = {
             "day": min(s["first"][:10], old["day"]) if old else s["first"][:10],
-            "headline": s["headline"], "summary": s["summary"], "summary_by": s["summary_by"],
-            "topic": s["topic"], "outlets": sum(s["coverage"].values()), "sides": s["sides"],
+            "headline": s["headline"], "topic": s["topic"], "sides": s["sides"], "by_side": by_side(s),
+            "outlets": max(sum(s["coverage"].values()), old.get("outlets", 0) if old else 0),
             "score": max(s["score"], old["score"]) if old else s["score"],
             # ponytail: only the clips the feed keeps (newest per outlet); add all member ids if repeats show up
             "clips": sorted(ids | set(old["clips"])) if old else sorted(ids),
@@ -117,7 +127,8 @@ def update_digest(digest: list[dict], stories: list[dict], now: datetime) -> lis
     since = (now - timedelta(days=config.DIGEST_DAYS - 1)).strftime("%Y-%m-%d")
     out = []
     for day in sorted({e["day"] for e in digest if e["day"] >= since}, reverse=True):
-        out += sorted((e for e in digest if e["day"] == day), key=lambda e: e["score"], reverse=True)[:config.DIGEST_PER_DAY]
+        big = [e for e in digest if e["day"] == day and e["outlets"] >= config.DIGEST_MIN_OUTLETS]
+        out += sorted(big, key=lambda e: (e["outlets"], e["score"]), reverse=True)[:config.DIGEST_PER_DAY]
     return out
 
 

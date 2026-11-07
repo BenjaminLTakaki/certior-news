@@ -251,37 +251,6 @@ def topic_of(clips: list[dict]) -> str:
     return "other"
 
 
-_SENTENCE = re.compile(r"(?<=[.!?])(?<!\.[A-Z]\.)(?<!(?:Mr|Ms|Dr|St)\.)\s+(?=[A-Z0-9\"'“])")     # not after "U.S." or "Mr."
-_CREDIT = re.compile(r"\s*\([^)]*\)")       # "(AP Video: Terry Chea)"
-_PROMO = re.compile(r"\b(subscribe|follow|read more|watch|download|website|newsletter|tune in|channel|click|sign up|"
-                    r"available|podcast|our app|for more)\b", re.I)
-
-
-def summarize(ms: list[dict], vec, head: str) -> tuple[str, str] | None:
-    """(sentence, outlet): the sentence from the outlets' own descriptions closest to all their titles AND to the headline
-    (a clip grouped in by mistake mustn't describe another event), or None.
-    Picked, never written: no AI service, so it costs nothing and says only what an outlet said."""
-    if vec is None:
-        return None
-    cands = []
-    for c in ms:
-        names = [n.casefold() for n in (c["channel"], *c.get("aliases", ())) if n]
-        for s in _SENTENCE.split(_CREDIT.sub("", c.get("desc", ""))):
-            s = s.strip()
-            caps = sum(w[:1].isupper() for w in s.split()) / max(1, len(s.split()))
-            if (40 <= len(s) <= 240 and s.endswith((".", "!", "?", '"', "”")) and caps < 0.5      # whole, and not Title Case promo
-                    and not _PROMO.search(s) and not any(n in s.casefold() for n in names)):     # "Times Of India Is The Largest..."
-                cands.append((s, c["channel"]))
-    if not cands:
-        return None
-    titles = _normalize(vec.transform([clip_text(c) for c in ms]).toarray())
-    centroid = titles.mean(axis=0)
-    S = _normalize(vec.transform([s for s, _ in cands]).toarray())
-    sims = np.minimum(S @ centroid, S @ _normalize(vec.transform([head]).toarray())[0])
-    best = int(np.argmax(sims))
-    return cands[best] if sims[best] >= config.SUMMARY_MIN else None
-
-
 SIDES = ("left", "center", "right")
 
 
@@ -305,11 +274,6 @@ def swipe_order(kept: list[int], clips: list[dict], X: np.ndarray, head: int, to
 
 def build_stories(clips: list[dict], groups: list[list[int]], X: np.ndarray, now: datetime, capped: bool = True) -> list[dict]:
     judge = headline_judge(clips)
-    try:
-        vec = TfidfVectorizer(sublinear_tf=True, tokenizer=tokens, token_pattern=None, lowercase=False).fit(
-            [f"{clip_text(c)}. {c.get('desc', '')}" for c in clips])
-    except ValueError:      # no words at all (tiny test windows)
-        vec = None
     out = []
     for members in groups:
         ms = [clips[i] for i in members]
@@ -361,15 +325,12 @@ def build_stories(clips: list[dict], groups: list[list[int]], X: np.ndarray, now
 
         ordered = swipe_order(kept, clips, X, head, topic)
         first = min(ms, key=lambda c: c["published"])
-        summary = summarize(ms, vec, clip_text(clips[head]))
         since = {}      # each outlet's first clip in the story: the feed keeps its newest, Compare shows who was first
         for c in ms:
             since[c["channel"]] = min(since.get(c["channel"], c["published"]), c["published"])
         out.append({
             "id": "s_" + first["id"],
             "headline": headline(clips[head]),
-            "summary": summary[0] if summary else "",
-            "summary_by": summary[1] if summary else "",
             "first": first["published"],      # when the story began: "new" means later than your last visit
             "updated": latest,
             "coverage": coverage,

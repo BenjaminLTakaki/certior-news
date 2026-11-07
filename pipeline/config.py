@@ -31,6 +31,9 @@ BLOCKLIST = [                   # case-insensitive regexes matched against the t
     r"\bsubscribe\b",
     r"\bsponsored\b",
     r"#ad\b",
+    r"\baround the world in \d+",   # round-ups of several stories: "... + More | Around The World In 5"
+    r"\b\d+ top stories\b",         # "05/11 6PM GMT - 5 Top Stories"
+    r"\+ ?more\s*\|",
 ]
 
 # --- Grouping -------------------------------------------------------------
@@ -64,13 +67,11 @@ RECENCY_HALF_LIFE_H = 12        # ranking: a story's score halves every N hours
 HEADLINE_KICKERS = r"^\s*(breaking( news)?|watch|see it|just in|exclusive)\s*[:|]\s*"     # also cut from the headline
 SERIES_LABEL_MIN = 3            # a "Label:" prefix one outlet opens at least this many titles with is a series label
 
-# Summary: one sentence from the outlets' own descriptions (no AI service: free, and nothing made up)
-SUMMARY_MIN = 0.2               # lowest TF-IDF similarity of that sentence to the story's titles
-
 # Recap: each day's biggest stories, kept for a week in data/digest.json and sent in feed.json
 DIGEST_FILE = DATA_DIR / "digest.json"
 DIGEST_DAYS = 7
-DIGEST_PER_DAY = 10
+DIGEST_PER_DAY = 10             # biggest first: most outlets
+DIGEST_MIN_OUTLETS = 3          # a 2-outlet story isn't one of the day's biggest, and that's where tabloid items sat
 
 # Framing words (pipeline/framing.py): words one side uses more for the same stories, over the Recap week
 FRAMING_FILE = DATA_DIR / "framing.json"
