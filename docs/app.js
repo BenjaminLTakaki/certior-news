@@ -1173,10 +1173,15 @@ async function shareStory(s, currentClip) {
     const files = blob ? [new File([blob], 'swipe-news.png', { type: 'image/png' })] : [];
     if (files.length && navigator.canShare?.({ files })) return await navigator.share({ ...data, files });
     if (navigator.share) return await navigator.share(data);
+  } catch (e) {
+    if (e?.name === 'AbortError') return;      // you closed the share sheet
+    // some browsers have navigator.share but refuse it (NotAllowedError): copy the link instead
+  }
+  try {
     await navigator.clipboard.writeText(url);
     flash('Link copied');
-  } catch (e) {
-    if (e?.name !== 'AbortError') flash('Couldn’t share this story.');      // AbortError: you closed the share sheet
+  } catch {
+    flash('Couldn’t share this story.');
   }
 }
 
