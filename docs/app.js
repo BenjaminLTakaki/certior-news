@@ -161,8 +161,10 @@ function setStatus(text, retry) {
 }
 
 // ---------------------------------------------------------------- feed
+const FEED_TIMEOUT_MS = 15000, NEWER_CHECK_MS = 6000;
 async function loadFeed() {
-  const r = await fetch(`${FEED_URL}?t=${Date.now()}`, { cache: 'no-store' });
+  // a request that never answers would leave "Loading stories…" up for good: give up, and offer Try Again
+  const r = await fetch(`${FEED_URL}?t=${Date.now()}`, { cache: 'no-store', signal: AbortSignal.timeout?.(FEED_TIMEOUT_MS) });
   if (!r.ok) throw new Error(`feed ${r.status}`);
   return r.json();
 }
@@ -1347,4 +1349,5 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catc
   start();
   if (!navigator.onLine) flash(`You’re offline. These are the stories from ${ago(feed.generated)}.`);
   updateBadge();
+  setTimeout(checkForNewStories, NEWER_CHECK_MS);     // on a slow start the saved copy came first: offer the newer one
 })();
