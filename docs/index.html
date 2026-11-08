@@ -28,7 +28,7 @@
 </head>
 <body>
   <header id="bar">
-    <button type="button" id="back" hidden></button>
+    <div id="bar-start"><button type="button" id="back" hidden></button></div>
     <div id="bar-center">
       <span id="bar-title"></span>
       <svg id="bar-chevron" viewBox="0 0 12 12" aria-hidden="true"><path d="m2.5 4.5 3.5 3.5 3.5-3.5"/></svg>
@@ -44,12 +44,11 @@
   <main id="feed" aria-label="Stories"></main>
 
   <!-- the ONE YouTube player, laid over the active clip's video area -->
-  <div id="player-wrap" hidden><div id="player"></div></div>
+  <div id="player-wrap" hidden><div id="player"></div><div id="progress" aria-hidden="true"><i></i></div></div>
   <!-- catches swipes and taps on the middle of the video so the feed still scrolls -->
   <div id="gesture" hidden aria-hidden="true"><span id="skip"></span></div>
 
   <div id="hint" role="status" hidden></div>
-  <button type="button" id="new-pill" hidden>New Stories</button>
   <div id="status" class="status">Loading stories…</div>
 
   <section id="page-world" class="page" aria-labelledby="world-title" hidden>

@@ -51,7 +51,7 @@ const AWAY_MS = 60 * 60000, RECAP_NEW_MAX = 10, RECAP_MIN_OUTLETS = 3;     // Re
 
 const $ = (s, el = document) => el.querySelector(s);
 const feedEl = $('#feed'), wrap = $('#player-wrap'), gesture = $('#gesture');
-const hintEl = $('#hint'), statusEl = $('#status'), newPill = $('#new-pill');
+const hintEl = $('#hint'), statusEl = $('#status');
 const welcomeEl = $('#welcome'), compareEl = $('#compare');
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -230,8 +230,10 @@ function renderBar() {
     : query ? `\u201C${query}\u201D` : pushedList ? pushedList.title : TOPICS[topic];
   select.value = topic;
   action.innerHTML = place ? SHUFFLE_ICON : REFRESH_ICON;
-  action.setAttribute('aria-label', place ? 'Take me somewhere else' : 'Check for new stories');
+  action.setAttribute('aria-label', place ? 'Take me somewhere else' : newWaiting ? 'Show new stories' : 'Check for new stories');
+  action.classList.toggle('new', newWaiting && !place);
   action.onclick = place ? takeMeSomewhere : refreshFeed;
+  if (isPushed) $('#bar-end').prepend(action); else $('#bar-start').append(action);
 }
 
 $('#topic').append(...Object.entries(TOPICS).map(([key, label]) => { const o = el('option', '', label); o.value = key; return o; }));
@@ -668,17 +670,17 @@ function renderStory(s, si) {
       yt.href = `https://www.youtube.com/watch?v=${c.id}`; yt.target = '_blank'; yt.rel = 'noopener';
       const compare = el('button', 'compare-btn');
       compare.type = 'button';
-      compare.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h11M4 12h16M4 17h8"/></svg>Compare';
+      compare.textContent = 'Compare';
       compare.onclick = () => openCompare(si, c.id);
       const meta = el('div', 'meta'), row = el('div', 'row');
       if (videosOn()) {
         // no thumbnail behind the player: between clips, just the outlet's name
         slot.append(el('div', 'wait', c.channel), el('div', 'msg'));
-        const src = el('span', 'src');
-        src.append(el('b', '', c.channel), ` · ${byline(c, s)}`);
         const snd = el('button', 'snd');
         snd.type = 'button';
         snd.innerHTML = SOUND_ON; snd.setAttribute('aria-label', 'Sound on or off'); snd.onclick = toggleMute;
+        const src = el('span', 'src');
+        src.append(el('b', '', c.channel), ` · ${byline(c, s)}`);
         row.append(src, snd, s.clips.length > 1 ? compare : yt);
         // YouTube's player shows any funding notice itself (sometimes cut off; Compare has it in full)
         meta.append(el('h2', 'ctitle', c.title), row);
@@ -705,21 +707,21 @@ function renderStory(s, si) {
 // Text Only: the clip's own headline, word for word with its outlet, then the first headline from each other side.
 // Nothing here loads from YouTube.
 function textCard(s, c, si) {
-  const card = el('div', 'textcard'), sport = s.topic === 'sports';
-  const side = el('p', 'tc-side' + (sport ? '' : ' dot'), sport ? 'Sports' : COLUMNS[c.column]);
-  side.dataset.column = c.column;
+  const card = el('div', 'textcard'), body = el('div', 'tc-body'), sport = s.topic === 'sports';
   const by = el('p', 'tc-by');
   by.append(el('b', '', c.channel), ` · ${byline(c, s, true)}`);
-  card.append(side, el('h2', 'tc-head', c.title), by);
-  if (c.note && settings.notes) card.append(el('p', 'tc-note', c.note));
+  body.append(el('h2', 'tc-head', c.title), by);
+  if (c.note && settings.notes) body.append(el('p', 'tc-note', c.note));
   const others = sport ? s.clips.filter((k) => k.channel !== c.channel).slice(0, 2).map((k) => [null, k])
-    : Object.entries(sideHeads(s)).filter(([col]) => col !== c.column);
+    : [...Object.entries(sideHeads(s)), ...[s.clips.find((k) => k.column === 'state')].filter(Boolean).map((k) => ['state', k])]
+      .filter(([col]) => col !== c.column);
   if (others.length) {
     const box = el('div', 'tc-others');
     box.append(el('p', 'tc-label', sport ? 'Also covering it' : 'How the other sides put it'));
     for (const [col, k] of others) {
       const b = el('button', 'tc-other');
       b.type = 'button';
+      if (col) b.dataset.column = col;
       const who = el('span', 'tc-other-by' + (col ? ' dot' : ''), col ? `${COLUMNS[col]} ·` : '');
       if (col) who.dataset.column = col;
       who.append(el('b', '', k.channel));
@@ -727,16 +729,27 @@ function textCard(s, c, si) {
       b.onclick = () => { const sc = clipsEl(si); sc.scrollTo({ left: s.clips.indexOf(k) * sc.clientWidth, behavior: SMOOTH }); };
       box.append(b);
     }
-    card.append(box);
+    body.append(box);
   }
-  const videos = el('div', 'tc-videos');
-  const on = el('button', '', 'Turn On Videos');
-  on.type = 'button';
-  on.onclick = () => { chooseVideos(true); onScrollStart(); draw({ story: s.id, clip: c.id }); };    // same stories, now with video
-  videos.append(el('span', '', 'Videos are off'), on);
-  if (!others.length) videos.style.marginTop = 'auto';
-  card.append(videos);
+  card.append(body);
   return card;
+}
+
+// Whatever doesn't fit gives way, so nothing is ever cut off and the video keeps the same box on every clip:
+// - a Text Only card drops its least important lines first: the funding note (Compare has it), then the
+//   State-funded headline, then the other sides' headline text (their outlets stay, a tap away). Left, Center and
+//   Right always go together; anything still too tall scrolls.
+// - a title too long for the room under the video gets smaller type.
+// Done for the stories around the one you're on.
+const FIT_STEPS = ['.tc-note', '.tc-other[data-column="state"]', '.tc-other-head'];
+function fitCards(sec) {
+  if (!sec || sec.dataset.fit) return;
+  sec.dataset.fit = '1';
+  const over = (list) => list.filter((b) => b.scrollHeight > b.clientHeight + 1);      // read them all, then change
+  const cards = [...sec.querySelectorAll('.textcard')];
+  for (const step of FIT_STEPS) for (const b of over(cards)) for (const e of b.querySelectorAll(step)) e.style.display = 'none';
+  const metas = [...sec.querySelectorAll('.ctitle')].map((t) => t.parentElement);
+  for (const size of ['long', 'longer']) for (const m of over(metas)) m.querySelector('.ctitle').classList.add(size);
 }
 
 // Hold the sides control (or slide along it): the dots grow, and the clip under your finger comes up.
@@ -845,7 +858,7 @@ async function refreshFeed() {
     const known = new Set(feed.stories.flatMap((s) => s.clips.map((c) => c.id)));
     const added = fresh.stories.some((s) => s.clips.some((c) => !known.has(c.id)));
     feed = latest = fresh;
-    newPill.hidden = true;
+    markNew(false);
     if (added) {
       everything = null;
       if (query) everything = await loadEverything();
@@ -921,6 +934,7 @@ function settle() {
     return;
   }
   const [s, c] = current();
+  for (const i of [s - 1, s, s + 1]) fitCards(storyEl(i));     // before anything shows them
   if (s !== activeS) {          // a new story opens on the side you were watching, if it has that side
     const ci = stories[s].clips.findIndex((k) => (place ? k.country === place : k.column === openSide()));
     if (ci > 0 && ci !== c) {
@@ -953,6 +967,7 @@ function activate(s, c) {
   activeS = s; activeC = c; currentId = clip.id;
   if (!playerReady) return;
   storyEl(s).querySelectorAll('.clip')[c].classList.remove('err');
+  if (!same) showProgress(0);
   if (same) { player.playVideo(); } else if (unlocked) { player.loadVideoById(clip.id); } else { player.cueVideoById(clip.id); }
   armPlayCheck();
 }
@@ -980,9 +995,20 @@ function armPlayCheck() {
   }, PLAY_CHECK_MS);
 }
 
+const progressFill = $('#progress i');
+let progressTimer = 0;
+function showProgress(at) { progressFill.style.transform = `scaleX(${at})`; }
+function trackProgress() {
+  clearInterval(progressTimer);
+  const tick = () => { const d = player.getDuration() || 0; showProgress(d ? Math.min(1, player.getCurrentTime() / d) : 0); };
+  tick();
+  if (playing) progressTimer = setInterval(tick, 250);
+}
+
 function onState(e) {
   const S = window.YT.PlayerState;
   playing = e.data === S.PLAYING;
+  trackProgress();
   if (playing) {
     if (!unlocked) { unlocked = true; }
     gesture.hidden = false;
@@ -1129,14 +1155,18 @@ LANDSCAPE.addEventListener('change', (e) => {
 });
 window.addEventListener('resize', () => { if (activeS >= 0 && inFeedView() && stories[activeS]) placePlayer(activeS, activeC); });
 
+// New stories wait behind a dot on the refresh button, with a short note over the sides bar that nothing can be tapped
+// through: a "New Stories" button there sat on top of Left, Center and Right, and a tap meant for a side reloaded the feed.
+let newWaiting = false;
+function markNew(on) { newWaiting = on; renderBar(); }
 async function checkForNewStories() {
   if (document.visibilityState !== 'visible' || !feed) return;
   try {
     const fresh = await loadFeed();
     const known = new Set(feed.stories.flatMap((s) => s.clips.map((c) => c.id)));
     if (fresh.stories.some((s) => s.clips.some((c) => !known.has(c.id)))) {
-      newPill.hidden = false;
-      newPill.onclick = () => { newPill.hidden = true; feed = fresh; start(); };
+      if (!newWaiting) flash('New stories are in: tap ↻ to see them');
+      markNew(true);
     }
     latest = fresh;
     updateBadge();
@@ -1386,6 +1416,7 @@ function draw(at) {
   render();
   if (query || pushedList || ended) showEnd();
   const si = at ? stories.findIndex((s) => s.id === at.story) : -1;
+  fitCards(storyEl(Math.max(si, 0)));
   const ci = si < 0 ? 0 : Math.max(0, stories[si].clips.findIndex((c) => c.id === at.clip));
   feedEl.scrollTop = Math.max(si, 0) * feedEl.clientHeight;
   if (si >= 0) {
