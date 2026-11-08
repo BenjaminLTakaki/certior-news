@@ -73,13 +73,21 @@ let consent = store.get('consent', null);    // 'videos' or 'text'. Nothing from
 const videosOn = () => consent === 'videos';
 document.documentElement.classList.toggle('videos', videosOn());     // style.css gives the video more room
 let watched = new Set(store.get('watched', []));
+const sidesSeen = new Map();      // this visit: story id -> the sides of it you've watched
 function markWatched(id) {
   if (watched.has(id)) return;
   watched.add(id);
   store.set('watched', [...watched].slice(-3000));
-  const clip = stories[activeS]?.clips.find((c) => c.id === id);
+  const s = stories[activeS], clip = s?.clips.find((c) => c.id === id);
   if (clip && clip.column !== 'unrated') recordMix(clip.column);
   if (clip) count(`watched_${clip.column}`);
+  // a story watched from two or more sides, once a visit: the stats page's measure of what Certior is for
+  if (clip && clip.column !== 'unrated') {
+    const seen = sidesSeen.get(s.id) || new Set();
+    seen.add(clip.column);
+    sidesSeen.set(s.id, seen);
+    if (seen.size === 2) count('story_sides');
+  }
 }
 
 // ---------------------------------------------------------------- your mix: on this device only, never a reward
@@ -1286,7 +1294,7 @@ function timeline(s) {
 $('#bar-share').onclick = () => { const s = stories[activeS]; if (s) shareStory(s, s.clips[activeC]?.id ?? s.clips[0].id); };
 async function shareStory(s, currentClip) {
   count('share');
-  const url = `${location.origin}${location.pathname}?story=${encodeURIComponent(s.id)}&clip=${encodeURIComponent(currentClip)}`;
+  const url = `${location.origin}${location.pathname}?story=${encodeURIComponent(s.id)}&clip=${encodeURIComponent(currentClip)}&ref=share`;
   const data = { title: s.headline, text: 'How different outlets covered it', url };
   try {
     const blob = await storyCard(s, currentClip);
@@ -1445,7 +1453,7 @@ countVisit();
   // a shared link: ?story=…&clip=…, found by the clip too in case the story's id changed since
   const linked = params.get('story'), linkedClip = params.get('clip');
   if (linked) {
-    count('shared_open');
+    if (['share', null].includes(params.get('ref'))) count('shared_open');      // not your own caption link (ref=social)
     history.replaceState(null, '', params.get('feed') ? `?feed=${encodeURIComponent(params.get('feed'))}` : location.pathname);
     const find = (list) => list.find((s) => s.id === linked) || list.find((s) => s.clips.some((c) => c.id === linkedClip));
     const s = find(feed.stories) || find(everything = await loadEverything());
