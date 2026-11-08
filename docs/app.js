@@ -138,11 +138,12 @@ function renderMix(box) {
   }
   for (const [k, n] of Object.entries(totals)) {
     const row = el('div', 'mix-row');
+    row.dataset.column = k;
     const bar = el('span', 'mix-bar');
     const fill = el('i');
     fill.style.width = `${Math.round((n / sum) * 100)}%`;
     bar.append(fill);
-    row.append(el('span', '', COLUMNS[k]), bar, el('span', 'mix-n', String(n)));
+    row.append(el('span', 'mix-name', COLUMNS[k]), bar, el('span', 'mix-n', String(n)));
     box.append(row);
   }
   const least = Object.keys(totals).reduce((a, b) => (totals[b] < totals[a] ? b : a));
@@ -352,10 +353,10 @@ function recapRow(e, live, open, when) {
     if (!h) continue;
     const line = el('span', 'headline-sub side-line');
     line.dataset.column = k;
-    line.append(el('b', '', h.channel), ` ${h.title}`);
+    line.append(el('b', '', `${COLUMNS[k]} \u00b7 ${h.channel}`), ` ${h.title}`);
     b.append(line);
   }
-  b.append(el('span', 'headline-sub', [`${e.outlets} outlets`, when, !live && 'Watch on YouTube'].filter(Boolean).join(' · ')));
+  b.append(el('span', 'headline-meta', [`${e.outlets} outlets`, when, !live && 'Watch on YouTube \u2197'].filter(Boolean).join(' \u00b7 ')));
   if (live) {
     b.type = 'button';
     b.onclick = () => open(live);
@@ -627,102 +628,125 @@ function renderStory(s, si) {
     sec.dataset.i = si;
     sec.setAttribute('aria-label', s.headline);
 
+    // The sides control: Left, Center and Right in equal thirds, each with its clips as dots in its colour, so a story's
+    // balance shows at a glance and position and name tell the sides apart without colour. Clips off the Left/Right
+    // scale get a segment of their own after them. A side with no outlets stays, hollow: that gap is information.
     const segRow = el('div', 'seg-row');
-    const seg = el('div', 'seg');
-    seg.setAttribute('role', 'group');
-    seg.setAttribute('aria-label', 'Rating of the outlets covering this story');
-    for (const [col, label] of Object.entries(COLUMNS)) {
-      if (!SIDES.includes(col)) continue;      // State-funded and Not rated come last with their own ticks and byline: a fourth segment crowded the row
-      const b = el('button', '', label);      // a side with no outlets stays visible but off: that gap is information
-      b.type = 'button';
+    const sides = el('div', 'sides');
+    sides.setAttribute('role', 'group');
+    sides.setAttribute('aria-label', s.topic === 'sports' ? 'Outlets covering this story' : 'Rating of the outlets covering this story');
+    const groupOf = (c) => (s.topic === 'sports' ? 'all' : SIDES.includes(c.column) ? c.column : 'rest');
+    const rest = s.clips.filter((c) => groupOf(c) === 'rest');
+    const restLabel = rest.some((c) => c.column === 'state') ? COLUMNS.state : COLUMNS.unrated;
+    const segs = s.topic === 'sports' ? [['all', `Sports · ${new Set(s.clips.map((c) => c.channel)).size} outlets`]]
+      : [...SIDES.map((k) => [k, COLUMNS[k]]), ...(rest.length ? [['rest', restLabel]] : [])];
+    const groups = {};
+    for (const [col, label] of segs) {
+      const n = s.clips.filter((c) => groupOf(c) === col).length;
+      const b = el(col === 'all' ? 'div' : 'button', `side ${col}`);
+      if (col === 'rest' && restLabel === COLUMNS.state) b.classList.add('is-state');
       b.dataset.column = col;
-      b.disabled = !s.sides[col];
-      if (!s.sides[col]) b.setAttribute('aria-label', `${label}: no coverage among the outlets here`);
-      b.onclick = () => jumpToColumn(si, col);
-      seg.append(b);
+      groups[col] = el('span', 'tg');
+      groups[col].setAttribute('aria-hidden', 'true');
+      if (!n) groups[col].append(el('i', 'none', 'None'));
+      b.append(el('span', 'side-name', label), groups[col]);
+      if (col !== 'all') {
+        b.type = 'button';
+        b.setAttribute('aria-label', n ? `${label}, ${n} ${n === 1 ? 'clip' : 'clips'}` : `${label}: no coverage among the outlets here`);
+        if (!n) b.setAttribute('aria-disabled', 'true');
+        b.onclick = (e) => { if (!e.detail && n) jumpToColumn(si, col); };     // the keyboard; a finger is handled by holdToPick
+      }
+      sides.append(b);
     }
-    if (s.topic === 'sports') {     // left and right mean nothing for sport, but an empty row looked broken
-      const n = new Set(s.clips.map((c) => c.channel)).size;
-      segRow.append(el('span', 'seg-note', `Sports · ${n} ${n === 1 ? 'outlet' : 'outlets'}`));
-    } else {
-      segRow.append(seg);
-    }
+    segRow.append(sides);
 
     const clips = el('div', 'clips');
-    const ticks = el('div', 'ticks' + (s.clips.length < 2 ? ' single' : ''));
-    // Ticks sit under their side's segment, in its colour, so a story's balance shows at a glance and position
-    // tells the sides apart without colour. Clips off the Left/Right scale get a small group of their own at the end.
-    const groups = {}, groupOf = (c) => (s.topic === 'sports' ? 'all' : SIDES.includes(c.column) ? c.column : 'rest');
     s.clips.forEach((c, ci) => {
       const clip = el('article', 'clip');
       const slot = el('div', 'slot');
-      if (videosOn()) {
-        const img = el('img');
-        img.alt = '';
-        img.dataset.src = `https://i.ytimg.com/vi/${c.id}/hqdefault.jpg`;     // set by showThumbs when the story comes up
-        slot.append(img, el('div', 'msg'));
-      } else {
-        // Text Only: how each side put it, instead of the same grey box on every clip. Nothing here loads from YouTube.
-        const off = el('div', 'textcard');
-        const heads = s.topic === 'sports' ? s.clips.slice(0, 3).map((k) => [null, k]) : Object.entries(sideHeads(s));
-        off.append(el('p', 'textcard-title', s.topic === 'sports' ? 'Who Covered It' : 'How Each Side Put It'));
-        for (const [col, k] of heads) {
-          const line = el('div', 'textcard-line' + (k.id === c.id ? ' now' : ''));
-          if (col) line.dataset.column = col;
-          line.append(el('span', 'textcard-by', col ? `${COLUMNS[col]} \u00b7 ${k.channel}` : k.channel), el('span', 'textcard-head', k.title));
-          off.append(line);
-        }
-        const on = el('button', 'filled', 'Turn On Videos');
-        on.type = 'button';
-        on.onclick = () => { chooseVideos(true); onScrollStart(); draw({ story: s.id, clip: c.id }); };    // same stories, now with video
-        const open = el('a', '', 'Watch on YouTube');
-        open.href = `https://www.youtube.com/watch?v=${c.id}`; open.target = '_blank'; open.rel = 'noopener';
-        const actions = el('div', 'textcard-actions');
-        actions.append(on, open);
-        off.append(actions, el('p', 'textcard-note', 'Videos play from YouTube, which can set cookies on this device.'));
-        slot.append(off);
-      }
-
-      const meta = el('div', 'meta');
-      const row = el('div', 'row');
-      const src = el('span', 'src');
-      src.append(el('b', '', c.channel), ` · ${byline(c, s)}`);
-      const snd = el('button', 'snd');
-      snd.innerHTML = SOUND_ON; snd.setAttribute('aria-label', 'Sound on or off'); snd.onclick = toggleMute;
-      const compare = el('button', 'compare-btn', 'Compare');
-      compare.onclick = () => openCompare(si, c.id);
-      const yt = el('a', '', 'YouTube');
+      const yt = el('a', 'yt-link', 'Watch on YouTube');
       yt.href = `https://www.youtube.com/watch?v=${c.id}`; yt.target = '_blank'; yt.rel = 'noopener';
-      row.append(src, ...(videosOn() ? [snd] : []), s.clips.length > 1 ? compare : yt);
-      meta.append(el('h2', 'ctitle', c.title));
-      // With videos on, YouTube's player shows the notice itself (sometimes cut off; Compare has it in full), so the line under the title only repeated it
-      if (c.note && settings.notes && !videosOn()) meta.append(el('p', 'note', c.note));
-      meta.append(row);
+      const compare = el('button', 'compare-btn');
+      compare.type = 'button';
+      compare.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h11M4 12h16M4 17h8"/></svg>Compare';
+      compare.onclick = () => openCompare(si, c.id);
+      const meta = el('div', 'meta'), row = el('div', 'row');
+      if (videosOn()) {
+        // no thumbnail behind the player: between clips, just the outlet's name
+        slot.append(el('div', 'wait', c.channel), el('div', 'msg'));
+        const src = el('span', 'src');
+        src.append(el('b', '', c.channel), ` · ${byline(c, s)}`);
+        const snd = el('button', 'snd');
+        snd.type = 'button';
+        snd.innerHTML = SOUND_ON; snd.setAttribute('aria-label', 'Sound on or off'); snd.onclick = toggleMute;
+        row.append(src, snd, s.clips.length > 1 ? compare : yt);
+        // YouTube's player shows any funding notice itself (sometimes cut off; Compare has it in full)
+        meta.append(el('h2', 'ctitle', c.title), row);
+      } else {
+        slot.append(textCard(s, c, si));
+        row.append(yt, ...(s.clips.length > 1 ? [compare] : []));
+        meta.append(row);
+      }
       clip.append(slot, meta);
       clips.append(clip);
       const t = el('i');
       t.dataset.i = ci;
       t.dataset.column = c.column;
-      (groups[groupOf(c)] ||= el('span', `tg ${groupOf(c)}`)).append(t);
+      groups[groupOf(c)].append(t);
     });
-    if (s.topic === 'sports') ticks.append(groups.all);
-    else ticks.append(...SIDES.map((k) => groups[k] || el('span', `tg ${k}`)), ...(groups.rest ? [groups.rest] : []));
-    if (groups.rest) { sec.classList.add('has-rest'); sec.style.setProperty('--rest-w', `${groups.rest.children.length * 8}px`); }
     let t = 0;
     clips.addEventListener('scroll', () => { onScrollStart(); clearTimeout(t); t = setTimeout(settle, 140); }, { passive: true });
-    holdToPick(ticks, clips, si);
-    sec.append(segRow, ticks, clips);
+    holdToPick(sides, clips, si);
+    sec.append(segRow, clips);
     feedEl.append(sec);
     markPosition(si, 0);
 }
 
-// Hold the dots (or slide along them): they grow, and the clip under your finger comes up. A tap jumps to that clip.
+// Text Only: the clip's own headline, word for word with its outlet, then the first headline from each other side.
+// Nothing here loads from YouTube.
+function textCard(s, c, si) {
+  const card = el('div', 'textcard'), sport = s.topic === 'sports';
+  const side = el('p', 'tc-side' + (sport ? '' : ' dot'), sport ? 'Sports' : COLUMNS[c.column]);
+  side.dataset.column = c.column;
+  const by = el('p', 'tc-by');
+  by.append(el('b', '', c.channel), ` · ${byline(c, s, true)}`);
+  card.append(side, el('h2', 'tc-head', c.title), by);
+  if (c.note && settings.notes) card.append(el('p', 'tc-note', c.note));
+  const others = sport ? s.clips.filter((k) => k.channel !== c.channel).slice(0, 2).map((k) => [null, k])
+    : Object.entries(sideHeads(s)).filter(([col]) => col !== c.column);
+  if (others.length) {
+    const box = el('div', 'tc-others');
+    box.append(el('p', 'tc-label', sport ? 'Also covering it' : 'How the other sides put it'));
+    for (const [col, k] of others) {
+      const b = el('button', 'tc-other');
+      b.type = 'button';
+      const who = el('span', 'tc-other-by' + (col ? ' dot' : ''), col ? `${COLUMNS[col]} ·` : '');
+      if (col) who.dataset.column = col;
+      who.append(el('b', '', k.channel));
+      b.append(who, el('span', 'tc-other-head', k.title));
+      b.onclick = () => { const sc = clipsEl(si); sc.scrollTo({ left: s.clips.indexOf(k) * sc.clientWidth, behavior: SMOOTH }); };
+      box.append(b);
+    }
+    card.append(box);
+  }
+  const videos = el('div', 'tc-videos');
+  const on = el('button', '', 'Turn On Videos');
+  on.type = 'button';
+  on.onclick = () => { chooseVideos(true); onScrollStart(); draw({ story: s.id, clip: c.id }); };    // same stories, now with video
+  videos.append(el('span', '', 'Videos are off'), on);
+  if (!others.length) videos.style.marginTop = 'auto';
+  card.append(videos);
+  return card;
+}
+
+// Hold the sides control (or slide along it): the dots grow, and the clip under your finger comes up.
+// A tap jumps to the first clip of the side you tapped.
 const HOLD_MS = 250;
 function holdToPick(ticks, clips, si) {
-  let hold = 0, scrub = false, x0 = null;
+  let hold = 0, scrub = false, x0 = null, tapped = null;
   const pick = (x, behavior) => {
     let best = 0, bestD = Infinity;
-    for (const t of ticks.querySelectorAll('i')) {
+    for (const t of ticks.querySelectorAll('i[data-i]')) {
       const r = t.getBoundingClientRect(), d = Math.abs(x - r.left - r.width / 2);
       if (d < bestD) { bestD = d; best = +t.dataset.i; }
     }
@@ -734,6 +758,7 @@ function holdToPick(ticks, clips, si) {
   const stop = () => { clearTimeout(hold); scrub = false; x0 = null; ticks.classList.remove('scrub'); };
   ticks.addEventListener('pointerdown', (e) => {
     x0 = e.clientX;
+    tapped = e.target.closest('button');
     try { ticks.setPointerCapture(e.pointerId); } catch { /* not supported */ }
     hold = setTimeout(() => { grow(); pick(x0, 'auto'); }, HOLD_MS);
   });
@@ -742,7 +767,13 @@ function holdToPick(ticks, clips, si) {
     if (!scrub && Math.abs(e.clientX - x0) > DRAG_START) { clearTimeout(hold); grow(); }
     if (scrub) pick(e.clientX, 'auto');
   });
-  ticks.addEventListener('pointerup', (e) => { if (x0 !== null && !scrub) pick(e.clientX, SMOOTH); stop(); });
+  ticks.addEventListener('pointerup', (e) => {
+    if (x0 !== null && !scrub) {
+      if (!tapped) pick(e.clientX, SMOOTH);      // sport: one row of dots, so a tap picks the nearest
+      else if (tapped.getAttribute('aria-disabled') !== 'true') jumpToColumn(si, tapped.dataset.column);
+    }
+    stop();
+  });
   ticks.addEventListener('pointercancel', stop);
 }
 
@@ -832,12 +863,12 @@ async function refreshFeed() {
 
 function markPosition(s, c) {
   const sec = storyEl(s), column = stories[s].clips[c].column;
-  sec.querySelectorAll('.seg button').forEach((b) => {
-    const on = b.dataset.column === column;
+  sec.querySelectorAll('.side').forEach((b) => {
+    const on = b.dataset.column === column || b.dataset.column === 'all' || (b.dataset.column === 'rest' && !SIDES.includes(column));
     b.classList.toggle('on', on);
     if (on) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current');
   });
-  sec.querySelectorAll('.ticks i').forEach((t) => t.classList.toggle('on', +t.dataset.i === c));
+  sec.querySelectorAll('.tg i[data-i]').forEach((t) => t.classList.toggle('on', +t.dataset.i === c));
 }
 
 // ---------------------------------------------------------------- navigation
@@ -866,7 +897,7 @@ function advance() {
   sc.scrollTo({ left: (activeC + 1) * sc.clientWidth, behavior: SMOOTH });
 }
 function jumpToColumn(si, column) {
-  const ci = stories[si].clips.findIndex((c) => c.column === column);
+  const ci = stories[si].clips.findIndex((c) => c.column === column || (column === 'rest' && !SIDES.includes(c.column)));
   const sc = clipsEl(si);
   if (ci >= 0 && sc) sc.scrollTo({ left: ci * sc.clientWidth, behavior: SMOOTH });
 }
@@ -905,18 +936,8 @@ function settle() {
     if (hintEl.textContent === SIDEWAYS_HINT) showHint('');
   }
   autoAdvance = false;
-  showThumbs(s, c);
   activate(s, c);
   if (s >= stories.length - MORE_AT) loadMore();
-}
-
-// Thumbnails only for the clip you're on, its neighbours, and the next story. Loading them all up front
-// sent 35 images (about 500 KB) at once, which held YouTube's player back on a phone connection.
-function showThumbs(si, ci) {
-  const load = (img) => { if (img?.dataset.src) { img.src = img.dataset.src; delete img.dataset.src; } };
-  const imgs = storyEl(si)?.querySelectorAll('.slot img') || [];
-  for (const i of [ci - 1, ci, ci + 1]) load(imgs[i]);
-  load(storyEl(si + 1)?.querySelector('.slot img'));
 }
 
 function hintSideways() {
@@ -1258,26 +1279,35 @@ function openCompare(si, currentClip) {
   count('compare');
   const s = stories[si], box = $('#compare-body');
   box.textContent = '';
+  box.append(el('p', 'compare-story', s.headline));
   if (!store.get('knowsRatings', false) && s.topic !== 'sports') {      // the first Compare explains the sides, not the welcome
     store.set('knowsRatings', true);
     box.append(el('p', 'compare-intro', 'Left, Center and Right are Media Bias/Fact Check\u2019s ratings of each outlet as a whole, on a US left\u2013right scale, not of these headlines. Each headline shows its outlet\u2019s exact rating, like Lean Left. Outlets a government funds have their own group.'));
   }
   for (const [col, label] of Object.entries(COLUMNS)) {
     const clips = s.clips.filter((c) => c.column === col);
+    const head = (n) => {
+      const h = el('h2', 'group-title', label);
+      h.dataset.column = col;
+      if (n) h.append(el('span', 'n', `${n} ${n === 1 ? 'outlet' : 'outlets'}`));
+      return h;
+    };
     if (s.topic !== 'sports' && SIDES.includes(col) && !clips.length) {
-      box.append(el('h2', 'group-title', label), el('p', 'group-note', 'No coverage among the outlets here.'));
+      box.append(head(0), el('p', 'group-note', 'No coverage among the outlets here.'));
       continue;
     }
     if (!clips.length) continue;
-    if (s.topic !== 'sports') box.append(el('h2', 'group-title', label));     // left and right mean nothing for sport
+    if (s.topic !== 'sports') box.append(head(clips.length));     // left and right mean nothing for sport
     if (s.topic !== 'sports' && col === 'state') box.append(el('p', 'group-note state-note', 'YouTube notes that a government funds these outlets, in whole or in part, so they aren\u2019t placed on the US left\u2013right scale.'));
     const group = el('div', 'group');
     for (const c of clips) {
       const b = el('button', 'cell headline' + (c.id === currentClip ? ' now' : ''));
       b.type = 'button';
       if (c.id === currentClip) b.setAttribute('aria-current', 'true');
-      b.append(el('span', 'headline-title', c.title), el('span', 'headline-sub', `${c.channel} \u00b7 ${byline(c, s, true)}`));
-      if (c.note && settings.notes) b.append(el('span', 'headline-sub', c.note));     // in full: the player's box can cut it off
+      const by = el('span', 'headline-sub');
+      by.append(el('b', '', c.channel), ` \u00b7 ${byline(c, s, true)}`);
+      b.append(el('span', 'headline-title', c.title), by);
+      if (c.note && settings.notes) b.append(el('span', 'headline-meta', c.note));     // in full: the player's box can cut it off
       b.onclick = () => {
         const ci = s.clips.indexOf(c), sc = clipsEl(si);
         closeSheet(compareEl);
@@ -1288,13 +1318,14 @@ function openCompare(si, currentClip) {
     box.append(group);
   }
   if (s.clips.length > 1) box.append(...timeline(s));
-  const share = el('button', 'watch-link', 'Share This Story');
+  const share = el('button', 'cell watch-link', 'Share This Story');
   share.type = 'button';
   share.onclick = () => shareStory(s, currentClip);
-  box.append(share);
-  const yt = el('a', 'watch-link', 'Watch This Clip on YouTube');
+  const yt = el('a', 'cell link ext watch-link', 'Watch This Clip on YouTube');
   yt.href = `https://www.youtube.com/watch?v=${currentClip}`; yt.target = '_blank'; yt.rel = 'noopener';
-  box.append(yt, el('p', 'group-note', 'Headlines from YouTube videos. Left, Center and Right are Media Bias/Fact Check ratings of whole outlets on a US left\u2013right scale, not judgements of these headlines.'));
+  const actions = el('div', 'group actions');
+  actions.append(share, yt);
+  box.append(actions, el('p', 'group-note', 'Headlines from YouTube videos. Left, Center and Right are Media Bias/Fact Check ratings of whole outlets on a US left\u2013right scale, not judgements of these headlines.'));
   if (playerReady) player.pauseVideo();
   compareEl.showModal();
 }
