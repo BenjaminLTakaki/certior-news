@@ -73,7 +73,7 @@ let consent = store.get('consent', null);    // 'videos' or 'text'. Nothing from
 const videosOn = () => consent === 'videos';
 document.documentElement.classList.toggle('videos', videosOn());     // style.css gives the video more room
 let watched = new Set(store.get('watched', []));
-const sidesSeen = new Map();      // this visit: story id -> the sides of it you've watched
+const storiesCounted = new Map();      // this visit: story id -> what was counted for it ({ watched, compared })
 function markWatched(id) {
   if (watched.has(id)) return;
   watched.add(id);
@@ -81,12 +81,15 @@ function markWatched(id) {
   const s = stories[activeS], clip = s?.clips.find((c) => c.id === id);
   if (clip && clip.column !== 'unrated') recordMix(clip.column);
   if (clip) count(`watched_${clip.column}`);
-  // a story watched from two or more sides, once a visit: the stats page's measure of what Certior is for
-  if (clip && clip.column !== 'unrated') {
-    const seen = sidesSeen.get(s.id) || new Set();
-    seen.add(clip.column);
-    sidesSeen.set(s.id, seen);
-    if (seen.size === 2) count('story_sides');
+  // of the stories offering two or more sides: one you watched a clip of, and one you've now watched from two or more
+  // (on this visit or with clips from earlier ones), once each a visit: the stats page's measure of what Certior is for
+  const offered = new Set(s?.clips.filter((k) => k.column !== 'unrated').map((k) => k.column));
+  if (clip && clip.column !== 'unrated' && offered.size >= 2) {
+    const done = storiesCounted.get(s.id) || {};
+    storiesCounted.set(s.id, done);
+    if (!done.watched) { done.watched = true; count('story_watched'); }
+    const sides = new Set(s.clips.filter((k) => k.column !== 'unrated' && watched.has(k.id)).map((k) => k.column));
+    if (sides.size >= 2 && !done.compared) { done.compared = true; count('story_sides'); }
   }
 }
 
