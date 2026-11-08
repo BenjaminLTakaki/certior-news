@@ -89,7 +89,7 @@ function markWatched(id) {
     storiesCounted.set(s.id, done);
     if (!done.watched) { done.watched = true; count('story_watched'); }
     const sides = new Set(s.clips.filter((k) => k.column !== 'unrated' && watched.has(k.id)).map((k) => k.column));
-    if (sides.size >= 2 && !done.compared) { done.compared = true; count('story_sides'); }
+    if (sides.size >= 2 && !done.compared) { done.compared = true; count('story_compared'); }
   }
 }
 
