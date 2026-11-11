@@ -69,6 +69,19 @@ def fetch(channels: list[dict], store: dict, rejected: dict, cache: dict, now: d
     return log
 
 
+def add_shapes(store: dict, limit: int = 150) -> int:
+    """Mark each clip widescreen or not, once, so the app can put the other sides' headlines under a widescreen video.
+    Newest first and at most `limit` a run; if YouTube stops answering, the rest wait for the next run."""
+    asked = 0
+    for c in sorted((c for c in store.values() if "wide" not in c), key=lambda c: c["published"], reverse=True)[:limit]:
+        wide = youtube.is_wide(c["id"])
+        if wide is None:
+            break
+        c["wide"] = wide
+        asked += 1
+    return asked
+
+
 def apply_channels(store: dict, channels: list[dict]) -> dict:
     """channels.json decides: a removed outlet's clips leave the feed and a changed region or lean applies at once."""
     by_name = {c["name"]: c for c in channels}
@@ -152,6 +165,7 @@ def main(argv=None) -> int:
         cutoff = now - timedelta(hours=config.WINDOW_HOURS)
         store = {k: v for k, v in apply_channels(store, channels).items() if parse_time(v["published"]) >= cutoff}
         rejected = {k: v for k, v in rejected.items() if parse_time(v) >= cutoff}
+        log["shapes"] = add_shapes(store)
         save_json(config.CLIPS_FILE, store)
         save_json(config.REJECTED_FILE, rejected)
         save_json(config.CHANNEL_CACHE_FILE, cache)
@@ -186,7 +200,7 @@ def main(argv=None) -> int:
     print(f"[run] embedder={embedder} clips={len(window)} stories={len(stories)} multi-outlet={multi} multi-region={regions} "
           f"quota_units={youtube.QuotaUsed.units}")
     if not args.mock:
-        print(f"[run] channels ok={log['channels_ok']} new clips={log['new']} rejected={dict(log['rejected'])}")
+        print(f"[run] channels ok={log['channels_ok']} new clips={log['new']} shapes asked={log['shapes']} rejected={dict(log['rejected'])}")
         if log["channels_missing"]:
             print(f"[run] WARNING handles not found, fix them in channels.json: {', '.join(log['channels_missing'])}")
     return 0

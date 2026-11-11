@@ -74,6 +74,25 @@ def video_details(ids: list[str]) -> list[dict]:
     return out
 
 
+def is_wide(video_id: str) -> bool | None:
+    """True for a widescreen clip, False for an upright one, None when the question should be asked again later.
+    YouTube's oEmbed needs no key and costs no quota: asked with the /shorts/ address it answers 113x200 for a Short
+    and 200x113 for anything else (asked with watch?v= it always answers 200x113)."""
+    # ponytail: this is "is it a Short", not the true shape, so an upright video over 3 minutes counts as wide.
+    # The Data API's `player` part with maxHeight gives the real size, in the call video_details already pays for.
+    try:
+        r = requests.get("https://www.youtube.com/oembed", timeout=10,
+                         params={"format": "json", "url": f"https://www.youtube.com/shorts/{video_id}"})
+        if r.status_code in (400, 401, 403, 404):
+            return False        # YouTube won't say for this video: it keeps the full box, as before
+        if r.status_code != 200:
+            return None
+        size = r.json()
+        return size["width"] > size["height"]
+    except (requests.RequestException, ValueError, KeyError, TypeError):
+        return None
+
+
 _DUR = re.compile(r"P(?:(\d+)D)?T?(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?")
 
 
