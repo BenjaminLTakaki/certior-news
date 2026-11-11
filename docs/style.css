@@ -24,11 +24,13 @@
   --seg-h: 56px;
   --meta-h: 60px;
   --ease: cubic-bezier(.32, .72, 0, 1);
+  --gut: 0px;                        /* the room either side of the app: none on a phone (see "a wide screen") */
+  --welcome-h: 0px;                  /* the welcome card's height while it shows, set by app.js */
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink);
   font: 17px/1.3 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
-  overflow: hidden; overscroll-behavior: none; -webkit-user-select: none; user-select: none; -webkit-font-smoothing: antialiased; }
+  overflow: hidden; overscroll-behavior: none; touch-action: manipulation; -webkit-user-select: none; user-select: none; -webkit-font-smoothing: antialiased; }
 button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
 a { color: var(--tint); text-underline-offset: 2px; }
 h1, h2, p { margin: 0; }
@@ -45,14 +47,14 @@ button:active, a:active { opacity: .6; }
   content: ""; display: inline-block; flex: none; width: 8px; height: 8px; margin-right: 7px; border-radius: 50%; background: var(--c); vertical-align: 1px; }
 
 /* ---- navigation bar ---- */
-#bar { position: fixed; z-index: 8; inset: 0 0 auto; height: var(--bar-h); padding: env(safe-area-inset-top) 6px 0;
+#bar { position: fixed; z-index: 8; inset: 0 var(--gut) auto; height: var(--bar-h); padding: env(safe-area-inset-top) 6px 0;
   display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; background: var(--bg); }
 #bar-start { grid-column: 1; justify-self: start; display: flex; align-items: center; min-width: 0; }
 #back { display: flex; align-items: center; gap: 2px; min-height: 44px; max-width: 100%; padding: 0 8px 0 4px; color: var(--tint); white-space: nowrap; }
 #back::before { content: ""; width: 10px; height: 10px; margin: 0 2px 0 6px; border: solid currentColor; border-width: 0 0 2.5px 2.5px; transform: rotate(45deg); border-radius: 1px; }
 #back[hidden] { display: none; }
 #bar-center { grid-column: 2; position: relative; display: flex; align-items: center; justify-content: center; gap: 5px; min-height: 44px; min-width: 0; font-weight: 600; }
-#bar-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 52vw; }
+#bar-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: min(52vw, 224px); }
 #bar-chevron { flex: none; width: 12px; height: 12px; fill: none; stroke: var(--muted); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 #bar-chevron[hidden] { display: none; }
 #topic { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; font-size: 16px; cursor: pointer; }
@@ -66,7 +68,7 @@ button:active, a:active { opacity: .6; }
 #bar-share svg, #bar-action svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 
 /* ---- the feed ---- */
-#feed { position: fixed; inset: var(--bar-h) 0 var(--tab-h); overflow-y: scroll; scroll-snap-type: y mandatory;
+#feed { position: fixed; inset: var(--bar-h) var(--gut) calc(var(--tab-h) + var(--welcome-h)); overflow-y: scroll; scroll-snap-type: y mandatory;
   overscroll-behavior: contain; scrollbar-width: none; }
 #feed::-webkit-scrollbar, .clips::-webkit-scrollbar { display: none; }
 .story { height: 100%; scroll-snap-align: start; scroll-snap-stop: always; display: grid; grid-template-rows: var(--seg-h) 1fr; }
@@ -92,7 +94,7 @@ button:active, a:active { opacity: .6; }
 .tg i { flex: 0 1 6px; min-width: 2px; height: 3px; border-radius: 2px; background: var(--c, var(--ink)); opacity: .5;
   transition: opacity 200ms ease-out, flex-basis 200ms var(--ease), transform 200ms ease-out; }
 .tg i.on { flex-basis: 16px; opacity: 1; }
-.tg i.none { flex: none; height: auto; background: none; opacity: 1; font-size: 10px; line-height: 10px; color: var(--faint); font-style: normal; }
+.tg i.none { flex: none; height: auto; background: none; opacity: 1; font-size: 12px; line-height: 10px; color: var(--faint); font-style: normal; }
 .side.all .tg i { --c: var(--ink); }
 /* hold the control, or slide along it: the dots grow, and the clip under your finger comes up */
 .sides.scrub .tg i { opacity: .7; transform: scaleY(1.75); }
@@ -133,39 +135,45 @@ button:active, a:active { opacity: .6; }
 .ctitle.longer { font-size: 14px; line-height: 17px; }
 .story.seen .ctitle, .story.seen .tc-head { color: var(--muted); }
 .row { display: flex; align-items: center; gap: 4px; margin-top: 2px; min-height: 44px; font-size: 13px; color: var(--muted); }
-.src { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.src { flex: 1; min-width: 0; line-height: 17px; text-wrap: pretty; }      /* a long outlet name takes a second line: its rating is never cut off */
 .src b { color: var(--ink); font-weight: 600; }
 .snd { display: grid; place-items: center; width: 44px; height: 44px; color: var(--muted); }
 .snd svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .row a, .compare-btn { display: flex; align-items: center; min-height: 44px; padding: 0 2px 0 12px; color: var(--tint); font-size: 15px; font-weight: 600; text-decoration: none; }
 .row .yt-link { margin-right: auto; padding-left: 0; font-weight: 500; color: var(--muted); }
 .row .yt-link::after, .ext::after { content: "\2197"; margin-left: 4px; font-weight: 400; color: var(--muted); }
+/* Compare is the point of the app, so it is the one filled button on the screen, with how many headlines it holds */
+.compare-btn { position: relative; min-height: 36px; margin-left: 8px; padding: 0 14px; gap: 6px; border-radius: 18px; background: var(--surface-2); }
+.compare-btn::after { content: ""; position: absolute; inset: -4px 0; }      /* a 44px target around the 36px button */
+.compare-btn b { font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; }
 
 /* ---- player + gesture layer (positioned by app.js) ---- */
 #player-wrap, #gesture { position: fixed; z-index: 5; }
 #player-wrap { background: none; }
+/* a headline can be copied (the page itself isn’t selectable, so a swipe never selects text) */
+.ctitle, .tc-head { -webkit-user-select: text; user-select: text; }
 #player, #player-wrap iframe { width: 100%; height: calc(100% - 3px); display: block; border: 0; background: #000; }
 #progress { position: absolute; inset: auto 0 0; height: 2px; background: var(--hair); overflow: hidden; }
 #progress i { display: block; height: 100%; background: var(--muted); transform: scaleX(0); transform-origin: left; transition: transform 250ms linear; }
 #gesture { z-index: 6; touch-action: none; }
 /* "+10 s" / "−10 s" after a double-tap, on the side you tapped: in the middle band, never on YouTube's controls */
 #skip { position: absolute; top: 50%; right: 24px; transform: translateY(-50%); padding: 6px 12px; border-radius: 999px;
-  background: rgb(0 0 0 / .6); color: #fff; font-size: 15px; font-weight: 600; opacity: 0; transition: opacity 200ms ease-out; pointer-events: none; }
+  background: rgb(0 0 0 / .6); color: var(--ink); font-size: 15px; font-weight: 600; opacity: 0; transition: opacity 200ms ease-out; pointer-events: none; }
 #skip.back { right: auto; left: 24px; }
 #skip.on { opacity: 1; }
 #player-wrap.away { visibility: hidden; }
 
-/* ---- small messages: over the sides band above the video, never on the video or YouTube's own controls ---- */
-#hint { position: fixed; z-index: 8; left: 16px; right: 16px; top: calc(var(--bar-h) + 6px); min-height: 44px; border-radius: 12px;
+/* ---- small messages: over the navigation bar, never on the sides and their dots (a tip points at them), the video or YouTube's own controls ---- */
+#hint { position: fixed; z-index: 8; left: calc(var(--gut) + 16px); right: calc(var(--gut) + 16px); top: calc(env(safe-area-inset-top) + 2px); min-height: 40px; border-radius: 12px;
   display: grid; place-items: center; padding: 6px 14px; background: var(--surface-2); font-size: 14px; line-height: 18px; font-weight: 500;
   pointer-events: none; text-align: center; box-shadow: 0 0 0 1px var(--hair); }
 #hint[hidden] { display: none; }
-.status { position: fixed; inset: var(--bar-h) 0 var(--tab-h); display: grid; place-items: center; padding: 32px; text-align: center; color: var(--muted); z-index: 1; pointer-events: none; }
+.status { position: fixed; inset: var(--bar-h) var(--gut) calc(var(--tab-h) + var(--welcome-h)); display: grid; place-items: center; padding: 32px; text-align: center; color: var(--muted); z-index: 1; pointer-events: none; }
 .status[hidden] { display: none; }
 .status button { pointer-events: auto; color: var(--tint); font-weight: 600; margin-top: 12px; min-height: 44px; }
 
 /* ---- pages: large title, inset grouped lists ---- */
-.page { position: fixed; z-index: 9; inset: 0 0 var(--tab-h); overflow-y: auto; -webkit-overflow-scrolling: touch; background: var(--bg);
+.page { position: fixed; z-index: 9; inset: 0 var(--gut) var(--tab-h); overflow-y: auto; -webkit-overflow-scrolling: touch; background: var(--bg);
   padding: calc(52px + env(safe-area-inset-top)) 16px 40px; }
 .page[hidden] { display: none; }
 .page h1 { font-family: var(--serif); font-size: 34px; line-height: 41px; font-weight: 700; letter-spacing: -.01em; }
@@ -199,9 +207,7 @@ button:active, a:active { opacity: .6; }
 .switch:checked::before { transform: translateX(20px); }
 
 /* ---- buttons ---- */
-.filled, .plain-filled { display: block; width: 100%; min-height: 50px; border-radius: 14px; font-weight: 600; text-align: center; }
-.filled { background: var(--surface-2); color: var(--ink); }
-.plain-filled { background: var(--surface-2); color: var(--ink); }
+.filled, .plain-filled { display: block; width: 100%; min-height: 50px; border-radius: 14px; font-weight: 600; text-align: center; background: var(--surface-2); color: var(--ink); }
 #somewhere { margin-top: 18px; }
 
 /* ---- search ---- */
@@ -235,6 +241,7 @@ dialog::backdrop { background: oklch(0% 0 0 / .6); }
 .sheet-head h2 { font-size: 17px; font-weight: 600; outline: 0; }
 .sheet-head .done { min-height: 44px; padding-left: 16px; color: var(--tint); font-weight: 600; }
 .grabber { position: absolute; top: 6px; left: 50%; width: 36px; height: 5px; margin-left: -18px; border-radius: 3px; background: var(--surface-2); }
+.compare-story + .group { margin-top: 12px; }      /* sport: no side's title in between */
 .compare-story { margin: 4px 0 0; font-family: var(--serif); font-size: 22px; line-height: 28px; font-weight: 600; text-wrap: pretty; }
 .state-note { margin: 0 16px 8px; }
 .compare-intro { margin: 16px 0 0; padding: 12px 16px; border-radius: 12px; background: var(--surface); font-size: 15px; line-height: 20px; color: var(--muted); }
@@ -243,27 +250,29 @@ dialog::backdrop { background: oklch(0% 0 0 / .6); }
 .headline-sub { font-size: 13px; line-height: 18px; color: var(--muted); }
 .headline-meta { font-size: 13px; line-height: 18px; color: var(--faint); }
 .headline.now::after { content: ""; position: absolute; top: 50%; right: 18px; width: 6px; height: 12px; margin-top: -8px; border: solid var(--ink); border-width: 0 2.2px 2.2px 0; transform: rotate(45deg); }
-.sheet .actions { margin-top: 28px; }
+.actions { margin-top: 28px; }
 .watch-link { color: var(--tint); font-weight: 500; }
 
-/* ---- welcome ---- */
-#welcome { position: fixed; inset: 0; width: 100%; max-width: 100%; height: 100%; max-height: 100%; margin: 0; }
-.welcome-step { display: flex; flex-direction: column; min-height: 100%; padding: calc(56px + env(safe-area-inset-top)) 28px calc(20px + env(safe-area-inset-bottom)); }
-.welcome-step h1 { margin-top: auto; font-family: var(--serif); font-size: 36px; line-height: 42px; font-weight: 700; letter-spacing: -.01em; text-align: center; outline: 0; text-wrap: balance; }
-.welcome-sides { display: flex; justify-content: center; gap: 16px; margin-top: 14px; font-size: 13px; color: var(--muted); }
-.welcome-sides span { display: flex; align-items: center; }
-.features { list-style: none; margin: 36px 0 0; padding: 0; display: grid; gap: 26px; }
+/* ---- welcome: a card over the bottom of the feed on a first visit. The feed ends where it begins (--welcome-h),
+   and a page opened from the tab bar covers it. Both buttons look the same: a real choice, either way. ---- */
+#welcome { position: fixed; z-index: 7; inset: auto var(--gut) var(--tab-h); padding: 16px 16px 14px; border-radius: 14px 14px 0 0; background: var(--surface); }
+#welcome[hidden] { display: none; }
+#welcome h1 { font-family: var(--serif); font-size: 22px; line-height: 28px; font-weight: 700; letter-spacing: -.01em; }
+.welcome-what { margin-top: 4px; font-size: 15px; line-height: 20px; color: var(--muted); }
+.welcome-what .dot { color: var(--ink); white-space: nowrap; }
+.welcome-what .dot::before { margin-right: 5px; }
+.welcome-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+#welcome .group-note { margin: 10px 0 0; font-size: 12px; line-height: 16px; color: var(--muted); }      /* the cookie notice: readable, not faint */
+#welcome .group-note a { color: var(--ink); }
+@media (max-height: 600px) { .welcome-what { display: none; } }      /* a short screen: the story behind it needs the room */
+.features { list-style: none; margin: 0; padding: 0; display: grid; gap: 22px; }
 .features li { display: grid; grid-template-columns: 30px 1fr; gap: 16px; align-items: start; }
 .features svg { width: 28px; height: 28px; margin-top: 1px; fill: none; stroke: var(--ink); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .features b { display: block; font-size: 16px; line-height: 21px; font-weight: 600; }
-.features span { display: block; margin-top: 3px; font-size: 15px; line-height: 20px; color: var(--muted); }
-#welcome .lead { margin-top: auto; padding-top: 28px; font-size: 14px; line-height: 19px; text-align: center; }
-.welcome-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
-#welcome .group-note { margin: 14px 0 0; text-align: center; color: var(--faint); }
-#welcome .group-note a { color: var(--muted); }
+.features span { display: block; margin-top: 3px; font-size: 15px; line-height: 21px; color: var(--muted); }
 
 /* ---- tab bar ---- */
-#tabbar { position: fixed; z-index: 10; inset: auto 0 0; height: var(--tab-h); padding-bottom: env(safe-area-inset-bottom); display: grid; grid-template-columns: repeat(5, 1fr); background: var(--bg); box-shadow: 0 -1px 0 var(--hair); }
+#tabbar { position: fixed; z-index: 10; inset: auto var(--gut) 0; height: var(--tab-h); padding-bottom: env(safe-area-inset-bottom); display: grid; grid-template-columns: repeat(5, 1fr); background: var(--bg); box-shadow: 0 -1px 0 var(--hair); }
 #tabbar button { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 10px; font-weight: 500; color: var(--faint); }
 #tabbar button:active { opacity: 1; }
 #tabbar svg { width: 25px; height: 25px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
@@ -290,6 +299,18 @@ dialog::backdrop { background: oklch(0% 0 0 / .6); }
   *, *::before { transition-duration: 0ms !important; animation-duration: 0ms !important; }
 }
 :root.videos { --meta-h: 124px; }
+/* a widescreen clip (marked in the feed): the video is only as tall as it is, and the other sides' headlines take the room
+   between the title and the buttons. An upright clip keeps the whole box; so does this one if fitCards finds no room.
+   Not from 1180px, where the same list is already beside the feed, and not on a screen too short for it. */
+.under { display: none; }
+@media (max-width: 1179.98px) and (min-height: 600px) {
+  :root.videos .clip.wide { grid-template-rows: calc((100vw - 2 * var(--gut)) * 9 / 16 + 3px) 1fr; }
+  .clip.wide .under { display: block; flex: 1; min-height: 0; margin-top: 10px; overflow: hidden auto; scrollbar-width: none; }
+  .clip.wide .under::-webkit-scrollbar { display: none; }
+  .under .tc-others { margin-top: 0; }
+  .under .tc-other { min-height: 44px; align-content: center; padding: 6px 0; gap: 2px; }
+  .under .tc-other-head { font-size: 15px; line-height: 20px; }
+}
 :root:not(.videos) .row { margin-top: auto; }     /* the title sits under the player; Text Only has it in the card */
 
 /* a short phone: smaller type first (then fitCards in app.js drops whole lines, never Left, Center or Right) */
@@ -310,10 +331,50 @@ dialog::backdrop { background: oklch(0% 0 0 / .6); }
 }
 
 @media (max-width: 340px) {
-  .welcome-step { padding-left: 20px; padding-right: 20px; padding-top: calc(28px + env(safe-area-inset-top)); }
-  .welcome-step h1 { font-size: 28px; line-height: 34px; }
-  .features { margin-top: 24px; gap: 16px; }
-  .welcome-actions { grid-template-columns: 1fr; }
+  .welcome-actions button { font-size: 15px; }
   .tc-head { font-size: 22px; line-height: 28px; }
   .side { font-size: 12px; }
+  .compare-btn b { display: none; }      /* room for the outlet and its rating */
+}
+
+/* ---- a wide screen ----
+   The app stays a phone-wide column in the middle, and --gut is the room either side of it. From 1180px that room
+   holds what the app is (#intro) and the Compare list of the story you're on (#beside, filled by app.js: WIDE there
+   must match). */
+#intro, #beside { display: none; }
+@media (hover: hover) {
+  .cell:is(button, a):hover, .side:not(.on, .all, [aria-disabled="true"]):hover { background: var(--surface-2); }
+  .tc-other:hover .tc-other-head, .tc-other:hover b { color: var(--ink); }
+  #tabbar button:hover { color: var(--muted); }
+  #tabbar button.on:hover { color: var(--ink); }
+}
+@media (min-width: 760px) and (min-height: 501px) {
+  :root { --gut: calc(50vw - 215px); }
+  body::after { content: ""; position: fixed; z-index: 11; inset: 0 var(--gut); border: solid var(--hair); border-width: 0 1px; pointer-events: none; }
+  .sheet { max-width: 430px; margin: auto auto 0; }
+}
+@media (min-width: 1180px) and (min-height: 501px) {
+  #intro, #beside { position: fixed; top: 0; bottom: 0; width: min(380px, var(--gut) - 72px); display: flex; flex-direction: column;
+    padding: 28px 0; overflow-y: auto; scrollbar-width: none; -webkit-user-select: text; user-select: text; }
+  #intro::-webkit-scrollbar, #beside::-webkit-scrollbar { display: none; }
+  #intro { right: calc(50vw + 215px + 40px); }
+  #intro > :first-child { margin-top: auto; }      /* centred when there's room, scrolled from the top when there isn't */
+  #intro > :last-child { margin-bottom: auto; }
+  .brand { display: flex; align-items: center; gap: 10px; font-size: 24px; line-height: 28px; font-weight: 600; letter-spacing: -.02em; }
+  .brand svg { width: 26px; height: 26px; fill: none; stroke-width: 112; }
+  .brand path { stroke: var(--c); }
+  #intro h2 { margin-top: 24px; font-family: var(--serif); font-size: 30px; line-height: 36px; font-weight: 700; letter-spacing: -.01em; text-wrap: balance; }
+  #intro .lead { margin-top: 10px; }
+  #intro .features { margin-top: 28px; }
+  kbd { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 5px; border-radius: 6px; background: var(--surface-2);
+    font: inherit; font-size: 12px; font-weight: 600; color: var(--ink); vertical-align: 1px; }
+  .scan { display: flex; align-items: center; gap: 14px; margin-top: 28px; font-size: 14px; line-height: 19px; color: var(--muted); }
+  .scan img { flex: none; border-radius: 8px; }
+  .intro-links { margin-top: 20px; font-size: 13px; line-height: 18px; color: var(--faint); }
+  .intro-links a { color: var(--muted); }
+  #beside { left: calc(50vw + 215px + 40px); }
+  #beside:has(#beside-body:empty) { display: none; }
+  #beside[inert] { opacity: .4; }      /* a page is open: the list is for the story behind it */
+  .compare-btn, .textcard .tc-others { display: none; }      /* the same headlines are already beside the feed */
+  #beside-title { margin: 0 0 12px; font-size: 13px; line-height: 18px; font-weight: 400; color: var(--muted); }
 }
