@@ -25,7 +25,7 @@
   --meta-h: 60px;
   --ease: cubic-bezier(.32, .72, 0, 1);
   --gut: 0px;                        /* the room either side of the app: none on a phone (see "a wide screen") */
-  --welcome-h: 0px;                  /* the welcome card's height while it shows, set by app.js */
+  --welcome-h: 0px;                  /* the welcome card's height while it shows, set by settings.js */
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink);
@@ -147,7 +147,7 @@ button:active, a:active { opacity: .6; }
 .compare-btn::after { content: ""; position: absolute; inset: -4px 0; }      /* a 44px target around the 36px button */
 .compare-btn b { font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; }
 
-/* ---- player + gesture layer (positioned by app.js) ---- */
+/* ---- player + gesture layer (positioned by feed.js) ---- */
 #player-wrap, #gesture { position: fixed; z-index: 5; }
 #player-wrap { background: none; }
 /* a headline can be copied (the page itself isn’t selectable, so a swipe never selects text) */
@@ -287,7 +287,7 @@ dialog::backdrop { background: oklch(0% 0 0 / .6); }
 .side-line b { color: var(--ink); font-weight: 600; }
 .recap-head { font-family: var(--serif); font-size: 18px; line-height: 23px; font-weight: 600; margin-bottom: 4px; }
 
-/* iPhones can't lock orientation from a web page, so a sideways phone gets this instead. Must match LANDSCAPE in app.js. */
+/* iPhones can't lock orientation from a web page, so a sideways phone gets this instead. Must match LANDSCAPE in shared.js. */
 #rotate { display: none; }
 @media (orientation: landscape) and (max-height: 500px) {
   #rotate { display: grid; place-items: center; position: fixed; inset: 0; z-index: 20; padding: 32px; text-align: center;
@@ -313,7 +313,7 @@ dialog::backdrop { background: oklch(0% 0 0 / .6); }
 }
 :root:not(.videos) .row { margin-top: auto; }     /* the title sits under the player; Text Only has it in the card */
 
-/* a short phone: smaller type first (then fitCards in app.js drops whole lines, never Left, Center or Right) */
+/* a short phone: smaller type first (then fitCards in feed.js drops whole lines, never Left, Center or Right) */
 @container card (max-height: 560px) {
   .tc-head { font-size: 22px; line-height: 28px; }
   .tc-others { margin-top: 24px; }
@@ -339,7 +339,7 @@ dialog::backdrop { background: oklch(0% 0 0 / .6); }
 
 /* ---- a wide screen ----
    The app stays a phone-wide column in the middle, and --gut is the room either side of it. From 1180px that room
-   holds what the app is (#intro) and the Compare list of the story you're on (#beside, filled by app.js: WIDE there
+   holds what the app is (#intro) and the Compare list of the story you're on (#beside, filled by compare.js: WIDE there
    must match). */
 #intro, #beside { display: none; }
 @media (hover: hover) {
