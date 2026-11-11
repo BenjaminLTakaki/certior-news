@@ -3,16 +3,23 @@
 // served and the network's answer still updates it. On a phone that just woke up, the network can hang for many
 // seconds, and waiting on it left the app reopening on "Loading stories…" for good.
 // ponytail: YouTube thumbnails and videos aren't kept (cross-origin, large); offline shows the text.
-const CACHE = 'swipe-news-v1';
+// Raise the number when files are added, renamed or removed: activate then deletes the older copies.
+const CACHE = 'certior-v2';
 const SCOPE = new URL(self.registration.scope);
 const SLOW_MS = 3000;
+// every file the app needs to open: app.js loads the others as modules, so a missing one would leave it blank offline
+const SHELL = ['./', 'style.css', 'card.js', ...['app', 'shared', 'feed', 'player', 'search', 'recap', 'world', 'compare', 'settings'].map((m) => `${m}.js`)];
 
 self.addEventListener('install', (e) => {
   self.skipWaiting();
   // the shell, so even a first visit opens offline next time (the feed is kept the first time it's fetched again)
-  e.waitUntil(caches.open(CACHE).then((c) => Promise.all(['./', 'app.js', 'card.js', 'style.css'].map((p) => c.add(p).catch(() => {})))));
+  e.waitUntil(caches.open(CACHE).then((c) => Promise.all(SHELL.map((p) => c.add(p).catch(() => {})))));
 });
-self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
+self.addEventListener('activate', (e) => e.waitUntil((async () => {
+  const old = (await caches.keys()).filter((k) => k !== CACHE && /^(swipe-news|certior)-/.test(k));      // only this app's
+  await Promise.all(old.map((k) => caches.delete(k)));
+  await self.clients.claim();
+})()));
 
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);

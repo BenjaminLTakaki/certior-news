@@ -506,3 +506,19 @@ def test_one_countrys_outlets_cant_flood_the_app(monkeypatch):
         return {"id": f"s{i}", "clips": [{"country": c} for c in countries]}
     stories = [st(0, "India"), st(1, "India", "India"), st(2, "India", "UK"), st(3, "India"), st(4, "US"), st(5, "India", "Japan")]
     assert [s["id"] for s in grouping.cap_one_country(stories)] == ["s0", "s1", "s2", "s4", "s5"]      # s3: a third India-only story
+
+
+def test_clip_shapes_are_asked_once_and_a_silent_youtube_waits_for_the_next_run(monkeypatch):
+    at = lambda h: (NOW - timedelta(hours=h)).isoformat().replace("+00:00", "Z")
+    store = {"new": {"id": "new", "published": at(1)}, "mid": {"id": "mid", "published": at(2)},
+             "old": {"id": "old", "published": at(3)}, "known": {"id": "known", "published": at(0), "wide": False}}
+    asked = []
+    answers = {"new": True, "mid": None, "old": False}
+    monkeypatch.setattr(youtube, "is_wide", lambda vid: asked.append(vid) or answers[vid])
+    assert run.add_shapes(store) == 1 and asked == ["new", "mid"]      # newest first; no answer ends this run's asking
+    assert store["new"]["wide"] is True and "wide" not in store["mid"] and "wide" not in store["old"]
+    answers["mid"] = False
+    assert run.add_shapes(store, limit=1) == 1 and "wide" not in store["old"]      # the cap holds
+    wide, tall = {**clip(0, "A", "europe"), "wide": True}, {**clip(1, "B", "europe"), "wide": False}
+    feed = grouping.build_stories([wide, tall], [[0, 1]], np.eye(2), NOW)[0]["clips"]
+    assert {c["channel"]: c.get("wide") for c in feed} == {"A": True, "B": None}      # only a widescreen clip carries the mark

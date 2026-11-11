@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <!-- YouTube embeds fail with "Error 153" when no Referer is sent; this is the policy YouTube recommends -->
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <title>Certior</title>
@@ -10,9 +10,11 @@
   <meta name="description" content="Short news clips from about 50 outlets worldwide. Swipe sideways to see how Left, Center and Right covered the same story.">
   <meta property="og:title" content="Certior">
   <meta property="og:description" content="Short news clips from about 50 outlets worldwide. Swipe sideways to see how Left, Center and Right covered the same story.">
-  <meta property="og:image" content="https://www.benjamintakaki.com/certior/icons/icon-512.png">
+  <meta property="og:image" content="https://www.benjamintakaki.com/certior/icons/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
   <meta property="og:type" content="website">
-  <meta name="twitter:card" content="summary">
+  <meta name="twitter:card" content="summary_large_image">
   <!-- /og -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
@@ -142,33 +144,44 @@
     <div id="compare-body"></div>
   </dialog>
 
-  <!-- one screen: what the app does, then the video choice; the ratings are explained the first time you open Compare -->
-  <dialog id="welcome" aria-labelledby="welcome-title">
-    <div class="welcome-step">
-      <h1 id="welcome-title" tabindex="-1" autofocus>Welcome to Certior</h1>
-      <p class="welcome-sides" aria-label="Every story from Left, Center and Right"><span class="dot" data-column="left">Left</span><span class="dot" data-column="center">Center</span><span class="dot" data-column="right">Right</span></p>
-      <ul class="features">
-        <li>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20V4m0 0L6.5 9.5M12 4l5.5 5.5"/></svg>
-          <div><b>Swipe up for the next story</b><span>Short clips from about 50 outlets around the world, biggest stories first.</span></div>
-        </li>
-        <li>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h16M4 12l4.5-4.5M4 12l4.5 4.5M20 12l-4.5-4.5M20 12l-4.5 4.5"/></svg>
-          <div><b>Swipe sideways for more outlets</b><span>Each side's clips sit together, Left, Center, Right. Hold the bar up top and slide to pick one.</span></div>
-        </li>
-        <li>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h11M4 12h16M4 17h8"/></svg>
-          <div><b>Compare the headlines</b><span>Every outlet's headline for a story on one page, word for word, grouped by side.</span></div>
-        </li>
-      </ul>
-      <p class="lead">Videos play from YouTube, which can set cookies on this device and may track what you watch. Without them you still get every headline, with links to YouTube.</p>
-      <div class="welcome-actions">
-        <button type="button" id="consent-videos" class="plain-filled">Turn On Videos</button>
-        <button type="button" id="consent-text" class="plain-filled">Text Only</button>
-      </div>
-      <p class="group-note">Turning on videos means agreeing to the <a href="https://www.youtube.com/t/terms" target="_blank" rel="noopener">YouTube Terms of Service</a>. See our <a href="privacy.html">Privacy Policy</a>. You can change this any time in Settings.</p>
+  <!-- A first visit: the stories are already there, as text, and this card sits over the bottom of the feed.
+       Nothing loads from YouTube until Turn On Videos. The ratings are explained the first time you open Compare. -->
+  <aside id="welcome" aria-labelledby="welcome-title" hidden>
+    <h1 id="welcome-title">Welcome to Certior</h1>
+    <p class="welcome-what">One story per screen. Swipe up for the next, and sideways to see how <span class="dot" data-column="left">Left</span>, <span class="dot" data-column="center">Center</span> and <span class="dot" data-column="right">Right</span> covered it.</p>
+    <div class="welcome-actions">
+      <button type="button" id="consent-videos" class="plain-filled">Turn On Videos</button>
+      <button type="button" id="consent-text" class="plain-filled">Text Only</button>
     </div>
-  </dialog>
+    <p class="group-note">Videos play from YouTube, which can set cookies on this device and may track what you watch. Turning them on means agreeing to the <a href="https://www.youtube.com/t/terms" target="_blank" rel="noopener">YouTube Terms of Service</a>. See our <a href="privacy.html">Privacy Policy</a>. You can change this any time in Settings.</p>
+  </aside>
+
+  <!-- a wide screen only (style.css): what this is on the left of the app, the story's Compare list on its right -->
+  <aside id="intro" aria-label="About Certior">
+    <p class="brand"><svg viewBox="0 0 640 640" aria-hidden="true"><path data-column="left" d="M512.3,144.8 A250,250 0 0 0 177.2,125.3"/><path data-column="center" d="M148.7,152.2 A250,250 0 0 0 148.7,487.8"/><path data-column="right" d="M177.2,514.7 A250,250 0 0 0 512.3,495.2"/></svg>certior</p>
+    <h2>The same story, as Left, Center and Right told it.</h2>
+    <p class="lead">Short news clips from about 50 outlets worldwide. Everyone gets the same feed: no accounts, no personalisation.</p>
+    <ul class="features">
+      <li>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20V4m0 0L6.5 9.5M12 4l5.5 5.5"/></svg>
+        <div><b>One story per screen</b><span>The biggest stories first. <kbd>↑</kbd> <kbd>↓</kbd> or scroll for the next one.</span></div>
+      </li>
+      <li>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h16M4 12l4.500-4.500M4 12l4.500 4.500M20 12l-4.500-4.500M20 12l-4.500 4.500"/></svg>
+        <div><b>Every outlet that covered it</b><span>Each side's clips sit together. <kbd>←</kbd> <kbd>→</kbd> for the next outlet, or pick a side up top.</span></div>
+      </li>
+      <li>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h11M4 12h16M4 17h8"/></svg>
+        <div><b>The headlines, word for word</b><span>On the right, every outlet's headline for the story you're on. Pick one to go to it.</span></div>
+      </li>
+    </ul>
+    <p class="scan"><img src="icons/qr.svg" width="84" height="84" alt="QR code for www.benjamintakaki.com/certior"><span>Made for a phone. Scan to open it on yours.</span></p>
+    <p class="intro-links"><a href="how-it-works.html">How this works</a> · <a href="privacy.html">Privacy</a> · <a href="https://www.benjamintakaki.com/project/certior">Built by Benjamin Takaki</a></p>
+  </aside>
+  <aside id="beside" aria-labelledby="beside-title">
+    <h2 id="beside-title">Compare Headlines</h2>
+    <div id="beside-body"></div>
+  </aside>
 
   <div id="rotate" role="status">Certior needs a tall screen. Turn your phone upright to keep watching.</div>
 
