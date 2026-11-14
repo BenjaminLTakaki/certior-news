@@ -1,0 +1,110 @@
+{
+ "date": "2026-11-05",
+ "rounds": [
+  {
+   "ask": "left",
+   "clips": [
+    {
+     "id": "BAOlKPt6mMw",
+     "title": "Iran reacts to Donald Trump's midterm DEFEAT - Americans voted 'NO TO WAR'",
+     "channel": "GB News",
+     "country": "UK",
+     "column": "right",
+     "note": ""
+    },
+    {
+     "id": "zAVfqAe3xcc",
+     "title": "Iran sees vindication as US election results fuel anti-war sentiment",
+     "channel": "Al Jazeera English",
+     "country": "Qatar",
+     "column": "left",
+     "note": "Al Jazeera is funded in whole or in part by the Qatari government."
+    }
+   ]
+  },
+  {
+   "ask": "right",
+   "clips": [
+    {
+     "id": "5btyd4G3TYM",
+     "title": "Supporters Celebrate the Democratic Win in Texas",
+     "channel": "Al Arabiya English",
+     "country": "Saudi Arabia",
+     "column": "right",
+     "note": "Al Arabiya is funded in whole or in part by the Saudi government."
+    },
+    {
+     "id": "RyqCxNuwY5A",
+     "title": "Tears, cheers and disbelief: Voters celebrate as Democrats flip red states",
+     "channel": "CNN",
+     "country": "US",
+     "column": "left",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "ask": "left",
+   "clips": [
+    {
+     "id": "UH6Pp81XBC8",
+     "title": "Police bodycam captures moments before deadly Russian strike in Ukraine",
+     "channel": "Al Jazeera English",
+     "country": "Qatar",
+     "column": "left",
+     "note": "Al Jazeera is funded in whole or in part by the Qatari government."
+    },
+    {
+     "id": "gmbGBrHkqu0",
+     "title": "Slain Officer's Bodycam Captures Moment Russian Airstrike Hits Ukraine's Underground School",
+     "channel": "New York Post",
+     "country": "US",
+     "column": "right",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "ask": "left",
+   "clips": [
+    {
+     "id": "l_cmKGS1GTI",
+     "title": "Drone attack sparks fire at Ozon warehouse in Russia",
+     "channel": "TRT World",
+     "country": "Turkey",
+     "column": "right",
+     "note": "TRT is a Turkish public broadcast service."
+    },
+    {
+     "id": "bUvpUkoTklY",
+     "title": "Drone strike sets Ozon warehouse ablaze in southern Russia",
+     "channel": "euronews",
+     "country": "France",
+     "column": "left",
+     "note": "Euronews is funded in whole or in part by the European Union."
+    }
+   ]
+  },
+  {
+   "ask": "left",
+   "clips": [
+    {
+     "id": "urk9HgL6TXM",
+     "title": "France braces for nationwide strike over cost of living",
+     "channel": "Al Jazeera English",
+     "country": "Qatar",
+     "column": "left",
+     "note": "Al Jazeera is funded in whole or in part by the Qatari government."
+    },
+    {
+     "id": "covtQ4c999o",
+     "title": "Nationwide strike brings France to standstill",
+     "channel": "i24NEWS English",
+     "country": "Israel",
+     "column": "right",
+     "note": ""
+    }
+   ]
+  }
+ ]
+}
