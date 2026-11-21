@@ -1,0 +1,327 @@
+{
+ "@CNN": {
+  "channel_id": "UCupvZG-5ko_eiXAupbDfxWw",
+  "uploads": "UUupvZG-5ko_eiXAupbDfxWw",
+  "title": "CNN"
+ },
+ "@msnow": {
+  "channel_id": "UCaXkIU1QidjPwiAYu6GcHjg",
+  "uploads": "UUaXkIU1QidjPwiAYu6GcHjg",
+  "title": "MS NOW"
+ },
+ "@NBCNews": {
+  "channel_id": "UCeY0bbntWzzVIaj2z3QigXg",
+  "uploads": "UUeY0bbntWzzVIaj2z3QigXg",
+  "title": "NBC News"
+ },
+ "@ABCNews": {
+  "channel_id": "UCBi2mrWuNuyYy4gbM6fU18Q",
+  "uploads": "UUBi2mrWuNuyYy4gbM6fU18Q",
+  "title": "ABC News"
+ },
+ "@CBSNews": {
+  "channel_id": "UC8p1vwvWtl6T73JiExfWs1g",
+  "uploads": "UU8p1vwvWtl6T73JiExfWs1g",
+  "title": "CBS News"
+ },
+ "@PBSNewsHour": {
+  "channel_id": "UC6ZFN9Tx6xh-skXCuRHCDpQ",
+  "uploads": "UU6ZFN9Tx6xh-skXCuRHCDpQ",
+  "title": "PBS NewsHour"
+ },
+ "@NPR": {
+  "channel_id": "UCJnS2EsPfv46u1JR8cnD0NA",
+  "uploads": "UUJnS2EsPfv46u1JR8cnD0NA",
+  "title": "NPR"
+ },
+ "@AssociatedPress": {
+  "channel_id": "UC52X5wxOL_s5yw0dQk7NtgA",
+  "uploads": "UU52X5wxOL_s5yw0dQk7NtgA",
+  "title": "Associated Press"
+ },
+ "@Reuters": {
+  "channel_id": "UChqUTb7kYRX8-EiaN3XFrSQ",
+  "uploads": "UUhqUTb7kYRX8-EiaN3XFrSQ",
+  "title": "Reuters"
+ },
+ "@NewsNation": {
+  "channel_id": "UCCjG8NtOig0USdrT5D1FpxQ",
+  "uploads": "UUCjG8NtOig0USdrT5D1FpxQ",
+  "title": "NewsNation"
+ },
+ "@thehill": {
+  "channel_id": "UCPWXiRWZ29zrxPFIQT7eHSA",
+  "uploads": "UUPWXiRWZ29zrxPFIQT7eHSA",
+  "title": "The Hill"
+ },
+ "@wsj": {
+  "channel_id": "UCK7tptUDHh-RYDsdxO1-5QQ",
+  "uploads": "UUK7tptUDHh-RYDsdxO1-5QQ",
+  "title": "The Wall Street Journal"
+ },
+ "@StraightArrowNews": {
+  "channel_id": "UCuL3xV8AqD3sekKOhhyZqOA",
+  "uploads": "UUuL3xV8AqD3sekKOhhyZqOA",
+  "title": "Straight Arrow"
+ },
+ "@FoxNews": {
+  "channel_id": "UCXIJgqnII2ZOINSWNOGFThA",
+  "uploads": "UUXIJgqnII2ZOINSWNOGFThA",
+  "title": "Fox News"
+ },
+ "@NEWSMAX": {
+  "channel_id": "UCaDCI0bxPZ_ZHdtx9LXOxRw",
+  "uploads": "UUaDCI0bxPZ_ZHdtx9LXOxRw",
+  "title": "Newsmax"
+ },
+ "@nypost": {
+  "channel_id": "UCrvhNP_lWuPIP6QZzJmM-bw",
+  "uploads": "UUrvhNP_lWuPIP6QZzJmM-bw",
+  "title": "New York Post"
+ },
+ "@dailywire": {
+  "channel_id": "UCaeO5vkdj5xOQHp4UmIN6dw",
+  "uploads": "UUaeO5vkdj5xOQHp4UmIN6dw",
+  "title": "The Daily Wire"
+ },
+ "@DailyCaller": {
+  "channel_id": "UCP4BdwPKyYnfRLjSNfGAPRA",
+  "uploads": "UUP4BdwPKyYnfRLjSNfGAPRA",
+  "title": "Daily Caller"
+ },
+ "@WashingtonExaminer": {
+  "channel_id": "UC8BxSGcBKriJvoeyKOnJ6tA",
+  "uploads": "UU8BxSGcBKriJvoeyKOnJ6tA",
+  "title": "The Washington Examiner"
+ },
+ "@aljazeeraenglish": {
+  "channel_id": "UCNye-wNBqNL5ZzHSJj3l8Bg",
+  "uploads": "UUNye-wNBqNL5ZzHSJj3l8Bg",
+  "title": "Al Jazeera English"
+ },
+ "@TRTWorld": {
+  "channel_id": "UC7fWeaHhqgM4Ry-RMpM2YYw",
+  "uploads": "UU7fWeaHhqgM4Ry-RMpM2YYw",
+  "title": "TRT World"
+ },
+ "@AlArabiyaEnglish": {
+  "channel_id": "UCIZJ9a6P_nxCFJTmL0gh_IQ",
+  "uploads": "UUIZJ9a6P_nxCFJTmL0gh_IQ",
+  "title": "Al Arabiya English"
+ },
+ "@i24NEWS_EN": {
+  "channel_id": "UCvHDpsWKADrDia0c99X37vg",
+  "uploads": "UUvHDpsWKADrDia0c99X37vg",
+  "title": "i24NEWS English"
+ },
+ "@africanews": {
+  "channel_id": "UC1_E8NeF5QHY2dtdLRBCCLA",
+  "uploads": "UU1_E8NeF5QHY2dtdLRBCCLA",
+  "title": "africanews"
+ },
+ "@SABCDigitalNews": {
+  "channel_id": "UC8yH-uI81UUtEMDsowQyx1g",
+  "uploads": "UU8yH-uI81UUtEMDsowQyx1g",
+  "title": "SABC News"
+ },
+ "@channelstelevision": {
+  "channel_id": "UCEXGDNclvmg6RW0vipJYsTQ",
+  "uploads": "UUEXGDNclvmg6RW0vipJYsTQ",
+  "title": "Channels Television"
+ },
+ "@NTVKenyaOnline": {
+  "channel_id": "UCqBJ47FjJcl61fmSbcadAVg",
+  "uploads": "UUqBJ47FjJcl61fmSbcadAVg",
+  "title": "NTV Kenya"
+ },
+ "@CBCNews": {
+  "channel_id": "UCuFFtHWoLl5fauMMD5Ww2jA",
+  "uploads": "UUuFFtHWoLl5fauMMD5Ww2jA",
+  "title": "CBC News"
+ },
+ "@teleSUREnglish": {
+  "channel_id": "UCmuTmpLY35O3csvhyA6vrkg",
+  "uploads": "UUmuTmpLY35O3csvhyA6vrkg",
+  "title": "TeleSUR English"
+ },
+ "@channelnewsasia": {
+  "channel_id": "UC83jt4dlz1Gjl58fzQrrKZg",
+  "uploads": "UU83jt4dlz1Gjl58fzQrrKZg",
+  "title": "CNA"
+ },
+ "@NHKWORLDJAPAN": {
+  "channel_id": "UCSPEjw8F2nQDtmUKPFNF7_A",
+  "uploads": "UUSPEjw8F2nQDtmUKPFNF7_A",
+  "title": "NHK WORLD-JAPAN"
+ },
+ "@WION": {
+  "channel_id": "UC_gUM8rL-Lrg6O3adPW9K1g",
+  "uploads": "UU_gUM8rL-Lrg6O3adPW9K1g",
+  "title": "WION"
+ },
+ "@NDTV": {
+  "channel_id": "UCZFMm1mMw0F81Z37aaEzTUA",
+  "uploads": "UUZFMm1mMw0F81Z37aaEzTUA",
+  "title": "NDTV"
+ },
+ "@SouthChinaMorningPost": {
+  "channel_id": "UC4SUWizzKc1tptprBkWjX2Q",
+  "uploads": "UU4SUWizzKc1tptprBkWjX2Q",
+  "title": "South China Morning Post"
+ },
+ "@abcnewsaustralia": {
+  "channel_id": "UCVgO39Bk5sMo66-6o6Spn6Q",
+  "uploads": "UUVgO39Bk5sMo66-6o6Spn6Q",
+  "title": "ABC News (Australia)"
+ },
+ "@ArirangCoKrArirangNEWS": {
+  "channel_id": "UCzznO4xSV8BKnUBPyswtCUw",
+  "uploads": "UUzznO4xSV8BKnUBPyswtCUw",
+  "title": "Arirang News"
+ },
+ "@BBCNews": {
+  "channel_id": "UC16niRr50-MSBwiO3YDb3RA",
+  "uploads": "UU16niRr50-MSBwiO3YDb3RA",
+  "title": "BBC News"
+ },
+ "@SkyNews": {
+  "channel_id": "UCoMdktPbSTixAyNGwb-UYkQ",
+  "uploads": "UUoMdktPbSTixAyNGwb-UYkQ",
+  "title": "Sky News"
+ },
+ "@guardiannews": {
+  "channel_id": "UCIRYBXDze5krPDzAEOxFGVA",
+  "uploads": "UUIRYBXDze5krPDzAEOxFGVA",
+  "title": "Guardian News"
+ },
+ "@dwnews": {
+  "channel_id": "UCknLrEdhRCp1aegoMqRaCZg",
+  "uploads": "UUknLrEdhRCp1aegoMqRaCZg",
+  "title": "DW News"
+ },
+ "@France24_en": {
+  "channel_id": "UCQfwfsi5VrQ8yKZ-UWmAEFg",
+  "uploads": "UUQfwfsi5VrQ8yKZ-UWmAEFg",
+  "title": "FRANCE 24 English"
+ },
+ "@News24": {
+  "channel_id": "UCO0akufu9MOzyz3nvGIXAAw",
+  "uploads": "UUO0akufu9MOzyz3nvGIXAAw",
+  "title": "News24"
+ },
+ "@GBNewsOnline": {
+  "channel_id": "UC0vn8ISa4LKMunLbzaXLnOQ",
+  "uploads": "UU0vn8ISa4LKMunLbzaXLnOQ",
+  "title": "GBNews"
+ },
+ "@arabnews": {
+  "channel_id": "UCI8DegIWgK51cGakXcf1dOQ",
+  "uploads": "UUI8DegIWgK51cGakXcf1dOQ",
+  "title": "Arab News"
+ },
+ "@timesofindia": {
+  "channel_id": "UCckHqySbfy5FcPP6MD_S-Yg",
+  "uploads": "UUckHqySbfy5FcPP6MD_S-Yg",
+  "title": "Times Of India"
+ },
+ "@IndiaToday": {
+  "channel_id": "UCYPvAwZP8pZhSMW8qs7cVCw",
+  "uploads": "UUYPvAwZP8pZhSMW8qs7cVCw",
+  "title": "India Today"
+ },
+ "@telegraph": {
+  "channel_id": "UCPgLNge0xqQHWM5B5EFH9Cg",
+  "uploads": "UUPgLNge0xqQHWM5B5EFH9Cg",
+  "title": "The Telegraph"
+ },
+ "@DailyMail": {
+  "channel_id": "UCw3fku0sH3qA3c3pZeJwdAw",
+  "uploads": "UUw3fku0sH3qA3c3pZeJwdAw",
+  "title": "Daily Mail World"
+ },
+ "@euronews": {
+  "channel_id": "UCSrZ3UV4jOidv8ppoVuvW9Q",
+  "uploads": "UUSrZ3UV4jOidv8ppoVuvW9Q",
+  "title": "euronews"
+ },
+ "@BBCSport": {
+  "channel_id": "UCW6-BQWFA70Dyyc7ZpZ9Xlg",
+  "uploads": "UUW6-BQWFA70Dyyc7ZpZ9Xlg",
+  "title": "BBC Sport"
+ },
+ "@SkySportsNews": {
+  "channel_id": "UCcw05gGzjLIs5dnxGkQHMvw",
+  "uploads": "UUcw05gGzjLIs5dnxGkQHMvw",
+  "title": "Sky Sports News"
+ },
+ "@espn": {
+  "channel_id": "UCiWLfSweyRNmLpgEHekhoAg",
+  "uploads": "UUiWLfSweyRNmLpgEHekhoAg",
+  "title": "ESPN"
+ },
+ "@beINSPORTS": {
+  "channel_id": "UCJUCcJUeh0Cz2xyKwkw5Q1w",
+  "uploads": "UUJUCcJUeh0Cz2xyKwkw5Q1w",
+  "title": "beIN SPORTS"
+ },
+ "@Variety": {
+  "channel_id": "UCgRQHK8Ttr1j9xCEpCAlgbQ",
+  "uploads": "UUgRQHK8Ttr1j9xCEpCAlgbQ",
+  "title": "Variety"
+ },
+ "@HollywoodReporter": {
+  "channel_id": "UCZ8Sxmkweh65HetaZfR8YuA",
+  "uploads": "UUZ8Sxmkweh65HetaZfR8YuA",
+  "title": "The Hollywood Reporter"
+ },
+ "@RollingStone": {
+  "channel_id": "UC-JblcinswY50lrUdSaRNEg",
+  "uploads": "UU-JblcinswY50lrUdSaRNEg",
+  "title": "Rolling Stone"
+ },
+ "@billboard": {
+  "channel_id": "UCsVcseUYbYjldc-XgcsiEbg",
+  "uploads": "UUsVcseUYbYjldc-XgcsiEbg",
+  "title": "Billboard"
+ },
+ "@Vogue": {
+  "channel_id": "UCRXiA3h1no_PFkb1JCP0yMA",
+  "uploads": "UURXiA3h1no_PFkb1JCP0yMA",
+  "title": "Vogue"
+ },
+ "@WIRED": {
+  "channel_id": "UCftwRNsjfRo08xYE31tkiyw",
+  "uploads": "UUftwRNsjfRo08xYE31tkiyw",
+  "title": "WIRED"
+ },
+ "@TheVerge": {
+  "channel_id": "UCddiUEpeqJcYeBxX1IVBKvQ",
+  "uploads": "UUddiUEpeqJcYeBxX1IVBKvQ",
+  "title": "The Verge"
+ },
+ "@NatureVideoChannel": {
+  "channel_id": "UC7c8mE90qCtu11z47U0KErg",
+  "uploads": "UU7c8mE90qCtu11z47U0KErg",
+  "title": "nature video"
+ },
+ "@CNBCi": {
+  "channel_id": "UCo7a6riBFJ3tkeHjvkXPn1g",
+  "uploads": "UUo7a6riBFJ3tkeHjvkXPn1g",
+  "title": "CNBC International"
+ },
+ "@markets": {
+  "channel_id": "UCIALMKvObZNtJ6AmdCLP7Lg",
+  "uploads": "UUIALMKvObZNtJ6AmdCLP7Lg",
+  "title": "Bloomberg Television"
+ },
+ "@FinancialTimes": {
+  "channel_id": "UCoUxsWakJucWg46KW5RsvPw",
+  "uploads": "UUoUxsWakJucWg46KW5RsvPw",
+  "title": "Financial Times"
+ },
+ "@TheEconomist": {
+  "channel_id": "UC0p5jTq6Xx_DosDFxVXnWaQ",
+  "uploads": "UU0p5jTq6Xx_DosDFxVXnWaQ",
+  "title": "The Economist"
+ }
+}
